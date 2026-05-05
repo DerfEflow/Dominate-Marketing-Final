@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-rocket fa-3x text-primary mb-3"></i>
+                        <h3 class="card-title">Get Started</h3>
+                        <p class="text-muted">Create your account and start generating viral campaigns</p>
+                    </div>
+
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('auth.google_login') }}" class="btn btn-primary">
+                            <i class="fab fa-google me-2"></i>
+                            Sign Up with Google
+                        </a>
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Already have an account? 
+                                <a href="{{ url_for('auth.login') }}" class="text-decoration-none">Sign in</a>
+                            </small>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                By signing up, you agree to our 
+                                <a href="{{ url_for('terms') }}" class="text-decoration-none">Terms of Service</a> 
+                                and 
+                                <a href="{{ url_for('privacy') }}" class="text-decoration-none">Privacy Policy</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick feature highlights -->
+    <div class="row mt-5">
+        <div class="col-md-4 text-center">
+            <i class="fas fa-brain fa-2x text-primary mb-2"></i>
+            <h6>AI-Powered Analysis</h6>
+            <small class="text-muted">Deep competitor research and market analysis</small>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-video fa-2x text-success mb-2"></i>
+            <h6>Auto Video Generation</h6>
+            <small class="text-muted">Professional videos created in minutes</small>
+        </div>
+        <div class="col-md-4 text-center">
+            <i class="fas fa-share-alt fa-2x text-info mb-2"></i>
+            <h6>Smart Social Posting</h6>
+            <small class="text-muted">Automated posting to all your accounts</small>
+        </div>
+    </div>
+</div>
+{% endblock %}

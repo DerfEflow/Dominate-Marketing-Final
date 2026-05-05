@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block title %}Trends Demo - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                <i class="fas fa-fire me-3"></i>Viral Trends Demo
+            </h1>
+            <p class="lead text-muted mb-4">
+                Experience category-aware viral trend harvesting that automatically analyzes your content 
+                and discovers trending topics in your industry
+            </p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                This demo shows our AI analyzing any webpage URL to detect categories and trending topics.
+                <strong>Sign up to access full trending analysis with real-time data!</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Form -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h4 class="mb-0 text-center">
+                        <i class="fas fa-chart-line me-2"></i>Try Our Trend Analysis
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="demoForm" class="needs-validation" novalidate>
+                        <div class="mb-4">
+                            <label for="demoUrl" class="form-label fw-bold">
+                                <i class="fas fa-link me-2"></i>Website or Product Page URL
+                            </label>
+                            <input type="url" class="form-control form-control-lg" id="demoUrl" 
+                                   placeholder="https://example.com/your-product-page" required>
+                            <div class="form-text">
+                                Enter any business or product page URL - we'll analyze it and find trending topics in your industry
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter a valid URL
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeNews" checked>
+                                    <label class="form-check-label" for="includeNews">
+                                        <i class="fas fa-newspaper me-2"></i>Include News Trends
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeVideo" checked>
+                                    <label class="form-check-label" for="includeVideo">
+                                        <i class="fab fa-youtube me-2"></i>Include Video Trends
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-rocket me-2"></i>Analyze Trends Now
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="d-none">
+        <!-- Analysis Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary" id="statusCard">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border text-primary me-3" role="status" id="analysisSpinner">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Analysis Status</h6>
+                                <p class="mb-0 text-muted" id="analysisStatus">Starting viral trend analysis...</p>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" id="analysisProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="analysisResults" class="d-none">
+            <!-- Category Detection -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Detected Category & Keywords</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <h6 class="text-muted">Detected Category</h6>
+                                    <h3 id="detectedCategory" class="text-primary fw-bold">-</h3>
+                                    <div class="small text-muted">
+                                        <span>Trends ID: <span id="trendsId">-</span></span> |
+                                        <span>YouTube ID: <span id="youtubeId">-</span></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <h6 class="text-muted mb-3">Top Keywords Extracted</h6>
+                                    <div id="keywordCloud" class="d-flex flex-wrap gap-2">
+                                        <!-- Keywords will populate here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends Visualization -->
+            <div class="row mb-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Interest Over Time (7 Days)</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="trendsChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="fas fa-fire me-2"></i>Rising Search Queries</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="risingQueries">
+                                <!-- Rising queries populate here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Trends -->
+            <div class="row mb-4">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="fab fa-youtube me-2"></i>Trending Videos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="trendingVideos" class="text-center text-muted p-4">
+                                <i class="fab fa-youtube fa-3x mb-3"></i>
+                                <p>Video trend analysis coming soon...</p>
+                                <small>Sign up for full access to YouTube trending analysis</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="fas fa-newspaper me-2"></i>Related News</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="relatedNews" class="text-center text-muted p-4">
+                                <i class="fas fa-newspaper fa-3x mb-3"></i>
+                                <p>News trend analysis coming soon...</p>
+                                <small>Sign up for full access to news sentiment analysis</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="card-body text-center p-4">
+                            <h3 class="mb-3">Ready to Dominate with Real Trends?</h3>
+                            <p class="lead mb-4">
+                                This demo shows basic trend detection. Get the full platform with real-time viral trends,
+                                competitive intelligence, and AI-powered campaign generation.
+                            </p>
+                            <div class="row justify-content-center">
+                                <div class="col-auto">
+                                    <a href="/auth/google_login" class="btn btn-light btn-lg px-4">
+                                        <i class="fab fa-google me-2"></i>Sign Up with Google
+                                    </a>
+                                </div>
+                                <div class="col-auto">
+                                    <a href="/features" class="btn btn-outline-light btn-lg px-4">
+                                        <i class="fas fa-info-circle me-2"></i>View Features
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let currentAnalysisId = null;
+let statusCheckInterval = null;
+let trendsChart = null;
+
+// Form validation and submission
+document.getElementById('demoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    if (!form.checkValidity()) {
+        e.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+    }
+    
+    const url = document.getElementById('demoUrl').value.trim();
+    startTrendsAnalysis(url);
+});
+
+async function startTrendsAnalysis(url) {
+    // Show results section
+    document.getElementById('resultsSection').classList.remove('d-none');
+    document.getElementById('analysisResults').classList.add('d-none');
+    
+    // Reset status
+    const spinner = document.getElementById('analysisSpinner');
+    const status = document.getElementById('analysisStatus');
+    const progress = document.getElementById('analysisProgress');
+    
+    spinner.classList.remove('d-none');
+    status.textContent = 'Starting viral trend analysis...';
+    progress.style.width = '10%';
+    
+    try {
+        const response = await fetch('/api/trends/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: url })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            currentAnalysisId = data.run_id;
+            status.textContent = 'Analysis started! Processing content...';
+            progress.style.width = '25%';
+            startStatusPolling();
+        } else {
+            throw new Error(data.error || 'Failed to start analysis');
+        }
+        
+    } catch (error) {
+        spinner.classList.add('d-none');
+        status.textContent = 'Error: ' + error.message;
+        document.getElementById('statusCard').classList.add('border-danger');
+        progress.classList.add('bg-danger');
+    }
+}
+
+function startStatusPolling() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+    }
+    
+    statusCheckInterval = setInterval(checkAnalysisStatus, 2000);
+    checkAnalysisStatus(); // Check immediately
+}
+
+async function checkAnalysisStatus() {
+    if (!currentAnalysisId) return;
+    
+    try {
+        const response = await fetch(`/api/trends/runs/${currentAnalysisId}/status`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const status = document.getElementById('analysisStatus');
+            const progress = document.getElementById('analysisProgress');
+            
+            switch(data.status) {
+                case 'running':
+                    status.textContent = 'Analyzing content and extracting keywords...';
+                    progress.style.width = '50%';
+                    break;
+                case 'completed':
+                    status.textContent = 'Analysis complete! Loading results...';
+                    progress.style.width = '100%';
+                    clearInterval(statusCheckInterval);
+                    setTimeout(loadAnalysisResults, 1000);
+                    break;
+                case 'failed':
+                    status.textContent = 'Analysis failed: ' + (data.notes || 'Unknown error');
+                    document.getElementById('analysisSpinner').classList.add('d-none');
+                    document.getElementById('statusCard').classList.add('border-danger');
+                    progress.classList.add('bg-danger');
+                    clearInterval(statusCheckInterval);
+                    break;
+            }
+        }
+    } catch (error) {
+        console.error('Status check failed:', error);
+    }
+}
+
+async function loadAnalysisResults() {
+    try {
+        const response = await fetch(`/api/trends/runs/${currentAnalysisId}/results`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+            
+            // Hide spinner and show results
+            document.getElementById('analysisSpinner').classList.add('d-none');
+            document.getElementById('analysisStatus').textContent = 'Analysis completed successfully!';
+            document.getElementById('statusCard').classList.add('border-success');
+            document.getElementById('analysisResults').classList.remove('d-none');
+        } else {
+            throw new Error(data.error || 'Failed to load results');
+        }
+        
+    } catch (error) {
+        document.getElementById('analysisStatus').textContent = 'Error loading results: ' + error.message;
+        document.getElementById('statusCard').classList.add('border-danger');
+    }
+}
+
+function displayResults(data) {
+    // Display category info
+    document.getElementById('detectedCategory').textContent = data.detected_category.name;
+    document.getElementById('trendsId').textContent = data.detected_category.trends_id;
+    document.getElementById('youtubeId').textContent = data.detected_category.youtube_id;
+    
+    // Display keywords
+    const keywordCloud = document.getElementById('keywordCloud');
+    keywordCloud.innerHTML = '';
+    data.keywords.slice(0, 15).forEach((kw, index) => {
+        const badge = document.createElement('span');
+        const colors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'dark'];
+        badge.className = `badge bg-${colors[index % colors.length]} me-2 mb-2`;
+        badge.style.fontSize = Math.max(0.8, 1.2 - (index * 0.05)) + 'rem';
+        badge.textContent = `${kw.keyword} (${kw.score.toFixed(2)})`;
+        keywordCloud.appendChild(badge);
+    });
+    
+    // Display trends chart
+    displayTrendsChart(data.trends_interest);
+    
+    // Display rising queries
+    const risingQueries = document.getElementById('risingQueries');
+    risingQueries.innerHTML = '';
+    
+    if (data.rising_queries && data.rising_queries.length > 0) {
+        data.rising_queries.slice(0, 8).forEach(query => {
+            const item = document.createElement('div');
+            item.className = 'd-flex justify-content-between align-items-center py-2 border-bottom';
+            item.innerHTML = `
+                <span class="fw-medium">${query.query}</span>
+                <span class="badge bg-danger">${query.value}% 🔥</span>
+            `;
+            risingQueries.appendChild(item);
+        });
+    } else {
+        risingQueries.innerHTML = '<div class="text-muted text-center p-3">No rising queries found</div>';
+    }
+}
+
+function displayTrendsChart(trendsData) {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+    
+    if (trendsChart) {
+        trendsChart.destroy();
+    }
+    
+    if (!trendsData || Object.keys(trendsData).length === 0) {
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6c757d';
+        ctx.textAlign = 'center';
+        ctx.fillText('No trend data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+    }
+    
+    // Process trends data for chart
+    const keywords = Object.keys(trendsData).slice(0, 5);
+    const colors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6610f2'];
+    
+    const datasets = keywords.map((keyword, index) => ({
+        label: keyword,
+        data: trendsData[keyword].map(item => ({
+            x: item.date,
+            y: item.interest
+        })),
+        borderColor: colors[index],
+        backgroundColor: colors[index] + '20',
+        fill: false,
+        tension: 0.4
+    }));
+    
+    trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: datasets },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        parser: 'YYYY-MM-DD',
+                        displayFormats: {
+                            day: 'MMM DD'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Interest Level'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
+}
+
+// Smooth scrolling to results
+function scrollToResults() {
+    document.getElementById('resultsSection').scrollIntoView({
+        behavior: 'smooth'
+    });
+}
+
+// Auto-scroll when results show
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            const target = mutation.target;
+            if (target.id === 'analysisResults' && !target.classList.contains('d-none')) {
+                setTimeout(scrollToResults, 500);
+            }
+        }
+    });
+});
+
+observer.observe(document.getElementById('analysisResults'), {
+    attributes: true,
+    attributeFilter: ['class']
+});
+</script>
+{% endblock %}

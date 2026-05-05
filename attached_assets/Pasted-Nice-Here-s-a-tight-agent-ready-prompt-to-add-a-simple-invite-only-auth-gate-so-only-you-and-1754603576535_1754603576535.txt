@@ -1,0 +1,192 @@
+Nice. Here’s a tight, **agent-ready prompt** to add a simple, invite-only auth gate so only you (and testers you invite) can use the app while you iterate.
+
+---
+
+# Prompt 8 — **Add simple auth gate (invite-only, session-based)**
+
+> Add a minimal authentication layer to the current Flask app so only authorized users can access generation and results pages. Keep it **simple, file-backed, and secure enough for MVP**. Do not introduce external databases. Do not add social login. Do not break existing generation flow.
+>
+> **Goals**
+>
+> 1. Gate all routes except: `/`, `/login`, `/register`, `/logout`, static assets.
+> 2. Support two roles: `admin` and `user`.
+> 3. Registration requires a valid **invite code**. Admin can mint invite codes in a simple admin view.
+> 4. Store users and invite codes in JSON files under `/data` (created if missing).
+> 5. Hash passwords (no plain text). Use Werkzeug’s `generate_password_hash` and `check_password_hash`.
+> 6. Session-based login (Flask sessions). Read `FLASK_SECRET_KEY` from env. If missing, show a console note.
+> 7. Add a small **Admin panel**: list users, list/mint/revoke invite codes, download `users.json`.
+>
+> **Changes**
+>
+> * Update `requirements.txt` to include:
+>
+>   ```
+>   flask==3.0.2
+>   python-dotenv==1.0.1
+>   requests==2.32.3
+>   openai==1.37.1
+>   werkzeug==3.0.3
+>   ```
+>
+>   (Keep prior entries; just ensure these are present.)
+>
+> * Create a new folder `auth/` with:
+>
+>   * `store.py`:
+>
+>     ```python
+>     import json, os
+>     from pathlib import Path
+>     from werkzeug.security import generate_password_hash, check_password_hash
+>
+>     DATA_DIR = Path("data")
+>     USERS_FILE = DATA_DIR / "users.json"
+>     CODES_FILE = DATA_DIR / "invites.json"
+>
+>     def init_store():
+>         DATA_DIR.mkdir(exist_ok=True)
+>         if not USERS_FILE.exists():
+>             USERS_FILE.write_text(json.dumps({"users":[]}, indent=2))
+>         if not CODES_FILE.exists():
+>             CODES_FILE.write_text(json.dumps({"codes":[]}, indent=2))
+>
+>     def load_users():
+>         return json.loads(USERS_FILE.read_text())
+>
+>     def save_users(data):
+>         USERS_FILE.write_text(json.dumps(data, indent=2))
+>
+>     def load_codes():
+>         return json.loads(CODES_FILE.read_text())
+>
+>     def save_codes(data):
+>         CODES_FILE.write_text(json.dumps(data, indent=2))
+>
+>     def user_exists(username):
+>         return any(u["username"] == username for u in load_users()["users"])
+>
+>     def create_user(username, password, role="user"):
+>         data = load_users()
+>         if user_exists(username):
+>             return False, "User already exists"
+>         data["users"].append({
+>             "username": username,
+>             "password_hash": generate_password_hash(password),
+>             "role": role
+>         })
+>         save_users(data)
+>         return True, "OK"
+>
+>     def verify_user(username, password):
+>         for u in load_users()["users"]:
+>             if u["username"] == username and check_password_hash(u["password_hash"], password):
+>                 return {"username": username, "role": u["role"]}
+>         return None
+>
+>     def list_users():
+>         return [{"username": u["username"], "role": u["role"]} for u in load_users()["users"]]
+>
+>     def add_invite(code, note=""):
+>         codes = load_codes()
+>         if any(c["code"] == code for c in codes["codes"]):
+>             return False, "Code exists"
+>         codes["codes"].append({"code": code, "note": note, "used": False})
+>         save_codes(codes)
+>         return True, "OK"
+>
+>     def use_invite(code):
+>         codes = load_codes()
+>         for c in codes["codes"]:
+>             if c["code"] == code and not c["used"]:
+>                 c["used"] = True
+>                 save_codes(codes)
+>                 return True
+>         return False
+>
+>     def revoke_invite(code):
+>         codes = load_codes()
+>         codes["codes"] = [c for c in codes["codes"] if c["code"] != code]
+>         save_codes(codes)
+>
+>     def list_invites():
+>         return load_codes()["codes"]
+>     ```
+>
+> * In `app.py`:
+>
+>   * Initialize store on startup:
+>
+>     ```python
+>     from auth.store import init_store
+>     init_store()
+>     ```
+>   * Read `FLASK_SECRET_KEY` from env and set `app.secret_key`. If missing, generate a random one at runtime and log a console warning.
+>   * Add session helpers and a `login_required` decorator:
+>
+>     ```python
+>     from functools import wraps
+>     from flask import session, redirect, url_for, request
+>
+>     def login_required(f):
+>         @wraps(f)
+>         def wrapper(*args, **kwargs):
+>             if not session.get("user"):
+>                 return redirect(url_for("login", next=request.path))
+>             return f(*args, **kwargs)
+>         return wrapper
+>
+>     def admin_required(f):
+>         @wraps(f)
+>         def wrapper(*args, **kwargs):
+>             user = session.get("user")
+>             if not user or user.get("role") != "admin":
+>                 return redirect(url_for("login"))
+>             return f(*args, **kwargs)
+>         return wrapper
+>     ```
+>   * Add routes:
+>
+>     * `GET /login` (form), `POST /login` (auth), `GET /logout` (clear session)
+>     * `GET /register` (form), `POST /register` (requires invite code)
+>     * `GET /admin` (panel, admin only) to:
+>
+>       * list users
+>       * list/mint/revoke invites
+>       * show a one-click “Create admin user if none exists” tool that makes `admin / <ENV_ADMIN_INITIAL_PASSWORD>` **only if** no admin exists.
+>   * Protect these routes with decorators:
+>
+>     * Keep `/` public (landing + form OK), but **require login** to submit generation (`/generate`) and to view results (`/result/<job_id>`, `/download/<job_id>.zip`, any `/api/...`).
+>
+> * Templates:
+>
+>   * Add `templates/login.html`, `templates/register.html`, `templates/admin.html` (simple, clean forms/tables).
+>   * Add a small auth bar in `base.html` (top-right “Login / Logout” and, if admin, a link to `/admin`).
+>
+> * Admin bootstrap:
+>
+>   * Read optional env `ADMIN_BOOTSTRAP_PASSWORD`. If set and **no admin exists**, show a small button on `/admin` (visible only after logging in as any user) to create the `admin` account with that password. Alternatively, allow a one-time “/admin/setup” route guarded by a temporary URL token read from env `ADMIN_SETUP_TOKEN`. Keep this minimal and safe.
+>
+> * Gate enforcement:
+>
+>   * Add `@login_required` to: `/generate`, `/result/<job_id>`, `/api/job/<job_id>/manifest`, `/download/<job_id>.zip`, any future posting endpoints.
+>
+> **Non-goals / guardrails**
+>
+> * Do **not** add third-party auth providers.
+> * Do **not** store plain passwords. Always hash.
+> * Do **not** expose secrets in templates or logs.
+> * Keep UI minimal—no heavy CSS work required.
+>
+> **Deliverables**
+>
+> * New: `auth/store.py`, `templates/login.html`, `templates/register.html`, `templates/admin.html`
+> * Updated: `app.py`, `templates/base.html`, `requirements.txt`
+> * Behavior:
+>
+>   * I can register using a valid invite code, login, and access generation/results.
+>   * I can login as admin, mint/revoke invites, list users, and (if needed) bootstrap an admin using env-provided password or setup token.
+>   * Unauthenticated users are redirected to `/login` if they try to generate or view results.
+
+---
+
+If you want a matching **Prompt 7** for a tiny admin “Jobs” dashboard (list job folders, open manifests, re-run QC), I can hand you that too.

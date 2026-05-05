@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - {{ analysis.target_url }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('marketing_strategy.dashboard') }}">Strategy Dashboard</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('marketing_strategy.brand_analyses', brand_id=brand.id) }}">{{ brand.name }}</a>
+                </li>
+                <li class="breadcrumb-item active">Analysis Results</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="fw-bold mb-2">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Analysis Results
+                </h1>
+                <div class="text-muted">
+                    <i class="fas fa-link me-2"></i>
+                    {{ analysis.target_url }}
+                </div>
+                <div class="small text-success mt-1">
+                    Analyzed on {{ analysis.analysis_timestamp[:10] if analysis.analysis_timestamp else 'Unknown' }}
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="badge bg-primary fs-6 mb-2">
+                    {{ (analysis.confidence_score * 100) | int }}% Confidence
+                </div>
+                <div>
+                    {% if analysis.scraping_successful %}
+                    <span class="badge bg-success">Direct Scraping</span>
+                    {% else %}
+                    <span class="badge bg-warning">Fallback Protocols</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <button onclick="reanalyze()" class="btn btn-primary w-100">
+                        <i class="fas fa-refresh me-2"></i>
+                        Re-analyze
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('marketing_strategy.content_calendar', brand_id=brand.id) }}" 
+                       class="btn btn-success w-100">
+                        <i class="fas fa-calendar me-2"></i>
+                        Calendar
+                    </a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('marketing_strategy.competitor_analysis', brand_id=brand.id) }}" 
+                       class="btn btn-warning w-100">
+                        <i class="fas fa-users me-2"></i>
+                        Competitors
+                    </a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('marketing_strategy.export_strategy', brand_id=brand.id) }}" 
+                       class="btn btn-info w-100">
+                        <i class="fas fa-download me-2"></i>
+                        Export
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-end">
+                        <span class="small text-muted">
+                            Data sources: {{ analysis.data_sources | join(', ') if analysis.data_sources else 'None' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results Tabs -->
+    <div class="card border-0 shadow">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="intelligence-tab" data-bs-toggle="tab" 
+                            data-bs-target="#intelligence" type="button" role="tab">
+                        <i class="fas fa-building me-2"></i>
+                        Business Intelligence
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trends-tab" data-bs-toggle="tab" 
+                            data-bs-target="#trends" type="button" role="tab">
+                        <i class="fas fa-trending-up me-2"></i>
+                        Trends & Market
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="competitors-tab" data-bs-toggle="tab" 
+                            data-bs-target="#competitors" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>
+                        Competitive Analysis
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="content-tab" data-bs-toggle="tab" 
+                            data-bs-target="#content" type="button" role="tab">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Content Strategy
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Business Intelligence Tab -->
+                <div class="tab-pane fade show active" id="intelligence" role="tabpanel">
+                    {% set business = analysis.business_intelligence %}
+                    
+                    <div class="row g-4">
+                        <!-- Company Information -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Company Information</h6>
+                            {% if business.get('title') %}
+                            <div class="mb-2">
+                                <strong>Business Name:</strong> {{ business.title }}
+                            </div>
+                            {% endif %}
+                            {% if business.get('description') %}
+                            <div class="mb-2">
+                                <strong>Description:</strong> {{ business.description[:200] }}...
+                            </div>
+                            {% endif %}
+                            {% if business.get('contact_info') %}
+                            <div class="mb-2">
+                                <strong>Contact Information:</strong>
+                                <ul class="list-unstyled small">
+                                    {% if business.contact_info.get('phones') %}
+                                    <li><i class="fas fa-phone text-success me-2"></i>
+                                        {{ business.contact_info.phones[0] }}
+                                    </li>
+                                    {% endif %}
+                                    {% if business.contact_info.get('emails') %}
+                                    <li><i class="fas fa-envelope text-info me-2"></i>
+                                        {{ business.contact_info.emails[0] }}
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Technical Information -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info mb-3">Technical Analysis</h6>
+                            {% if business.get('technical_info') %}
+                            <div class="mb-2">
+                                <strong>Domain:</strong> {{ business.domain_info.domain if business.get('domain_info') else 'N/A' }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Site Structure:</strong> 
+                                {% if business.technical_info.get('site_structure') %}
+                                    {{ business.technical_info.site_structure | length }} pages discovered
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if business.get('social_tags') %}
+                            <div class="mb-2">
+                                <strong>Social Presence:</strong>
+                                <div class="small">
+                                    {% if business.social_tags.get('open_graph') %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary me-1">Open Graph</span>
+                                    {% endif %}
+                                    {% if business.social_tags.get('twitter_cards') %}
+                                    <span class="badge bg-info bg-opacity-10 text-info me-1">Twitter Cards</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Services -->
+                        {% if business.get('services') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-success mb-3">Services & Products</h6>
+                            <div class="row g-2">
+                                {% for service in business.services[:8] %}
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body py-2">
+                                            <small>{{ service[:100] }}...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Trends & Market Tab -->
+                <div class="tab-pane fade" id="trends" role="tabpanel">
+                    {% set trends = analysis.trend_analysis %}
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-warning mb-3">Rising Topics</h6>
+                            {% if trends.get('rising_topics') %}
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for topic in trends.rising_topics %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning">{{ topic }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No trending topics identified</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info mb-3">Related Queries</h6>
+                            {% if trends.get('related_queries') %}
+                            <ul class="list-unstyled">
+                                {% for query in trends.related_queries %}
+                                <li class="mb-1">
+                                    <i class="fas fa-search text-info me-2"></i>
+                                    {{ query }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted">No related queries available</p>
+                            {% endif %}
+                        </div>
+
+                        {% if trends.get('seasonal_patterns') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-success mb-3">Seasonal Patterns</h6>
+                            <div class="row text-center">
+                                {% for quarter, value in trends.seasonal_patterns.items() %}
+                                <div class="col-3">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body py-2">
+                                            <div class="h5 mb-1">{{ (value * 100) | int }}%</div>
+                                            <div class="small text-muted">{{ quarter }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Competitive Analysis Tab -->
+                <div class="tab-pane fade" id="competitors" role="tabpanel">
+                    {% set competitive = analysis.competitor_analysis %}
+                    
+                    <div class="row g-4">
+                        {% if competitive.get('direct_competitors') %}
+                        <div class="col-md-8">
+                            <h6 class="fw-bold text-danger mb-3">Direct Competitors</h6>
+                            {% for competitor in competitive.direct_competitors %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <strong>{{ competitor.name }}</strong>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="badge bg-primary">
+                                                {{ (competitor.strength * 100) | int if competitor.get('strength') else 'N/A' }}% strength
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if competitor.get('weakness') %}
+                                    <div class="small text-muted">
+                                        <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                        Weakness: {{ competitor.weakness }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-4">
+                            <h6 class="fw-bold text-success mb-3">Market Opportunities</h6>
+                            {% if competitive.get('market_gaps') %}
+                            <ul class="list-unstyled">
+                                {% for gap in competitive.market_gaps %}
+                                <li class="mb-2">
+                                    <i class="fas fa-bullseye text-success me-2"></i>
+                                    {{ gap }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted">No market gaps identified</p>
+                            {% endif %}
+                        </div>
+
+                        {% if competitive.get('pricing_insights') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-info mb-3">Pricing Intelligence</h6>
+                            <div class="card border-0 bg-info bg-opacity-10">
+                                <div class="card-body">
+                                    {% for key, value in competitive.pricing_insights.items() %}
+                                    <div class="mb-1">
+                                        <strong>{{ key.replace('_', ' ').title() }}:</strong> {{ value }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Content Strategy Tab -->
+                <div class="tab-pane fade" id="content" role="tabpanel">
+                    {% set content = analysis.content_opportunities %}
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Hook Suggestions</h6>
+                            {% if content.get('hook_suggestions') %}
+                            <div class="list-group list-group-flush">
+                                {% for hook in content.hook_suggestions[:5] %}
+                                <div class="list-group-item border-0 bg-light">
+                                    "{{ hook }}"
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No hooks available</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-success mb-3">Call-to-Action Variations</h6>
+                            {% if content.get('cta_variations') %}
+                            <div class="list-group list-group-flush">
+                                {% for cta in content.cta_variations[:5] %}
+                                <div class="list-group-item border-0 bg-light">
+                                    {{ cta }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No CTAs available</p>
+                            {% endif %}
+                        </div>
+
+                        {% if content.get('content_calendar') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-warning mb-3">Content Calendar Preview (Next 7 Days)</h6>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Topic</th>
+                                            <th>Platform</th>
+                                            <th>Hook</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in content.content_calendar[:7] %}
+                                        <tr>
+                                            <td>{{ item.date }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if item.content_type == 'social_post' %}primary{% else %}info{% endif %}">
+                                                    {{ item.content_type.replace('_', ' ').title() }}
+                                                </span>
+                                            </td>
+                                            <td>{{ item.topic[:40] }}...</td>
+                                            <td>{{ item.platform }}</td>
+                                            <td>{{ item.hook[:30] }}...</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function reanalyze() {
+    if (!confirm('This will use 1 generation credit to re-analyze the website. Continue?')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Re-analyzing...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/strategy/api/reanalyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url: '{{ analysis.target_url }}',
+                brand_id: '{{ brand.id }}',
+                geo_location: '{{ analysis.geo_location }}'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`Re-analysis complete! New confidence: ${Math.round(data.confidence_score * 100)}%`);
+            location.reload();
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        alert(`Request failed: ${error.message}`);
+    }
+    
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}AI Services Status - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>AI Services Status</h1>
+                <span class="badge bg-{{ tier_color }} fs-6">{{ current_user.subscription_tier.value.title() }} Tier</span>
+            </div>
+
+            <!-- Tier Overview Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Your AI Capabilities</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Available Models:</h6>
+                            <ul class="list-unstyled">
+                                {% for service, model in tier_models.items() %}
+                                <li><strong>{{ service.title() }}:</strong> {{ model }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Feature Access:</h6>
+                            <ul class="list-unstyled">
+                                {% for feature, enabled in capabilities.items() %}
+                                <li>
+                                    {% if enabled %}
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-muted"></i>
+                                    {% endif %}
+                                    {{ feature.replace('_', ' ').title() }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Status Cards -->
+            <div class="row">
+                <!-- OpenAI Service -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">OpenAI (Content Generation)</h6>
+                            {% if service_status.openai %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unavailable</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if service_status.openai %}
+                                <p class="text-success mb-2">
+                                    <i class="fas fa-check-circle"></i> 
+                                    Using {{ tier_models.openai }} for your tier
+                                </p>
+                                <small class="text-muted">
+                                    {% if current_user.subscription_tier.value in ['pro', 'enterprise'] %}
+                                        Premium model: Advanced reasoning and creativity
+                                    {% else %}
+                                        Optimized model: Fast and cost-effective
+                                    {% endif %}
+                                </small>
+                            {% else %}
+                                <p class="text-danger mb-2">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    API key not configured
+                                </p>
+                                <small class="text-muted">Contact support to enable text generation</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google VEO Service -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Google VEO 3 (Video Generation)</h6>
+                            {% if service_status.google %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unavailable</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if service_status.google %}
+                                {% if capabilities.video_generation %}
+                                    <p class="text-success mb-2">
+                                        <i class="fas fa-video"></i> 
+                                        Professional video generation enabled
+                                    </p>
+                                    <small class="text-muted">Create viral marketing videos from scripts</small>
+                                {% else %}
+                                    <p class="text-warning mb-2">
+                                        <i class="fas fa-lock"></i> 
+                                        Upgrade to Pro for video generation
+                                    </p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-danger mb-2">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    API key not configured
+                                </p>
+                                <small class="text-muted">Contact support to enable video generation</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pika Labs Service -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Pika Labs (Image-to-Video)</h6>
+                            {% if service_status.pika_labs %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending Setup</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if service_status.pika_labs %}
+                                {% if capabilities.image_to_video %}
+                                    <p class="text-success mb-2">
+                                        <i class="fas fa-magic"></i> 
+                                        Image animation enabled
+                                    </p>
+                                    <small class="text-muted">Transform static images into dynamic videos</small>
+                                {% else %}
+                                    <p class="text-warning mb-2">
+                                        <i class="fas fa-crown"></i> 
+                                        Enterprise exclusive feature
+                                    </p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-warning mb-2">
+                                    <i class="fas fa-clock"></i> 
+                                    API access pending approval
+                                </p>
+                                <small class="text-muted">Pika Labs integration will be available soon</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quality Assessment -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Quality Assessment Agent</h6>
+                            {% if service_status.anthropic %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unavailable</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if service_status.anthropic %}
+                                <p class="text-success mb-2">
+                                    <i class="fas fa-shield-alt"></i> 
+                                    Advanced quality control enabled
+                                </p>
+                                <small class="text-muted">Claude Sonnet 4 ensures viral content standards</small>
+                            {% else %}
+                                <p class="text-danger mb-2">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    Quality assessment unavailable
+                                </p>
+                                <small class="text-muted">Campaigns will use basic validation</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Time Estimate -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Expected Processing Times</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p><strong>Total Campaign Generation:</strong> ~{{ processing_estimate.estimated_minutes }} minutes</p>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">
+                                Breakdown:
+                                {% for step, time in processing_estimate.breakdown.items() %}
+                                <br>{{ step.replace('_', ' ').title() }}: {{ time }}s
+                                {% endfor %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upgrade Options -->
+            {% if current_user.subscription_tier.value in ['basic', 'plus'] %}
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Unlock Advanced AI Models</h6>
+                </div>
+                <div class="card-body">
+                    <p>Upgrade to Pro or Enterprise for access to:</p>
+                    <ul>
+                        <li><strong>GPT-5</strong> - Most advanced content generation</li>
+                        <li><strong>Professional Video Generation</strong> - Google VEO 3</li>
+                        {% if current_user.subscription_tier.value != 'enterprise' %}
+                        <li><strong>Image-to-Video Magic</strong> - Pika Labs (Enterprise only)</li>
+                        {% endif %}
+                        <li><strong>Priority Processing</strong> - Faster campaign creation</li>
+                    </ul>
+                    <a href="{{ url_for('main.pricing') }}" class="btn btn-primary">View Upgrade Options</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Campaign
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

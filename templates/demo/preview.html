@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Demo Preview - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Demo Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-warning">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="alert-heading mb-1">
+                            <i class="fas fa-flask me-2"></i>Demo Preview Mode
+                        </h5>
+                        <p class="mb-0">See real AI-generated content with sample data. Sign up to analyze your actual business.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary btn-sm">
+                            View Plans & Pricing
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Campaign Input -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-search me-2"></i>Business Analysis Demo
+                    </h4>
+                    <p class="mb-0 mt-2">Enter any business website to see our AI analysis in action</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('dashboard.demo_analysis') }}">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Business Website URL</label>
+                                <input type="url" class="form-control" name="website_url" 
+                                       placeholder="https://example.com" 
+                                       value="{{ demo_url or 'https://stripe.com' }}" required>
+                                <div class="form-text">
+                                    We'll analyze this business and generate sample marketing content
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Industry</label>
+                                <select class="form-select" name="industry">
+                                    <option value="technology">Technology</option>
+                                    <option value="finance">Finance</option>
+                                    <option value="healthcare">Healthcare</option>
+                                    <option value="retail">Retail</option>
+                                    <option value="saas">SaaS</option>
+                                    <option value="ecommerce">E-commerce</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_trends" checked>
+                                    <label class="form-check-label">
+                                        <strong>Include Viral Trends</strong>
+                                        <div class="form-text">Incorporate trending memes and cultural moments</div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="competitor_analysis" checked>
+                                    <label class="form-check-label">
+                                        <strong>Competitor Analysis</strong>
+                                        <div class="form-text">Find and analyze top 3 competitors</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>Generate Demo Campaign
+                            <small class="d-block">See instant results with sample data</small>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Results Preview -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-4">What You'll Get:</h3>
+        </div>
+        
+        <!-- Business Analysis Sample -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-building me-2"></i>Business Analysis
+                    </h6>
+                </div>
+                <div class="card-body position-relative">
+                    <!-- Watermark overlay -->
+                    <div class="position-absolute top-50 start-50 translate-middle" 
+                         style="z-index: 10; opacity: 0.2; pointer-events: none; font-size: 1.2rem; font-weight: bold; color: #6c757d; transform: translate(-50%, -50%) rotate(-45deg);">
+                        DEMO ONLY
+                    </div>
+                    <div class="mb-3">
+                        <strong>Company:</strong> Stripe<br>
+                        <strong>Industry:</strong> Fintech/Payments<br>
+                        <strong>Target Market:</strong> Online businesses, developers
+                    </div>
+                    <div class="mb-3">
+                        <h6>Key Differentiators:</h6>
+                        <ul class="small">
+                            <li>Developer-first API design</li>
+                            <li>Global payment infrastructure</li>
+                            <li>Transparent pricing model</li>
+                        </ul>
+                    </div>
+                    <span class="badge bg-success">✓ AI Analyzed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitor Analysis Sample -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Top Competitors
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>1. PayPal</strong>
+                        <div class="small text-muted">Focus: Consumer payments, marketplace</div>
+                    </div>
+                    <div class="mb-2">
+                        <strong>2. Square</strong>
+                        <div class="small text-muted">Focus: SMB point-of-sale, hardware</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>3. Adyen</strong>
+                        <div class="small text-muted">Focus: Enterprise, global processing</div>
+                    </div>
+                    <span class="badge bg-info">✓ Auto-discovered</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Sample -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Generated Content
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Ad Headlines:</strong>
+                        <div class="small mb-2">"Stop losing sales to payment friction"</div>
+                        <div class="small mb-2">"The API that developers actually love"</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Social Post:</strong>
+                        <div class="small">"POV: Your checkout page converts 23% better because payments actually work 🔥"</div>
+                    </div>
+                    <span class="badge bg-warning">✓ Trend-Aware</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if demo_results %}
+    <!-- Dynamic Demo Results -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle me-2"></i>Demo Results Generated!</h5>
+                <p>Here's what our AI found for <strong>{{ demo_results.website_url }}</strong> in the <strong>{{ demo_results.industry }}</strong> industry:</p>
+            </div>
+        </div>
+        
+        <!-- Business Analysis Results -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-building me-2"></i>Business Analysis</h6>
+                </div>
+                <div class="card-body position-relative">
+                    <!-- Watermark overlay -->
+                    <div class="position-absolute top-50 start-50 translate-middle" 
+                         style="z-index: 10; opacity: 0.2; pointer-events: none; font-size: 1.3rem; font-weight: bold; color: #6c757d; transform: translate(-50%, -50%) rotate(-45deg);">
+                        DEMO ONLY
+                    </div>
+                    <p><strong>Description:</strong> {{ demo_results.business_analysis.description }}</p>
+                    <p><strong>Target Audience:</strong> {{ demo_results.business_analysis.target_audience }}</p>
+                    <div class="mb-3">
+                        <strong>Key Strengths:</strong>
+                        <ul class="small">
+                            {% for strength in demo_results.business_analysis.key_strengths %}
+                            <li>{{ strength }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Competitor Analysis Results -->
+        {% if demo_results.competitor_analysis and demo_results.competitors %}
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Competitor Analysis</h6>
+                </div>
+                <div class="card-body position-relative">
+                    <!-- Watermark overlay -->
+                    <div class="position-absolute top-50 start-50 translate-middle" 
+                         style="z-index: 10; opacity: 0.2; pointer-events: none; font-size: 1.3rem; font-weight: bold; color: #6c757d; transform: translate(-50%, -50%) rotate(-45deg);">
+                        DEMO ONLY
+                    </div>
+                    {% for competitor in demo_results.competitors %}
+                    <div class="mb-3">
+                        <strong>{{ competitor.name }}</strong><br>
+                        <small class="text-success">Strength: {{ competitor.strength }}</small><br>
+                        <small class="text-warning">Weakness: {{ competitor.weakness }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Viral Trends -->
+        {% if demo_results.include_trends and demo_results.viral_trends %}
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-fire me-2"></i>Viral Trends Detected</h6>
+                </div>
+                <div class="card-body position-relative">
+                    <!-- Watermark overlay -->
+                    <div class="position-absolute top-50 start-50 translate-middle" 
+                         style="z-index: 10; opacity: 0.2; pointer-events: none; font-size: 1.3rem; font-weight: bold; color: #6c757d; transform: translate(-50%, -50%) rotate(-45deg);">
+                        DEMO ONLY
+                    </div>
+                    {% for trend in demo_results.viral_trends %}
+                    <span class="badge bg-warning text-dark me-2 mb-2">{{ trend }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Generated Ad Content -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-magic me-2"></i>Generated Ad Content</h6>
+                </div>
+                <div class="card-body position-relative">
+                    <!-- Watermark overlay -->
+                    <div class="position-absolute top-50 start-50 translate-middle" 
+                         style="z-index: 10; opacity: 0.3; pointer-events: none; font-size: 1.5rem; font-weight: bold; color: #6c757d; transform: translate(-50%, -50%) rotate(-45deg);">
+                        DEMO SAMPLE
+                    </div>
+                    <h6>{{ demo_results.ad_content.headline }}</h6>
+                    <p class="small text-muted">{{ demo_results.ad_content.description }}</p>
+                    <button class="btn btn-sm btn-primary" disabled>{{ demo_results.ad_content.cta }}</button>
+                    <div class="mt-2">
+                        <small class="text-warning">
+                            <i class="fas fa-lock me-1"></i>Unlock full content with subscription
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sample Media Content with Watermarks -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-images me-2"></i>AI-Generated Media Preview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Sample Image -->
+                        <div class="col-md-6 mb-3">
+                            <div class="position-relative">
+                                <div class="bg-light rounded p-4 text-center" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="text-muted">
+                                        <i class="fas fa-image fa-3x mb-2"></i>
+                                        <div>AI-Generated Product Image</div>
+                                        <small>High-quality marketing visuals</small>
+                                    </div>
+                                </div>
+                                <!-- Central watermark for images -->
+                                <div class="position-absolute top-50 start-50 translate-middle" 
+                                     style="z-index: 20; opacity: 0.5; pointer-events: none; font-size: 1.8rem; font-weight: bold; color: #dc3545; transform: translate(-50%, -50%) rotate(-45deg); text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                                    DOMINATE MARKETING DEMO
+                                </div>
+                            </div>
+                            <div class="mt-2 text-center">
+                                <span class="badge bg-warning text-dark">Unlock with Pro</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample Video -->
+                        <div class="col-md-6 mb-3">
+                            <div class="position-relative">
+                                <div class="bg-dark rounded p-4 text-center" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="text-white">
+                                        <i class="fas fa-play-circle fa-3x mb-2"></i>
+                                        <div>AI-Generated Video</div>
+                                        <small>Professional marketing videos</small>
+                                    </div>
+                                </div>
+                                <!-- Central watermark for videos -->
+                                <div class="position-absolute top-50 start-50 translate-middle" 
+                                     style="z-index: 20; opacity: 0.6; pointer-events: none; font-size: 1.8rem; font-weight: bold; color: #ffc107; transform: translate(-50%, -50%) rotate(-45deg); text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+                                    DOMINATE MARKETING DEMO
+                                </div>
+                            </div>
+                            <div class="mt-2 text-center">
+                                <span class="badge bg-success">Unlock with Pro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-lock me-1"></i>
+                            Demo content is watermarked. Subscribe to get clean, commercial-use media.
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="/licensing" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-certificate me-1"></i>View Licensing Options
+                            </a>
+                            <button class="btn btn-sm btn-outline-warning" onclick="generateDemoLicense()">
+                                <i class="fas fa-file-contract me-1"></i>Generate Demo License
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="col-12 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5>Ready to analyze your actual business?</h5>
+                    <p>Sign up now to get real AI-powered marketing campaigns for your company</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{{ url_for('auth.pricing') }}" class="btn btn-light btn-lg">
+                            <i class="fas fa-rocket me-2"></i>View Plans & Pricing
+                        </a>
+                        <a href="{{ url_for('faq') }}" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-question-circle me-2"></i>FAQ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Feature Highlights -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-body">
+                    <h5 class="text-white mb-3">
+                        <i class="fas fa-star me-2 text-warning"></i>Full Platform Features
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-image fa-2x text-primary mb-2"></i>
+                                <h6 class="text-white">AI Images</h6>
+                                <p class="small text-muted">Generated product shots, social media visuals</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-video fa-2x text-success mb-2"></i>
+                                <h6 class="text-white">AI Videos</h6>
+                                <p class="small text-muted">Promotional videos, product demos</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-share-alt fa-2x text-info mb-2"></i>
+                                <h6 class="text-white">Auto-Posting</h6>
+                                <p class="small text-muted">Schedule across all social platforms</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                                <h6 class="text-white">Analytics</h6>
+                                <p class="small text-muted">Track performance and ROI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateDemoLicense() {
+    alert('Demo License Terms:\\n\\n' +
+          '• For demonstration purposes only\\n' +
+          '• Watermarked content cannot be used commercially\\n' +
+          '• Subscribe to get full licensing rights\\n' +
+          '• Visit /licensing to see full terms by tier\\n\\n' +
+          'Ready to unlock commercial licensing? Sign up for Pro or Enterprise!');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+Awesome. Here’s an **agent-ready** prompt to add a small, safe **Admin Jobs Dashboard** so you can browse jobs, open artifacts, re-run QC, regenerate assets, and download bundles — all behind admin auth.
+
+---
+
+# Prompt 7 — **Admin Jobs Dashboard (list, view, actions, re-run QC)**
+
+> Extend the Flask app with a secure **Admin Jobs Dashboard** to manage generated jobs.
+>
+> **Goals**
+>
+> 1. **List jobs** from `/outputs` (sorted newest first) with basic metadata.
+> 2. **View a job**: show manifest, artifacts, quick previews (video if available).
+> 3. **Actions** (admin-only):
+>
+>    * Re-run **QC** on an existing job (reads script.json)
+>    * Rebuild **platform pack** (captions/hashtags/titles) from existing summary.json
+>    * Rebuild **manifest** (if fields are missing)
+>    * Trigger **Veo3 render** again (uses existing `veo_request.json`)
+>    * **Download ZIP** (link to existing route)
+>    * **Delete job** (move to `/trash` or hard-delete with confirm)
+> 4. **Search & filter** by job\_id substring or platform.
+> 5. Keep everything admin-protected with the existing `admin_required` decorator.
+>
+> **Changes**
+>
+> * Add routes (admin-only unless specified):
+>
+>   * `GET /admin/jobs` — list jobs with search/filter UI
+>   * `GET /admin/jobs/<job_id>` — view a single job’s details
+>   * `POST /admin/jobs/<job_id>/action` — perform an action (qc, platform\_pack, manifest, veo\_rerender, delete)
+>   * (Already exists) `/download/<job_id>.zip` — exposed via button on the job page but still **@login\_required**; keep admin gate on job pages.
+> * Add templates:
+>
+>   * `templates/admin_jobs.html` — jobs list + search
+>   * `templates/admin_job_detail.html` — job detail page with artifacts and action buttons
+> * Utilities:
+>
+>   * Add a lightweight helper in `app.py` or a new module `services/jobs.py`:
+>
+>     ```python
+>     from pathlib import Path
+>     import json, os, shutil
+>     OUTPUT_DIR = Path("outputs")
+>     TRASH_DIR  = Path("trash")
+>     TRASH_DIR.mkdir(exist_ok=True)
+>
+>     def list_jobs():
+>         # list job folders under OUTPUT_DIR; sort by mtime desc
+>         items = []
+>         for d in OUTPUT_DIR.iterdir():
+>             if d.is_dir():
+>                 manifest = (d / "manifest.json")
+>                 summary  = (d / "summary.json")
+>                 veo_res  = (d / "veo_result.json")
+>                 mtime = d.stat().st_mtime
+>                 items.append({
+>                     "job_id": d.name,
+>                     "has_manifest": manifest.exists(),
+>                     "has_summary": summary.exists(),
+>                     "has_video": veo_res.exists(),
+>                     "mtime": mtime
+>                 })
+>         items.sort(key=lambda x: x["mtime"], reverse=True)
+>         return items
+>
+>     def load_artifact(job_id, name):
+>         p = OUTPUT_DIR / job_id / name
+>         if not p.exists():
+>             return None
+>         try:
+>             return json.loads(p.read_text())
+>         except Exception:
+>             return {"raw": p.read_text()}
+>
+>     def delete_job(job_id, hard=False):
+>         src = OUTPUT_DIR / job_id
+>         if not src.exists():
+>             return False
+>         if hard:
+>             shutil.rmtree(src, ignore_errors=True)
+>         else:
+>             shutil.move(str(src), str(TRASH_DIR / job_id))
+>         return True
+>     ```
+> * **Admin Jobs List** (`/admin/jobs`):
+>
+>   * Search input (query by `job_id` substring).
+>   * Filter dropdown for “has video”, “has summary”, “has manifest”.
+>   * Table: job\_id (link), created/modified time (human readable), icons for artifacts present.
+> * **Admin Job Detail** (`/admin/jobs/<job_id>`):
+>
+>   * Show **Manifest** (pretty JSON) if present; else a note and a **Rebuild Manifest** button.
+>   * Show **Summary**, **Script**, **Veo Request**, **QC**, **Platform Pack** (pretty JSON blocks if they exist).
+>   * **Preview**:
+>
+>     * If `veo_result.json` has `video_url`, render a `<video controls>` element.
+>     * If poster frame exists, show it above or as the video poster.
+>   * **Actions** (form POST to `/admin/jobs/<job_id>/action` with `action=<...>`):
+>
+>     * `action=qc` → reload `script.json`, call `run_qc(...)`, write `qc.json`.
+>     * `action=platform_pack` → reload `summary.json`, call `build_platform_pack(...)`, write `platform_pack.json`.
+>     * `action=manifest` → rebuild `manifest.json` from discovered artifacts.
+>     * `action=veo_rerender` → reload `veo_request.json`, call `services.veo_client.generate_video(...)`, write `veo_result.json`.
+>     * `action=delete_soft` → move job to `/trash/<job_id>`.
+>     * `action=delete_hard` → permanently delete folder.
+>   * Provide a **Download ZIP** button linking to `/download/<job_id>.zip`.
+> * **Security & guardrails**
+>
+>   * All `/admin/...` routes must use `@admin_required`.
+>   * Validate `job_id` as an existing folder under `/outputs`; reject path traversal.
+>   * Actions should return to the job detail page with a flash message indicating success/error.
+>   * Do not log secrets; do not echo env vars.
+> * **Result page small enhancement (optional)**
+>
+>   * On the normal user results page, if current user is admin, show a small link “Open in Admin” pointing to `/admin/jobs/<job_id>`.
+>
+> **Implementation Hints**
+>
+> * Use Flask’s `flash` + `get_flashed_messages()` for action feedback.
+> * For human-friendly times, a tiny helper like:
+>
+>   ```python
+>   from datetime import datetime
+>   from time import localtime, strftime
+>   def fmt_ts(ts): return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+>   ```
+> * Keep JSON blocks readable with `<pre>{{ data | tojson(indent=2) }}</pre>`.
+> * Keep UI minimal; no heavy CSS.
+>
+> **Deliverables**
+>
+> * New: `templates/admin_jobs.html`, `templates/admin_job_detail.html`
+> * New or updated helpers in `services/jobs.py` (or inside `app.py` if preferred)
+> * Updated: `app.py` routes with `@admin_required` protection and action handling
+> * Behavior:
+>
+>   * `/admin/jobs` lists recent jobs with search/filter.
+>   * Clicking a job opens `/admin/jobs/<job_id>` with artifacts, video preview (if available), and action buttons.
+>   * Actions perform re-run QC, rebuild platform pack/manifest, re-render Veo, and delete (soft/hard) safely.
+>   * All admin features hidden from non-admin users.
+
+---
+
+If you want a **Prompt 9** later for *per-user job permissions* and a user-facing “My Jobs” page (so your testers only see their own runs), say the word.

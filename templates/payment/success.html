@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Success - Welcome to {{ tier }}!{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <!-- Success Icon -->
+            <div class="mb-5">
+                <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+                <h1 class="fw-bold mb-3">Welcome to {{ tier_config.name }}!</h1>
+                <p class="lead text-muted">
+                    Your subscription is now active and ready to dominate your market
+                </p>
+            </div>
+            
+            <!-- Success Details -->
+            <div class="card border-0 shadow mb-5">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4">Your Marketing Power-Up is Complete</h3>
+                    
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-bolt fa-2x text-warning mb-2"></i>
+                                <div class="h4 fw-bold text-primary">{{ tier_config.generations_per_month }}</div>
+                                <div class="small text-muted">Generations per Month</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-calendar-day fa-2x text-info mb-2"></i>
+                                <div class="h4 fw-bold text-info">{{ tier_config.generations_per_day }}</div>
+                                <div class="small text-muted">Daily Access{% if tier == 'ENTERPRISE' %} (Max){% endif %}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-robot fa-2x text-success mb-2"></i>
+                                <div class="h4 fw-bold text-success">{{ tier_config.ai_models|length }}</div>
+                                <div class="small text-muted">AI Models</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Models List -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Your AI Arsenal</h5>
+                        <div class="row">
+                            {% for model in tier_config.ai_models %}
+                            <div class="col-md-6 mb-2">
+                                {% if tier == 'ENTERPRISE' %}
+                                    <i class="fas fa-crown text-warning me-2"></i>
+                                {% else %}
+                                    <i class="fas fa-check text-success me-2"></i>
+                                {% endif %}
+                                <strong>{{ model }}</strong>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Next Steps -->
+                    <div class="alert alert-info border-0 bg-info bg-opacity-10 mb-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-rocket me-2"></i>
+                            Ready to Get Started?
+                        </h6>
+                        <p class="mb-0">
+                            Create your first brand and launch your first viral campaign in under 5 minutes!
+                        </p>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid d-md-flex gap-3 justify-content-center">
+                        <a href="{{ url_for('dashboard.brands') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-building me-2"></i>
+                            Create Your Brand
+                        </a>
+                        <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Important Information -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 bg-light h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-info-circle fa-2x text-info mb-3"></i>
+                            <h6 class="fw-bold mb-2">Billing Information</h6>
+                            <ul class="list-unstyled small text-start">
+                                <li class="mb-1">• Monthly billing: ${{ tier_config.price_monthly }}</li>
+                                <li class="mb-1">• Next charge: {{ (datetime.now() + timedelta(days=30)).strftime('%B %d, %Y') }}</li>
+                                <li class="mb-1">• Single brand coverage</li>
+                                <li class="mb-1">• Cancel anytime</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 bg-light h-100">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-headset fa-2x text-success mb-3"></i>
+                            <h6 class="fw-bold mb-2">Need Help?</h6>
+                            <ul class="list-unstyled small text-start">
+                                <li class="mb-1">• Access video tutorials</li>
+                                <li class="mb-1">• Join our community</li>
+                                <li class="mb-1">• Contact support team</li>
+                                <li class="mb-1">• Schedule onboarding call</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Options -->
+            <div class="mt-5 pt-4 border-top">
+                <h5 class="fw-bold mb-3">Want to Scale Further?</h5>
+                <div class="row g-3 justify-content-center">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('payment.add_brand_subscription') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus me-2"></i>
+                            Add Another Brand
+                            <div class="small">+$19/month</div>
+                        </a>
+                    </div>
+                    {% if tier != 'ENTERPRISE' %}
+                    <div class="col-md-4">
+                        <a href="{{ url_for('payment.upgrade_subscription') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-arrow-up me-2"></i>
+                            Upgrade Plan
+                            <div class="small">More features</div>
+                        </a>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-4">
+                        <a href="{{ url_for('payment.manage_subscription') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-cog me-2"></i>
+                            Manage Subscription
+                            <div class="small">Settings & billing</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Animation -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate the success icon
+    const icon = document.querySelector('.fa-check-circle');
+    icon.style.opacity = '0';
+    icon.style.transform = 'scale(0.5)';
+    
+    setTimeout(() => {
+        icon.style.transition = 'all 0.5s ease-out';
+        icon.style.opacity = '1';
+        icon.style.transform = 'scale(1)';
+    }, 300);
+    
+    // Show confetti effect (simple version)
+    createConfetti();
+});
+
+function createConfetti() {
+    const colors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1'];
+    const confettiCount = 50;
+    
+    for (let i = 0; i < confettiCount; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'fixed';
+            confetti.style.width = '10px';
+            confetti.style.height = '10px';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = '-10px';
+            confetti.style.zIndex = '9999';
+            confetti.style.borderRadius = '50%';
+            confetti.style.pointerEvents = 'none';
+            
+            document.body.appendChild(confetti);
+            
+            const animation = confetti.animate([
+                { transform: 'translateY(-10px) rotateZ(0deg)', opacity: 1 },
+                { transform: 'translateY(100vh) rotateZ(360deg)', opacity: 0 }
+            ], {
+                duration: 3000 + Math.random() * 2000,
+                easing: 'cubic-bezier(0.5, 0, 0.5, 1)'
+            });
+            
+            animation.onfinish = () => {
+                confetti.remove();
+            };
+        }, i * 100);
+    }
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.fa-check-circle {
+    color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .fa-check-circle {
+        font-size: 3rem !important;
+    }
+    
+    .h1 {
+        font-size: 1.8rem;
+    }
+    
+    .lead {
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}

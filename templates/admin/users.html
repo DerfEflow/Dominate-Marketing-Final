@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Users Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-users me-2"></i>
+                        User Management
+                    </h2>
+                    <p class="text-muted mb-0">Manage platform users and their subscriptions</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    {% if user_stats %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-primary">{{ user_stats.total_users }}</div>
+                    <h6 class="card-title">Total Users</h6>
+                    <p class="card-text small text-muted">Registered users</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-success">{{ user_stats.active_users }}</div>
+                    <h6 class="card-title">Active Users</h6>
+                    <p class="card-text small text-muted">With campaigns</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-warning">{{ user_stats.recent_registrations }}</div>
+                    <h6 class="card-title">New This Week</h6>
+                    <p class="card-text small text-muted">Recent registrations</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-info">{{ user_stats.inactive_users }}</div>
+                    <h6 class="card-title">Inactive Users</h6>
+                    <p class="card-text small text-muted">No campaigns yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search Users</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-light" 
+                                   id="search" name="search" value="{{ search or '' }}" 
+                                   placeholder="Search by email or username">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tier" class="form-label">Subscription Tier</label>
+                            <select class="form-select bg-dark border-secondary text-light" id="tier" name="tier">
+                                <option value="">All Tiers</option>
+                                <option value="BASIC" {% if tier_filter == 'BASIC' %}selected{% endif %}>Basic</option>
+                                <option value="PLUS" {% if tier_filter == 'PLUS' %}selected{% endif %}>Plus</option>
+                                <option value="PRO" {% if tier_filter == 'PRO' %}selected{% endif %}>Pro</option>
+                                <option value="ENTERPRISE" {% if tier_filter == 'ENTERPRISE' %}selected{% endif %}>Enterprise</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i> Filter
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times me-1"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Users List
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Subscription</th>
+                                    <th>Activity</th>
+                                    <th>Registered</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if user.avatar_url %}
+                                                <img src="{{ user.avatar_url }}" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
+                                            {% else %}
+                                                <i class="fas fa-user-circle fa-2x me-2 text-muted"></i>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ user.username }}</div>
+                                                <div class="small text-muted">{{ user.email }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if user.subscription_tier.name == 'ENTERPRISE' %}bg-primary
+                                            {% elif user.subscription_tier.name == 'PRO' %}bg-success
+                                            {% elif user.subscription_tier.name == 'PLUS' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ user.subscription_tier.name }}
+                                        </span>
+                                        {% if user.lifetime_access %}
+                                            <br><small class="text-warning">Lifetime</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div>Brands: <strong>{{ user.brands|length }}</strong></div>
+                                            <div>Campaigns: <strong>{{ user.campaigns|length }}</strong></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small text-muted">
+                                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                                        </div>
+                                        {% if user.last_login %}
+                                        <div class="small text-muted">
+                                            Last: {{ user.last_login.strftime('%m/%d') }}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.account_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                        {% if user.is_demo_account %}
+                                            <br><span class="badge bg-warning">Demo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-info" onclick="viewUserDetails('{{ user.id }}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" onclick="editUser('{{ user.id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" onclick="sendMessage('{{ user.id }}')">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if pagination.pages > 1 %}
+                    <nav aria-label="User pagination" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link bg-dark border-secondary text-light" 
+                                       href="{{ url_for('admin.users', page=pagination.prev_num, search=search, tier=tier_filter) }}">
+                                        Previous
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                        <li class="page-item">
+                                            <a class="page-link bg-dark border-secondary text-light" 
+                                               href="{{ url_for('admin.users', page=page_num, search=search, tier=tier_filter) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link bg-primary border-primary">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link bg-dark border-secondary">…</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link bg-dark border-secondary text-light" 
+                                       href="{{ url_for('admin.users', page=pagination.next_num, search=search, tier=tier_filter) }}">
+                                        Next
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No users found</h5>
+                        <p class="text-muted">Try adjusting your search filters.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">User Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userDetailsContent">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewUserDetails(userId) {
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    const content = document.getElementById('userDetailsContent');
+    
+    // Show loading
+    content.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Fetch user details
+    fetch(`/admin/api/user/${userId}/details`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            content.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+        }
+        
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-light mb-3">User Information</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>Username:</td><td>${data.username}</td></tr>
+                        <tr><td>Email:</td><td>${data.email}</td></tr>
+                        <tr><td>Subscription:</td><td>${data.subscription_tier}</td></tr>
+                        <tr><td>Registered:</td><td>${data.created_at.split('T')[0]}</td></tr>
+                        <tr><td>Last Login:</td><td>${data.last_login ? data.last_login.split('T')[0] : 'Never'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-light mb-3">Activity Summary</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>Brands:</td><td>${data.brands_count}</td></tr>
+                        <tr><td>Campaigns:</td><td>${data.campaigns_count}</td></tr>
+                        <tr><td>Quality Checks:</td><td>${data.quality_checks_count}</td></tr>
+                        <tr><td>Avg Quality Score:</td><td>${data.quality_summary.average_score.toFixed(1)}/10</td></tr>
+                        <tr><td>Pass Rate:</td><td>${((data.quality_summary.passed_checks / data.quality_summary.total_checks) * 100).toFixed(1) || 0}%</td></tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6 class="text-light mb-3">Recent Campaigns</h6>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Quality Score</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.recent_campaigns.map(campaign => `
+                                    <tr>
+                                        <td>${campaign.title}</td>
+                                        <td><span class="badge bg-secondary">${campaign.status}</span></td>
+                                        <td>${campaign.quality_score ? campaign.quality_score.toFixed(1) : 'N/A'}</td>
+                                        <td>${campaign.created_at.split('T')[0]}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        content.innerHTML = '<div class="alert alert-danger">Failed to load user details</div>';
+    });
+}
+
+function editUser(userId) {
+    alert('Edit user functionality would be implemented here');
+}
+
+function sendMessage(userId) {
+    window.location.href = `/admin/communications?user=${userId}`;
+}
+</script>
+{% endblock %}

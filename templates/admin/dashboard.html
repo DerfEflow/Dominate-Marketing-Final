@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Admin Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-cog me-2"></i>
+                        Admin Dashboard
+                    </h2>
+                    <p class="text-muted mb-0">Comprehensive platform management and analytics</p>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-bar me-1"></i> Reports
+                        </a>
+                        <a href="{{ url_for('admin.communications') }}" class="btn btn-outline-info">
+                            <i class="fas fa-envelope me-1"></i> Communications
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-users me-1"></i> Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h2 mb-2 text-primary">{{ stats.total_users|default(0) }}</div>
+                    <h6 class="card-title">Total Users</h6>
+                    <p class="card-text small text-muted">
+                        +{{ stats.new_users_week|default(0) }} this week
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h2 mb-2 text-success">{{ stats.total_campaigns|default(0) }}</div>
+                    <h6 class="card-title">Total Campaigns</h6>
+                    <p class="card-text small text-muted">
+                        +{{ stats.new_campaigns_week|default(0) }} this week
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h2 mb-2 text-info">{{ stats.total_brands|default(0) }}</div>
+                    <h6 class="card-title">Total Brands</h6>
+                    <p class="card-text small text-muted">
+                        Active brands on platform
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h2 mb-2 text-warning">{{ "%.1f"|format(stats.quality_pass_rate|default(0)) }}%</div>
+                    <h6 class="card-title">Quality Pass Rate</h6>
+                    <p class="card-text small text-muted">
+                        {{ stats.total_quality_checks|default(0) }} total checks
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Control Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Quality Control Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if quality_metrics %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-light mb-3">Quality Statistics</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>Total Checks:</span>
+                                    <strong>{{ quality_metrics.total_checks }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Passed:</span>
+                                    <strong class="text-success">{{ quality_metrics.passed_checks }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Failed:</span>
+                                    <strong class="text-danger">{{ quality_metrics.failed_checks }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Pass Rate:</span>
+                                    <strong class="text-info">{{ "%.1f"|format(quality_metrics.pass_rate) }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <h6 class="text-light mb-3">Average Criteria Scores</h6>
+                            <div class="row">
+                                {% for criteria, score in quality_metrics.criteria_averages.items() %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small">{{ criteria.replace('_', ' ').title().replace(' Score', '') }}:</span>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress me-2" style="width: 80px; height: 6px;">
+                                                <div class="progress-bar 
+                                                    {% if score >= 7 %}bg-success
+                                                    {% elif score >= 5 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    style="width: {{ (score/10)*100 }}%"></div>
+                                            </div>
+                                            <span class="small">{{ "%.1f"|format(score) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                        <p class="text-muted">No quality control data available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Recent Users
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity and recent_activity.recent_users %}
+                        {% for user in recent_activity.recent_users %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+                            <div>
+                                <div class="fw-bold">{{ user.username }}</div>
+                                <div class="small text-muted">{{ user.email }}</div>
+                            </div>
+                            <div class="small text-muted">
+                                {{ user.created_at.split('T')[0] }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small">No recent users.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bullhorn me-2"></i>
+                        Recent Campaigns
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity and recent_activity.recent_campaigns %}
+                        {% for campaign in recent_activity.recent_campaigns %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+                            <div>
+                                <div class="fw-bold">{{ campaign.title[:30] }}...</div>
+                                <div class="small text-muted">{{ campaign.user_email }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="badge 
+                                    {% if campaign.status == 'completed' %}bg-success
+                                    {% elif campaign.status == 'processing' %}bg-info
+                                    {% elif campaign.status == 'failed' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ campaign.status }}
+                                </div>
+                                <div class="small text-muted">
+                                    {{ campaign.created_at.split('T')[0] }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small">No recent campaigns.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Recent Quality Checks
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity and recent_activity.recent_quality %}
+                        {% for check in recent_activity.recent_quality %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+                            <div>
+                                <div class="fw-bold">
+                                    {{ check.campaign_id[:8] }}...
+                                    {% if check.passed %}
+                                        <span class="text-success">✓</span>
+                                    {% else %}
+                                        <span class="text-danger">✗</span>
+                                    {% endif %}
+                                </div>
+                                <div class="small text-muted">
+                                    Score: {{ "%.1f"|format(check.quality_score or 0) }}/10
+                                </div>
+                            </div>
+                            <div class="small text-muted">
+                                {{ check.created_at.split('T')[0] }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small">No recent quality checks.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Metrics -->
+    {% if user_metrics %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Subscription Tier Distribution
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for tier, count in user_metrics.tier_distribution.items() %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">{{ tier or 'FREE' }}:</span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Monthly Registrations
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for registration in user_metrics.monthly_registrations[-6:] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">{{ registration.month }}:</span>
+                        <strong>{{ registration.count }}</strong>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-outline-primary w-100" onclick="generateQuickReport()">
+                                <i class="fas fa-file-export d-block mb-1"></i>
+                                <small>Export User Report</small>
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-outline-info w-100" onclick="sendBulkCommunication()">
+                                <i class="fas fa-envelope-bulk d-block mb-1"></i>
+                                <small>Bulk Communication</small>
+                            </button>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.quality_control') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-shield-alt d-block mb-1"></i>
+                                <small>Quality Control</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <button class="btn btn-outline-success w-100" onclick="refreshDashboard()">
+                                <i class="fas fa-sync d-block mb-1"></i>
+                                <small>Refresh Data</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateQuickReport() {
+    // Generate a quick user report
+    fetch('/admin/api/generate-report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            report_type: 'users',
+            date_range: '30',
+            format: 'csv'
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Report generation failed');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'users_report_' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to generate report');
+    });
+}
+
+function sendBulkCommunication() {
+    window.location.href = '{{ url_for("admin.communications") }}';
+}
+
+function refreshDashboard() {
+    location.reload();
+}
+</script>
+{% endblock %}

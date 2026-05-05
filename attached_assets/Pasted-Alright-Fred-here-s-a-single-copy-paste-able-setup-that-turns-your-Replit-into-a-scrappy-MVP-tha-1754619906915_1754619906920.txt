@@ -1,0 +1,222 @@
+Alright, Fred — here’s a single, copy-paste-able setup that turns your Replit into a scrappy MVP that (1) pulls very-recent trends from Reddit (no auth, quick and dirty), (2) optionally pulls TikTok trends via Apify (licensed vendor), (3) optionally pulls X tweets if you have a paid token, (4) scores what’s trending, and (5) generates ad copy that can incorporate trends when a “trending” toggle is ON. It also exposes simple HTTP endpoints so your UI can flip the toggle and fetch/generate creatives.
+
+Paste everything below into the Replit shell as one command. It creates the project files, installs deps, sets up Prisma + SQLite, background jobs, and REST endpoints.
+
+bash -lc " set -e
+
+0) Project skeleton
+
+mkdir -p src/platforms src/trends src/generation src/flags src/routes prisma npm init -y >/dev/null
+
+1) Dependencies
+
+npm i express zod dotenv node-cron cross-fetch openai @prisma/client npm i -D typescript ts-node nodemon prisma npx prisma init --datasource-provider sqlite >/dev/null
+
+2) TS + Nodemon + Scripts
+
+cat > tsconfig.json <<'EOF' { "compilerOptions": { "target": "ES2020", "module": "commonjs", "rootDir": "src", "outDir": "dist", "strict": true, "esModuleInterop": true, "skipLibCheck": true }, "include": ["src"] } EOF
+
+Overwrite package.json with useful scripts
+
+cat > package.json <<'EOF' { "name": "formulate-mvp", "version": "0.1.0", "type": "commonjs", "main": "dist/index.js", "scripts": { "dev": "nodemon --watch src --exec ts-node src/index.ts", "build": "tsc", "start": "node dist/index.js", "prisma:migrate": "prisma migrate dev --name init", "prisma:studio": "prisma studio" }, "dependencies": { "@prisma/client": "^5.18.0", "cross-fetch": "^4.0.0", "dotenv": "^16.4.5", "express": "^4.19.2", "node-cron": "^3.0.3", "openai": "^4.57.0", "zod": "^3.23.8" }, "devDependencies": { "nodemon": "^3.1.0", "prisma": "^5.18.0", "ts-node": "^10.9.2", "typescript": "^5.5.4" } } EOF
+
+3) Environment
+
+cat > .env <<'EOF' DATABASE_URL="file:./dev.db" PORT=3000
+
+OpenAI for ad generation
+
+OPENAI_API_KEY=
+
+Optional: X (Twitter) paid token; leave blank to disable
+
+X_BEARER_TOKEN=
+
+Optional: Apify token + actor for TikTok trending
+
+APIFY_TOKEN= TIKTOK_ACTOR_ID=
+
+Default keywords if client hasn't configured anything yet
+
+DEFAULT_KEYWORDS="marketing OR roof OR contractor OR small business OR ecommerce" EOF
+
+4) Prisma schema
+
+cat > prisma/schema.prisma <<'EOF' generator client { provider = "prisma-client-js" }
+
+datasource db { provider = "sqlite" url      = env("DATABASE_URL") }
+
+model Trend { id          String   @id @default(cuid()) platform    String topic       String snippet     String url         String author      String? score       Float     @default(0) createdAt   DateTime fetchedAt   DateTime  @default(now()) }
+
+model Creative { id          String   @id @default(cuid()) campaignId  String? userId      String? platform    String headline    String body        String hashtags    String memeDial    Int       @default(0) trendRefs   String    @default("") // comma-separated Trend IDs createdAt   DateTime  @default(now()) }
+
+model FeatureFlag { id        String  @id @default(cuid()) key       String value     Boolean @default(false) userId    String? campaignId String? createdAt DateTime @default(now()) } EOF
+
+npx prisma migrate dev --name init
+
+5) Config loader
+
+cat > src/config.ts <<'EOF' import * as dotenv from 'dotenv'; dotenv.config();
+
+export const config = { port: Number(process.env.PORT || 3000), openaiApiKey: process.env.OPENAI_API_KEY || '', xBearer: process.env.X_BEARER_TOKEN || '', apifyToken: process.env.APIFY_TOKEN || '', tiktokActorId: process.env.TIKTOK_ACTOR_ID || '', defaultKeywords: process.env.DEFAULT_KEYWORDS || 'marketing' }; EOF
+
+6) Prisma client
+
+cat > src/db.ts <<'EOF' import { PrismaClient } from '@prisma/client'; export const prisma = new PrismaClient(); EOF
+
+7) Feature flags
+
+cat > src/flags/featureFlags.ts <<'EOF' import { prisma } from '../db';
+
+export async function getTrendingEnabled(userId?: string, campaignId?: string): Promise<boolean> { if (campaignId) { const f = await prisma.featureFlag.findFirst({ where: { key: 'trending_enabled', campaignId }}); if (f) return f.value; } if (userId) { const f = await prisma.featureFlag.findFirst({ where: { key: 'trending_enabled', userId }}); if (f) return f.value; } const f = await prisma.featureFlag.findFirst({ where: { key: 'trending_enabled', userId: null, campaignId: null }}); return f?.value ?? false; }
+
+export async function setTrendingEnabled(value: boolean, userId?: string, campaignId?: string) { await prisma.featureFlag.upsert({ where: { key_userId_campaignId: { key: 'trending_enabled', userId: userId ?? null, campaignId: campaignId ?? null } } as any, create: { key: 'trending_enabled', value, userId: userId ?? null, campaignId: campaignId ?? null }, update: { value } }); } EOF
+
+8) Reddit collector (public JSON; upgrade to OAuth later)
+
+cat > src/platforms/reddit.ts <<'EOF' import fetch from 'cross-fetch'; import { prisma } from '../db';
+
+function extractTopic(title: string, selftext?: string): string { const t = (title || '').toLowerCase(); if (t.includes('meme')) return 'memes'; if (t.includes('fail')) return 'fails'; if (t.includes('storm') || t.includes('hail')) return 'storm damage'; if (t.includes('ad') || t.includes('marketing')) return 'marketing'; return (t.split(' ').slice(0, 3).join(' ') || 'general'); }
+
+export async function collectReddit(keywords: string) { const url = https://www.reddit.com/search.json?q=${encodeURIComponent(keywords)}&sort=new&limit=50; const res = await fetch(url, { headers: { 'User-Agent': 'FormulateBot/0.1 by fred' }}); if (!res.ok) return; const data = await res.json(); const items = (data?.data?.children ?? []).map((c: any) => c.data); for (const p of items) { const createdAt = new Date((p.created_utc || p.created || Date.now()/1000)*1000); try { await prisma.trend.upsert({ where: { url: https://reddit.com${p.permalink} }, create: { platform: 'reddit', topic: extractTopic(p.title, p.selftext), snippet: p.title?.slice(0, 240) || '', url: https://reddit.com${p.permalink}, author: p.author, createdAt } as any, update: { fetchedAt: new Date() } }); } catch {} } } EOF
+
+9) X collector (optional; disabled if no token)
+
+cat > src/platforms/x.ts <<'EOF' import fetch from 'cross-fetch'; import { prisma } from '../db';
+
+export async function collectX(keywords: string, bearer: string) { if (!bearer) return; // disabled const params = new URLSearchParams({ query: ${keywords} -is:retweet lang:en, 'max_results': '25', 'tweet.fields': 'public_metrics,created_at,entities', }); const res = await fetch(https://api.x.com/2/tweets/search/recent?${params.toString()}, { headers: { Authorization: Bearer ${bearer} } }); if (!res.ok) return; const json = await res.json(); const items = json?.data ?? []; for (const t of items) { const createdAt = new Date(t.created_at || new Date()); const url = https://x.com/i/web/status/${t.id}; const snippet = (t.text || '').slice(0, 240); try { await prisma.trend.upsert({ where: { url }, create: { platform: 'x', topic: 'social buzz', snippet, url, author: '', createdAt } as any, update: { fetchedAt: new Date() } }); } catch {} } } EOF
+
+10) TikTok via Apify (optional)
+
+cat > src/platforms/tiktok.ts <<'EOF' import fetch from 'cross-fetch'; import { prisma } from '../db';
+
+export async function collectTikTok(apifyToken: string, actorId: string, keywords: string) { if (!apifyToken || !actorId) return; // disabled // Kick off a run with keywords; actor should be configured to search by hashtag/keyword const startRes = await fetch(https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyToken}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ input: { search: keywords, maxItems: 30 } }) }); if (!startRes.ok) return; const run = await startRes.json(); const datasetId = run?.data?.defaultDatasetId; if (!datasetId) return; // Give Apify a few seconds to populate; in production poll for run status. Here we just try the dataset quickly. const ds = await fetch(https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}&clean=true); if (!ds.ok) return; const items = await ds.json(); for (const it of (items || [])) { const createdAt = new Date((it.createTime || Date.now()/1000)*1000); const url = it.webVideoUrl || it.url || ''; const snippet = (it.desc || '').slice(0, 240); if (!url) continue; try { await prisma.trend.upsert({ where: { url }, create: { platform: 'tiktok', topic: (it.hashtags?.[0]?.name || 'tiktok trend'), snippet, url, author: it.author?.uniqueId || '', createdAt } as any, update: { fetchedAt: new Date() } }); } catch {} } } EOF
+
+11) Trend scorer (velocity + recency)
+
+cat > src/trends/scorer.ts <<'EOF' import { prisma } from '../db';
+
+export async function scoreTrends() { const since = new Date(Date.now() - 486060*1000); const trends = await prisma.trend.findMany({ where: { createdAt: { gte: since }}, orderBy: { createdAt: 'desc' }}); const now = Date.now(); const scored = []; for (const t of trends) { const ageMin = Math.max(1, (now - new Date(t.createdAt).getTime()) / 60000); // No native engagement in our collectors => infer with simple heuristics: reddit newness, platform weight const base = t.platform === 'x' ? 1.2 : t.platform === 'tiktok' ? 1.4 : 1.0; const recencyBoost = Math.exp(-(ageMin/60) / 6); // half-life ~4h const score = base * (1/ageMin) * 60 * recencyBoost; scored.push({ id: t.id, score }); } for (const s of scored) { await prisma.trend.update({ where: { id: s.id }, data: { score: s.score }}); } } EOF
+
+12) Ad generator (OpenAI)
+
+cat > src/generation/adGenerator.ts <<'EOF' import OpenAI from 'openai'; import { prisma } from '../db';
+
+const system = You generate concise, platform-specific ad creatives. Be witty but brand-safe. Use trends only when provided. Avoid overused buzzwords. Respect character limits.;
+
+export async function generateAds(opts: { openaiApiKey: string, platform: 'tiktok' | 'x' | 'reddit', brand: string, audience: string, goal: string, trendingEnabled: boolean, userId?: string, campaignId?: string }) { const client = new OpenAI({ apiKey: opts.openaiApiKey }); const limit = opts.platform === 'x' ? 280 : 300; let trendContext = ''; let usedIds: string[] = []; if (opts.trendingEnabled) { const top = await prisma.trend.findMany({ orderBy: { score: 'desc' }, take: 5 }); if (top.length) { trendContext = top.map(t => ${t.platform} | ${t.topic}: ${t.snippet}).join('\n'); usedIds = top.map(t => t.id); } } const prompt = ` Brand: ${opts.brand} Audience: ${opts.audience} Goal: ${opts.goal} Platform: ${opts.platform} Character limit: ${limit} Trends (may be empty): ${trendContext}
+
+Generate 3 ad variants. For each, return JSON with keys: headline (<=120 chars), body (<=${limit}), hashtags (<=6, lowercase), memeDial (0-3 integer). Make each variant distinct. Use memes only implicitly (style/tone), avoid trademarked template names.`;
+
+const completion = await client.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }], temperature: 0.8 });
+
+const text = completion.choices[0]?.message?.content || '[]'; let variants: any[] = []; try { variants = JSON.parse(text); } catch { // Try to coax JSON by wrapping const jsonMatch = text.match(/\/); if (jsonMatch) { try { variants = JSON.parse(jsonMatch[0]); } catch {} } } variants = Array.isArray(variants) ? variants.slice(0,3) : []; const saved = []; for (const v of variants) { const hashtags = Array.isArray(v.hashtags) ? v.hashtags.map((h:string)=>h.toLowerCase().replace(/[^a-z0-9_]/g,'')).slice(0,6) : []; const memeDial = Math.max(0, Math.min(3, Number(v.memeDial ?? 0))); const created = await prisma.creative.create({ data: { platform: opts.platform, headline: String(v.headline || '').slice(0,120), body: String(v.body || '').slice(0, limit), hashtags: hashtags.join(','), memeDial, campaignId: opts.campaignId || null, userId: opts.userId || null, trendRefs: usedIds.join(',') } }); saved.push(created); } return saved; } EOF
+
+13) API routes
+
+cat > src/routes/api.ts <<'EOF' import { Router } from 'express'; import { z } from 'zod'; import { prisma } from '../db'; import { setTrendingEnabled, getTrendingEnabled } from '../flags/featureFlags'; import { generateAds } from '../generation/adGenerator';
+
+export const api = Router();
+
+api.get('/health', (_req, res) => res.json({ ok: true }));
+
+api.get('/trends', async (req, res) => { const limit = Number(req.query.limit || 20); const out = await prisma.trend.findMany({ orderBy: { score: 'desc' }, take: limit }); res.json(out); });
+
+api.get('/toggle/trending', async (req, res) => { const userId = (req.query.userId as string) || undefined; const campaignId = (req.query.campaignId as string) || undefined; const val = await getTrendingEnabled(userId, campaignId); res.json({ trending_enabled: val }); });
+
+api.post('/toggle/trending', async (req, res) => { const body = z.object({ value: z.boolean(), userId: z.string().optional(), campaignId: z.string().optional() }).parse(req.body); await setTrendingEnabled(body.value, body.userId, body.campaignId); res.json({ ok: true }); });
+
+api.post('/generate', async (req, res) => { const body = z.object({ platform: z.enum(['tiktok','x','reddit']), brand: z.string(), audience: z.string(), goal: z.string(), trendingEnabled: z.boolean().optional().default(false), userId: z.string().optional(), campaignId: z.string().optional() }).parse(req.body);
+
+const key = process.env.OPENAI_API_KEY || ''; if (!key) return res.status(400).json({ error: 'Missing OPENAI_API_KEY' });
+
+const creatives = await generateAds({ openaiApiKey: key, platform: body.platform, brand: body.brand, audience: body.audience, goal: body.goal, trendingEnabled: body.trendingEnabled, userId: body.userId, campaignId: body.campaignId });
+
+res.json({ count: creatives.length, creatives }); }); EOF
+
+14) App index: cron jobs + Express
+
+cat > src/index.ts <<'EOF' import express from 'express'; import cron from 'node-cron'; import { json } from 'express'; import { config } from './config'; import { prisma } from './db'; import { collectReddit } from './platforms/reddit'; import { collectX } from './platforms/x'; import { collectTikTok } from './platforms/tiktok'; import { scoreTrends } from './trends/scorer'; import { api } from './routes/api';
+
+const app = express(); app.use(json()); app.use('/api', api);
+
+app.get('/', (_req, res) => { res.send('Formulate MVP is running. Try GET /api/trends or POST /api/generate'); });
+
+// Collect every 10 minutes cron.schedule('*/10 * * * *', async () => { const kw = config.defaultKeywords; console.log('[cron] collecting trends...'); await Promise.all([ collectReddit(kw), collectX(kw, config.xBearer), collectTikTok(config.apifyToken, config.tiktokActorId, kw) ]); console.log('[cron] collection done'); });
+
+// Score every 10 minutes (after collection) cron.schedule('*/10 * * * *', async () => { console.log('[cron] scoring trends...'); await scoreTrends(); console.log('[cron] scoring done'); });
+
+// First run warmup (async () => { await collectReddit(config.defaultKeywords); await scoreTrends(); })();
+
+app.listen(config.port, () => { console.log(Server listening on :${config.port}); }); EOF
+
+15) Nodemon config (optional)
+
+cat > nodemon.json <<'EOF' { "watch": ["src"], "ext": "ts", "exec": "ts-node src/index.ts" } EOF
+
+16) Helpful curl examples
+
+cat > README_MVP.txt <<'EOF' Quick test commands:
+
+1. Check health: curl -s https://REPLIT_URL/api/health
+
+
+2. See top trends: curl -s https://REPLIT_URL/api/trends | jq .
+
+
+3. Turn trending ON globally: curl -s -X POST https://REPLIT_URL/api/toggle/trending -H 'Content-Type: application/json' -d '{"value": true}'
+
+
+4. Generate three X ad variants using trends (replace REPLIT_URL): curl -s -X POST https://REPLIT_URL/api/generate -H 'Content-Type: application/json' -d '{ "platform":"x", "brand":"Truline Roofing", "audience":"Homeowners in Houston, 30-60", "goal":"Lead gen: free estimates", "trendingEnabled": true }' | jq . EOF
+
+
+
+echo 'Done.' "
+
+17) Final instructions to you (do these now):
+
+- In the Replit Secrets panel (.env), set:
+
+OPENAI_API_KEY = your key
+
+DEFAULT_KEYWORDS = words your users care about (e.g., “roof OR hail OR insurance claim”)
+
+(Optional) X_BEARER_TOKEN = your paid token to enable X collection
+
+(Optional) APIFY_TOKEN + TIKTOK_ACTOR_ID to enable TikTok collection via Apify
+
+- Run: npm run dev
+
+- Hit:  https://<your-replit-url>/api/trends   (GET)
+
+- Toggle: POST https://<your-replit-url>/api/toggle/trending  body: {"value": true}
+
+- Generate: POST https://<your-replit-url>/api/generate with JSON body:
+
+{
+
+"platform": "tiktok" | "x" | "reddit",
+
+"brand": "Your Brand",
+
+"audience": "Describe them",
+
+"goal": "What you want",
+
+"trendingEnabled": true
+
+}
+
+What this gives you right now — A background collector (every 10 min) that pulls “new” Reddit posts (fastest to wire), optionally X and TikTok if tokens are present.
+— A simple scoring model that prioritizes recency and platform weight.
+— A per-user/campaign toggle you can flip via API or from your UI.
+— An ad generator that uses trends when enabled; it stores creatives and references which trends were used (so you can display receipts in the UI).
+
+Hard truths & next moves (after MVP runs) — Reddit unauthenticated JSON is rate-limited and flaky; upgrade to Reddit OAuth when you catch your breath.
+— For TikTok, keep using a licensed vendor like Apify; don’t roll your own scraper unless you like legal headaches.
+— X requires paid access; keep it optional so the app doesn’t break if you don’t have it.
+— Add a UI “Trends” tab that calls GET /api/trends and shows chips. Add a campaign-level toggle that calls POST /api/toggle/trending with { value, campaignId }.
+— Add limits to your pricing page mapped to these endpoints (e.g., “10 ad generations/day on Basic”).
+
+If you want me to also hand you the UI stubs (React + fetch to these endpoints) in one paste next, say the word.
+

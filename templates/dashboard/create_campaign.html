@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Create Campaign - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="h3 mb-2">Create New Viral Campaign</h1>
+                <p class="text-muted">Tell us about your business and we'll create a complete marketing campaign</p>
+            </div>
+
+            <!-- Campaign Creation Form -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('dashboard.create_campaign_post') }}">
+                        <!-- Business URL -->
+                        <div class="mb-4">
+                            <label for="business_url" class="form-label">
+                                <i class="fas fa-globe me-2"></i>Business Website URL <span class="text-danger">*</span>
+                            </label>
+                            <input type="url" class="form-control form-control-lg" id="business_url" 
+                                   name="business_url" placeholder="https://yourbusiness.com" required>
+                            <div class="form-text">
+                                We'll analyze your website to understand your business, products, and brand voice.
+                            </div>
+                        </div>
+
+                        <!-- Campaign Title -->
+                        <div class="mb-4">
+                            <label for="title" class="form-label">Campaign Title (Optional)</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="Leave blank for auto-generated title">
+                            <div class="form-text">
+                                We'll create a compelling title based on your business if left blank.
+                            </div>
+                        </div>
+
+                        <!-- Target Audience -->
+                        <div class="mb-4">
+                            <label for="target_audience" class="form-label">Target Audience</label>
+                            <input type="text" class="form-control" id="target_audience" name="target_audience" 
+                                   placeholder="e.g., Small business owners, Parents, Tech enthusiasts">
+                            <div class="form-text">
+                                Describe your ideal customers. We'll tailor the messaging accordingly.
+                            </div>
+                        </div>
+
+                        <!-- Campaign Goal -->
+                        <div class="mb-4">
+                            <label for="campaign_goal" class="form-label">Campaign Goal</label>
+                            <select class="form-select" id="campaign_goal" name="campaign_goal">
+                                <option value="awareness">Brand Awareness</option>
+                                <option value="leads" selected>Generate Leads</option>
+                                <option value="sales">Drive Sales</option>
+                                <option value="engagement">Increase Engagement</option>
+                                <option value="traffic">Website Traffic</option>
+                            </select>
+                        </div>
+
+                        <!-- Brand Voice -->
+                        <div class="mb-4">
+                            <label for="brand_voice" class="form-label">Brand Voice & Tone</label>
+                            <select class="form-select" id="brand_voice" name="brand_voice">
+                                <option value="professional">Professional & Trustworthy</option>
+                                <option value="casual">Casual & Friendly</option>
+                                <option value="witty">Witty & Humorous</option>
+                                <option value="edgy">Edgy & Provocative</option>
+                                <option value="roast">Roast & Comedy</option>
+                                <option value="inspirational">Inspirational & Motivating</option>
+                                <option value="authoritative">Authoritative & Expert</option>
+                                <option value="playful">Playful & Creative</option>
+                            </select>
+                            <div class="form-text">
+                                <strong>Edgy:</strong> Bold, provocative content that pushes boundaries<br>
+                                <strong>Roast:</strong> Hilariously roasts the market while positioning your solution as the hero<br>
+                                <a href="{{ url_for('dashboard.tone_examples') }}" target="_blank" class="text-decoration-none">
+                                    <i class="fas fa-external-link-alt"></i> View tone examples & guidelines
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- What You'll Get -->
+                        <div class="alert alert-info border-0 mb-4">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-magic me-2"></i>What You'll Get:
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li><i class="fas fa-check text-success me-2"></i>AI-generated ad copy</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Competitor analysis</li>
+                                        {% if current_user.can_access_tier('plus') %}
+                                        <li><i class="fas fa-check text-success me-2"></i>AI-generated images</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        {% if current_user.can_access_tier('pro') %}
+                                        <li><i class="fas fa-check text-success me-2"></i>AI-generated videos</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Detailed competitor insights</li>
+                                        {% endif %}
+                                        {% if current_user.can_access_tier('enterprise') %}
+                                        <li><i class="fas fa-check text-success me-2"></i>Auto-posting setup</li>
+                                        {% endif %}
+                                        <li><i class="fas fa-clock text-muted me-2"></i>Ready in 2-3 minutes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trends/Memes Toggle -->
+                        <div class="mb-4">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="card-title mb-1">
+                                                <i class="fas fa-fire text-danger"></i> Viral Trends Integration
+                                            </h6>
+                                            <p class="card-text small text-muted mb-0">
+                                                Automatically discover and incorporate current viral memes, trends, and cultural moments into your ads
+                                            </p>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="includeTrends" name="include_trends">
+                                            <label class="form-check-label" for="includeTrends"></label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="trendsDetails" class="mt-3" style="display: none;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="trendMemes" name="trend_types" value="memes" checked>
+                                                    <label class="form-check-label" for="trendMemes">
+                                                        <i class="fas fa-laugh"></i> Viral Memes & Formats
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="trendCultural" name="trend_types" value="cultural" checked>
+                                                    <label class="form-check-label" for="trendCultural">
+                                                        <i class="fas fa-users"></i> Cultural Moments
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="trendSearch" name="trend_types" value="search" checked>
+                                                    <label class="form-check-label" for="trendSearch">
+                                                        <i class="fas fa-search"></i> Search Trends
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="trendSocial" name="trend_types" value="social" checked>
+                                                    <label class="form-check-label" for="trendSocial">
+                                                        <i class="fas fa-hashtag"></i> Social Media Trends
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-info mt-3 mb-0">
+                                            <i class="fas fa-lightbulb"></i>
+                                            <strong>How it works:</strong> Our AI scans viral content from the last 6 hours, finds the top 10 most relevant trends for your industry, and creatively incorporates the best match into your campaign for maximum engagement and shareability.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-rocket me-2"></i>Create My Viral Campaign
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tier Upgrade Notice -->
+            {% if not current_user.can_access_tier('plus') %}
+            <div class="card mt-4 border-warning">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1">
+                                <i class="fas fa-star text-warning me-2"></i>Unlock Full Creative Power
+                            </h6>
+                            <p class="text-muted mb-0">
+                                Upgrade to generate AI images, videos, and get detailed competitor analysis.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="{{ url_for('auth.pricing') }}" class="btn btn-warning">
+                                Upgrade Now <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('business_url').addEventListener('blur', function() {
+    const url = this.value;
+    const titleInput = document.getElementById('title');
+    
+    if (url && !titleInput.value) {
+        try {
+            const domain = new URL(url).hostname.replace('www.', '');
+            const businessName = domain.split('.')[0];
+            titleInput.placeholder = `Campaign for ${businessName.charAt(0).toUpperCase() + businessName.slice(1)}`;
+        } catch (e) {
+            // Invalid URL, ignore
+        }
+    }
+});
+
+// Toggle trends details
+document.getElementById('includeTrends').addEventListener('change', function() {
+    const details = document.getElementById('trendsDetails');
+    if (this.checked) {
+        details.style.display = 'block';
+    } else {
+        details.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subscription - {{ current_tier }} Plan{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="text-center">
+                <h1 class="fw-bold mb-3">Manage Your Subscription</h1>
+                <p class="lead text-muted">
+                    Control your {{ tier_config.name }} plan and billing preferences
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Current Plan Overview -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-crown me-2"></i>
+                        Current Plan: {{ tier_config.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="h2 fw-bold text-primary">${{ tier_config.price_monthly }}</div>
+                        <div class="text-muted">per month, per brand</div>
+                    </div>
+                    
+                    <!-- Usage Overview -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Usage This Month</h6>
+                        {% if usage_info.can_generate %}
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h4 text-success">{{ tier_config.generations_per_month - usage_info.monthly_remaining }}</div>
+                                <div class="small text-muted">Used</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="h4 text-info">{{ usage_info.monthly_remaining }}</div>
+                                <div class="small text-muted">Remaining</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="progress mt-3" style="height: 8px;">
+                            {% set usage_percentage = ((tier_config.generations_per_month - usage_info.monthly_remaining) / tier_config.generations_per_month * 100) %}
+                            <div class="progress-bar 
+                                {% if usage_percentage >= 80 %}bg-danger
+                                {% elif usage_percentage >= 60 %}bg-warning
+                                {% else %}bg-success{% endif %}" 
+                                style="width: {{ usage_percentage }}%"></div>
+                        </div>
+                        <div class="small text-muted mt-1 text-center">
+                            {{ "%.0f"|format(usage_percentage) }}% of monthly limit used
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning border-0">
+                            <strong>Limit Reached:</strong> {{ usage_info.reason }}
+                            {% if usage_info.reset_date %}
+                            <br><small>Resets: {{ usage_info.reset_date.split('T')[0] }}</small>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Daily Limit (Enterprise only) -->
+                        {% if current_tier == 'ENTERPRISE' and usage_info.daily_remaining is not none %}
+                        <div class="mt-3 pt-3 border-top">
+                            <h6 class="fw-bold mb-2">Today's Usage</h6>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="h5 text-warning">{{ tier_config.generations_per_day - usage_info.daily_remaining }}</div>
+                                    <div class="small text-muted">Used Today</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="h5 text-primary">{{ usage_info.daily_remaining }}</div>
+                                    <div class="small text-muted">Remaining Today</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Plan Features -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">Your Features</h6>
+                        <ul class="list-unstyled">
+                            {% for feature in tier_config.features[:4] %}
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success me-2"></i>
+                                {{ feature }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <!-- AI Models -->
+                    <div>
+                        <h6 class="fw-bold mb-2">AI Models</h6>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for model in tier_config.ai_models %}
+                            <span class="badge {% if current_tier == 'ENTERPRISE' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                                {{ model }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Billing & Actions -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>
+                        Billing & Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Billing Info -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Billing Information</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="small text-muted">Next Billing Date</div>
+                                <div class="fw-bold">{{ (current_user.subscription_expires or datetime.now() + timedelta(days=30)).strftime('%B %d, %Y') }}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="small text-muted">Monthly Charge</div>
+                                <div class="fw-bold">${{ tier_config.price_monthly }}</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="small text-muted">Payment Method</div>
+                                <div class="fw-bold">
+                                    <i class="fab fa-cc-stripe me-1"></i> Stripe
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="small text-muted">Status</div>
+                                <div class="fw-bold text-success">Active</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            {% if current_tier != 'ENTERPRISE' %}
+                            <a href="{{ url_for('payment.upgrade_subscription') }}" class="btn btn-primary">
+                                <i class="fas fa-arrow-up me-2"></i>
+                                Upgrade Plan
+                            </a>
+                            {% endif %}
+                            
+                            <a href="{{ url_for('payment.add_brand_subscription') }}" class="btn btn-outline-success">
+                                <i class="fas fa-plus me-2"></i>
+                                Add Another Brand (+$19/month)
+                            </a>
+                            
+                            <button class="btn btn-outline-warning" onclick="putAccountOnHold()">
+                                <i class="fas fa-pause me-2"></i>
+                                Put Account on Hold (90 days max)
+                            </button>
+                            
+                            <button class="btn btn-outline-info" onclick="updatePaymentMethod()">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Update Payment Method
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Danger Zone -->
+                    <div class="border border-danger rounded p-3">
+                        <h6 class="fw-bold text-danger mb-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Danger Zone
+                        </h6>
+                        <p class="small text-muted mb-3">
+                            Cancel your subscription. You'll retain access until the end of your current billing period.
+                        </p>
+                        <button class="btn btn-outline-danger btn-sm" onclick="confirmCancellation()">
+                            <i class="fas fa-times me-2"></i>
+                            Cancel Subscription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Options -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold text-center mb-4">Scale Your Marketing</h3>
+            <div class="row g-4">
+                <!-- Upgrade Option -->
+                {% if current_tier != 'ENTERPRISE' %}
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light text-center h-100">
+                        <div class="card-body p-4">
+                            <i class="fas fa-rocket fa-2x text-primary mb-3"></i>
+                            <h5 class="fw-bold">Upgrade Your Plan</h5>
+                            <p class="text-muted mb-3">
+                                Get more generations, advanced AI models, and premium features
+                            </p>
+                            <a href="{{ url_for('payment.upgrade_subscription') }}" class="btn btn-primary">
+                                View Upgrades
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Additional Brands -->
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light text-center h-100">
+                        <div class="card-body p-4">
+                            <i class="fas fa-building fa-2x text-success mb-3"></i>
+                            <h5 class="fw-bold">Multiple Brands</h5>
+                            <p class="text-muted mb-3">
+                                Add marketing power for additional brands at just $19/month each
+                            </p>
+                            <a href="{{ url_for('payment.add_brand_subscription') }}" class="btn btn-success">
+                                Add Brand
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Support -->
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light text-center h-100">
+                        <div class="card-body p-4">
+                            <i class="fas fa-headset fa-2x text-info mb-3"></i>
+                            <h5 class="fw-bold">Need Help?</h5>
+                            <p class="text-muted mb-3">
+                                Our support team is here to help you maximize your results
+                            </p>
+                            <a href="mailto:support@dominatemarketing.ninja" class="btn btn-info">
+                                Contact Support
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="modalTitle">Confirm Action</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmButton">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5 id="successTitle">Action Completed</h5>
+                <p id="successMessage" class="text-muted mb-0"></p>
+            </div>
+            <div class="modal-footer border-secondary justify-content-center">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmCancellation() {
+    document.getElementById('modalTitle').textContent = 'Cancel Subscription';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="alert alert-danger border-0">
+            <h6 class="fw-bold mb-2">Are you sure you want to cancel?</h6>
+            <ul class="mb-2">
+                <li>Your subscription will remain active until {{ (current_user.subscription_expires or datetime.now() + timedelta(days=30)).strftime('%B %d, %Y') }}</li>
+                <li>You'll lose access to all {{ tier_config.name }} features after that date</li>
+                <li>All your campaigns and content will be preserved</li>
+                <li>You can reactivate anytime by subscribing again</li>
+            </ul>
+        </div>
+        <p class="text-muted mb-0">This action cannot be undone, but you can always subscribe again later.</p>
+    `;
+    
+    const confirmButton = document.getElementById('confirmButton');
+    confirmButton.textContent = 'Cancel Subscription';
+    confirmButton.onclick = cancelSubscription;
+    
+    new bootstrap.Modal(document.getElementById('confirmationModal')).show();
+}
+
+function cancelSubscription() {
+    fetch('/payment/cancel-subscription', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('confirmationModal')).hide();
+        
+        if (data.success) {
+            showSuccess('Subscription Cancelled', 'Your subscription will end at the current billing period. You can reactivate anytime.');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            alert('Failed to cancel subscription: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to cancel subscription. Please try again.');
+    });
+}
+
+function putAccountOnHold() {
+    document.getElementById('modalTitle').textContent = 'Put Account on Hold';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="alert alert-warning border-0">
+            <h6 class="fw-bold mb-2">Account Hold Information</h6>
+            <ul class="mb-2">
+                <li>Your account will be paused for up to 90 days</li>
+                <li>Billing will be suspended during the hold period</li>
+                <li>You can only use this feature once per calendar year</li>
+                <li>Your content and campaigns will be preserved</li>
+                <li>You can reactivate anytime during the hold period</li>
+            </ul>
+        </div>
+        <p class="text-muted mb-0">This is useful if you need a temporary break from marketing activities.</p>
+    `;
+    
+    const confirmButton = document.getElementById('confirmButton');
+    confirmButton.textContent = 'Put on Hold';
+    confirmButton.className = 'btn btn-warning';
+    confirmButton.onclick = executeAccountHold;
+    
+    new bootstrap.Modal(document.getElementById('confirmationModal')).show();
+}
+
+function executeAccountHold() {
+    fetch('/payment/account-hold', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('confirmationModal')).hide();
+        
+        if (data.success) {
+            showSuccess('Account on Hold', `Your account is now on hold until ${data.hold_end_date}. Billing is paused.`);
+            setTimeout(() => location.reload(), 3000);
+        } else {
+            alert('Failed to put account on hold: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to put account on hold. Please try again.');
+    });
+}
+
+function updatePaymentMethod() {
+    alert('Payment method update would redirect to Stripe customer portal in production.');
+}
+
+function showSuccess(title, message) {
+    document.getElementById('successTitle').textContent = title;
+    document.getElementById('successMessage').textContent = message;
+    new bootstrap.Modal(document.getElementById('successModal')).show();
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.progress {
+    border-radius: 10px;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+
+.border-danger {
+    border-width: 2px !important;
+}
+
+@media (max-width: 768px) {
+    .h2 {
+        font-size: 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

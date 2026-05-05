@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Success - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h1 class="display-4 mb-3">Welcome to {{ tier.title() }} Plan!</h1>
+                <p class="lead">Your subscription is now active and ready to dominate your marketing campaigns.</p>
+            </div>
+            
+            <div class="card bg-dark border-success mb-4">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-success mb-3">
+                        <i class="fas fa-crown me-2"></i>
+                        Your {{ tier.title() }} Plan is Active
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Subscription Details</h5>
+                            <ul class="list-unstyled">
+                                <li><strong>Plan:</strong> {{ tier.title() }}</li>
+                                <li><strong>Billing:</strong> Monthly</li>
+                                <li><strong>Status:</strong> <span class="badge bg-success">Active</span></li>
+                                <li><strong>Subscription ID:</strong> <small class="text-muted">{{ subscription_id }}</small></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>What's Included</h5>
+                            {% set plan_features = {
+                                'basic': ['Text content generation', 'Basic viral trends', '50 campaigns/month', 'Email support'],
+                                'plus': ['Text + Image content', 'Advanced viral tools', '150 campaigns/month', 'Social scheduling', 'Priority email support'],
+                                'pro': ['Text + Image + Video', 'Premium AI models (GPT-5)', 'Unlimited campaigns', 'Advanced analytics', 'Phone support'],
+                                'enterprise': ['All Pro features', 'Custom integrations', 'Dedicated support', 'White-label options', 'API access']
+                            } %}
+                            <ul class="list-unstyled">
+                                {% for feature in plan_features[tier] %}
+                                <li><i class="fas fa-check text-success me-2"></i>{{ feature }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-dark h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-rocket text-primary mb-3" style="font-size: 2rem;"></i>
+                            <h5>Start Creating</h5>
+                            <p class="small text-muted">Jump into the dashboard and create your first viral campaign</p>
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-sm">Go to Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-dark h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-fire text-warning mb-3" style="font-size: 2rem;"></i>
+                            <h5>Explore Live Demo</h5>
+                            <p class="small text-muted">See how we analyze businesses and create viral campaigns</p>
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-warning btn-sm">Go to Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-dark h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-cog text-info mb-3" style="font-size: 2rem;"></i>
+                            <h5>Manage Billing</h5>
+                            <p class="small text-muted">View invoices, update payment methods, or modify your plan</p>
+                            <a href="{{ url_for('payments.manage_subscription') }}" class="btn btn-outline-info btn-sm">Manage</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h5 class="alert-heading">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Getting Started Tips
+                </h5>
+                <ul class="mb-0">
+                    <li><strong>Add Your Business:</strong> Go to Brands to add your business information for personalized campaigns</li>
+                    <li><strong>Connect Social Media:</strong> Link your social accounts for seamless posting and scheduling</li>
+                    <li><strong>Explore Viral Tools:</strong> Check out our priority-based viral trend research in action</li>
+                    <li><strong>Generate Content:</strong> Create your first campaign using our AI-powered tools</li>
+                </ul>
+            </div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    Questions? Contact our support team at 
+                    <a href="mailto:support@dominatemarketing.com" class="text-primary">support@dominatemarketing.com</a>
+                </p>
+                <p class="small text-muted">
+                    Your subscription will automatically renew monthly. You can cancel anytime from your billing management page.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

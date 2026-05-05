@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Campaign Results - Video Marketing Campaign Creator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title mb-0">
+                    <i class="fas fa-check-circle text-success me-2"></i>Campaign Data Collected
+                </h1>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Your campaign data has been successfully saved and is ready for AI processing.
+                </div>
+
+                <!-- Job Information -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Job ID:</strong>
+                        <code class="ms-2">{{ data.job_id }}</code>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Created:</strong>
+                        <span class="ms-2">{{ data.timestamp[:19] | replace('T', ' ') }}</span>
+                    </div>
+                </div>
+
+                <!-- Campaign Details -->
+                <h3 class="h5 mb-3">Campaign Details</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="w-25">
+                                    <i class="fas fa-globe me-2"></i>Business URL
+                                </th>
+                                <td>
+                                    <a href="{{ data.business_url }}" target="_blank" class="text-decoration-none">
+                                        {{ data.business_url }}
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% if data.brand_voice %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-microphone me-2"></i>Brand Voice
+                                </th>
+                                <td>
+                                    <span class="badge bg-secondary">{{ data.brand_voice.title() }}</span>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if data.goal %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-target me-2"></i>Campaign Goal
+                                </th>
+                                <td>
+                                    <span class="badge bg-info">{{ data.goal.title() }}</span>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if data.region %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Target Region
+                                </th>
+                                <td>{{ data.region }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if data.platform %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-share-alt me-2"></i>Primary Platform
+                                </th>
+                                <td>
+                                    <span class="badge bg-primary">{{ data.platform.replace('_', ' ').title() }}</span>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if data.video_length %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-clock me-2"></i>Video Length
+                                </th>
+                                <td>{{ data.video_length }} seconds</td>
+                            </tr>
+                            {% endif %}
+                            {% if data.cta_text %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-bullhorn me-2"></i>Call to Action
+                                </th>
+                                <td>
+                                    <em>"{{ data.cta_text }}"</em>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% if data.logo_url %}
+                            <tr>
+                                <th scope="row">
+                                    <i class="fas fa-image me-2"></i>Logo URL
+                                </th>
+                                <td>
+                                    <a href="{{ data.logo_url }}" target="_blank" class="text-decoration-none">
+                                        {{ data.logo_url }}
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-plus me-2"></i>Create Another Campaign
+                    </a>
+                </div>
+
+                <!-- AI Business Summary -->
+                {% if summary %}
+                <div class="mt-4">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-robot me-2"></i>AI Business Summary
+                    </h3>
+                    {% if summary.error %}
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Summary Generation Failed:</strong> {{ summary.error }}
+                        </div>
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <tbody>
+                                            {% if summary.product %}
+                                            <tr>
+                                                <th scope="row" class="w-25">
+                                                    <i class="fas fa-box me-2"></i>Product
+                                                </th>
+                                                <td>{{ summary.product }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if summary.audience %}
+                                            <tr>
+                                                <th scope="row">
+                                                    <i class="fas fa-users me-2"></i>Target Audience
+                                                </th>
+                                                <td>{{ summary.audience }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if summary.value_props %}
+                                            <tr>
+                                                <th scope="row">
+                                                    <i class="fas fa-star me-2"></i>Value Propositions
+                                                </th>
+                                                <td>{{ summary.value_props }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if summary.proof_points %}
+                                            <tr>
+                                                <th scope="row">
+                                                    <i class="fas fa-certificate me-2"></i>Proof Points
+                                                </th>
+                                                <td>{{ summary.proof_points }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if summary.tone_guess %}
+                                            <tr>
+                                                <th scope="row">
+                                                    <i class="fas fa-palette me-2"></i>Tone Analysis
+                                                </th>
+                                                <td>
+                                                    <span class="badge bg-info">{{ summary.tone_guess }}</span>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Ad Script -->
+                {% if script %}
+                <div class="mt-4">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-film me-2"></i>Generated Ad Script
+                    </h3>
+                    {% if script.error %}
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Script Generation Failed:</strong> {{ script.error }}
+                        </div>
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body">
+                                {% if script.voiceover_lines %}
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-microphone me-2"></i>Voiceover Script</h6>
+                                    <div class="p-3 bg-secondary rounded">
+                                        {% for line in script.voiceover_lines %}
+                                            <p class="mb-2">"{{ line }}"</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if script.on_screen_text %}
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-captions me-2"></i>On-Screen Text</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Time</th>
+                                                    <th>Text</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in script.on_screen_text %}
+                                                <tr>
+                                                    <td>{{ item.t }}s</td>
+                                                    <td><strong>{{ item.text }}</strong></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if script.visuals %}
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-eye me-2"></i>Visual Suggestions</h6>
+                                    <ul class="list-group list-group-flush">
+                                        {% for visual in script.visuals %}
+                                            <li class="list-group-item px-0">{{ visual }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Veo 3 Request -->
+                {% if veo_request %}
+                <div class="mt-4">
+                    <h3 class="h5 mb-3">
+                        <i class="fas fa-video me-2"></i>Veo 3 Request
+                    </h3>
+                    {% if veo_request.error %}
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Veo Request Failed:</strong> {{ veo_request.error }}
+                        </div>
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body">
+                                {% if veo_request.script == "" %}
+                                <div class="alert alert-warning mb-3" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Warning:</strong> Veo script is empty — check script_json.voiceover_lines.
+                                </div>
+                                {% endif %}
+                                <p class="text-muted mb-3">Ready-to-send Veo 3 generation request:</p>
+                                <pre class="bg-dark text-light p-3 rounded"><code>{{ veo_request | tojson(indent=2) }}</code></pre>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Video Generation Result -->
+                {% if video_result %}
+                <div class="mt-4">
+                    <h3 class="mb-3">
+                        <i class="fas fa-play-circle me-2"></i>Video Generation Status
+                    </h3>
+                    {% if video_result.error %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Video Generation Failed:</strong> {{ video_result.error }}
+                        </div>
+                    {% elif video_result.status == 'success' %}
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Video Generation Started!</strong> {{ video_result.message }}
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Generation Details</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Generation ID:</strong>
+                                        <code>{{ video_result.generation_id }}</code>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <strong>Estimated Completion:</strong>
+                                        <span>{{ video_result.estimated_completion }}</span>
+                                    </li>
+                                    {% if video_result.video_url %}
+                                    <li class="list-group-item">
+                                        <strong>Video URL:</strong>
+                                        <a href="{{ video_result.video_url }}" target="_blank" class="btn btn-primary btn-sm ms-2">
+                                            <i class="fas fa-external-link-alt me-1"></i>View Video
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                                
+                                {% if video_result.prompt_used %}
+                                <div class="mt-3">
+                                    <h6>Video Prompt Used:</h6>
+                                    <div class="bg-light p-3 rounded">
+                                        <small>{{ video_result.prompt_used[:300] }}{% if video_result.prompt_used|length > 300 %}...{% endif %}</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Next Steps Info -->
+                <div class="mt-4 p-3 bg-light rounded border">
+                    <h5 class="text-dark">
+                        <i class="fas fa-lightbulb me-2"></i>Next Steps
+                    </h5>
+                    <p class="text-dark mb-0">
+                        Your complete video marketing package has been generated and saved (Job ID: <code>{{ data.job_id }}</code>):
+                    </p>
+                    <ul class="text-dark mt-2 mb-0">
+                        <li>✓ Business analysis and insights</li>
+                        <li>✓ AI-generated ad script with voiceover and visuals</li>
+                        <li>✓ Ready-to-send Veo 3 video generation request</li>
+                        {% if video_result and video_result.status == 'success' %}
+                        <li>✓ Video generation initiated with Veo 3</li>
+                        {% elif veo_request and not veo_request.error %}
+                        <li>Next: Connect to Veo 3 API to generate your video</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

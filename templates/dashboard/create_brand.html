@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Create Brand - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Create Brand</li>
+                    </ol>
+                </nav>
+                
+                <h1 class="h3 text-white mb-2">
+                    <i class="fas fa-plus-circle me-2"></i>Create New Brand
+                </h1>
+                <p class="text-muted">Set up your business brand for AI-powered marketing campaigns.</p>
+            </div>
+
+            <!-- Create Brand Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 text-white">
+                        <i class="fas fa-building me-2"></i>Brand Information
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('dashboard.create_brand') }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="brand_name" class="form-label text-white">
+                                        Brand Name <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="brand_name" 
+                                           name="brand_name" 
+                                           placeholder="Enter your brand name"
+                                           required
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        The name of your business or brand
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="industry" class="form-label text-white">Industry</label>
+                                    <select class="form-select" id="industry" name="industry">
+                                        <option value="">Select industry</option>
+                                        <option value="Technology">Technology</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Education">Education</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="Real Estate">Real Estate</option>
+                                        <option value="Food & Beverage">Food & Beverage</option>
+                                        <option value="Travel">Travel</option>
+                                        <option value="Fashion">Fashion</option>
+                                        <option value="Fitness">Fitness</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Professional Services">Professional Services</option>
+                                        <option value="Manufacturing">Manufacturing</option>
+                                        <option value="Non-profit">Non-profit</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Helps AI generate industry-specific content
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="website_url" class="form-label text-white">Website URL</label>
+                            <input type="url" 
+                                   class="form-control" 
+                                   id="website_url" 
+                                   name="website_url" 
+                                   placeholder="https://example.com"
+                                   maxlength="500">
+                            <small class="form-text text-muted">
+                                Your main website URL for content analysis
+                            </small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="description" class="form-label text-white">Brand Description</label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      name="description" 
+                                      rows="4" 
+                                      placeholder="Describe your brand, products, and what makes you unique..."
+                                      maxlength="1000"></textarea>
+                            <small class="form-text text-muted">
+                                Detailed description helps AI create better targeted content
+                            </small>
+                        </div>
+                        
+                        <!-- Subscription Info -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>Brand Limits
+                            </h6>
+                            <p class="mb-2">Your current plan allows:</p>
+                            <ul class="mb-0">
+                                <li><strong>Free:</strong> 1 brand</li>
+                                <li><strong>Basic:</strong> 3 brands</li>
+                                <li><strong>Pro:</strong> 10 brands</li>
+                                <li><strong>Enterprise:</strong> 50 brands</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-rocket me-2"></i>Create Brand
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Tips Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0 text-white">
+                        <i class="fas fa-lightbulb me-2"></i>Pro Tips for Better Results
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-info">Brand Name</h6>
+                                <p class="text-muted small mb-0">
+                                    Use your actual business name for authentic content generation
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-info">Website URL</h6>
+                                <p class="text-muted small mb-0">
+                                    Ensure your website is accessible for AI content analysis
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-info">Industry Selection</h6>
+                                <p class="text-muted small mb-0">
+                                    Choose the most relevant industry for targeted content
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-info">Description</h6>
+                                <p class="text-muted small mb-0">
+                                    Include key differentiators and target audience details
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

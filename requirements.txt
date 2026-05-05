@@ -1,0 +1,43 @@
+# Core web framework
+flask>=3.1.1
+flask-login>=0.6.3
+flask-sqlalchemy>=3.1.1
+gunicorn>=23.0.0
+python-dotenv==1.0.1
+werkzeug>=3.1.3
+markupsafe>=3.0.2
+
+# Database
+psycopg2-binary>=2.9.10
+sqlalchemy>=2.0.42
+
+# Auth & OAuth
+oauthlib>=3.3.1
+email-validator>=2.2.0
+
+# AI services
+openai>=1.40.0
+anthropic>=0.61.0
+google-generativeai>=0.8.5
+google-genai>=1.29.0
+
+# Payments
+stripe>=12.4.0
+
+# Web scraping (4-tier)
+trafilatura>=2.0.0
+beautifulsoup4>=4.13.4
+requests==2.32.3
+readability-lxml>=0.8.4.1
+playwright>=1.40.0
+
+# Content / image processing
+pillow>=11.3.0
+
+# Trend research
+pytrends>=4.9.2
+scikit-learn>=1.7.1
+nltk>=3.9.1
+
+# Security
+bleach>=6.2.0

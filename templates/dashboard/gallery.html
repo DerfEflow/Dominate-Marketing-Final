@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}Content Gallery - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Content Gallery</h1>
+                <div>
+                    <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Campaign
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <ul class="nav nav-tabs mb-4" id="galleryTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                        <i class="fas fa-th-large"></i> All Content
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos" type="button" role="tab">
+                        <i class="fas fa-video"></i> Videos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab">
+                        <i class="fas fa-image"></i> Images
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="text-tab" data-bs-toggle="tab" data-bs-target="#text" type="button" role="tab">
+                        <i class="fas fa-font"></i> Text Ads
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scheduled-tab" data-bs-toggle="tab" data-bs-target="#scheduled" type="button" role="tab">
+                        <i class="fas fa-calendar"></i> Scheduled Posts
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="galleryTabContent">
+                <!-- All Content Tab -->
+                <div class="tab-pane fade show active" id="all" role="tabpanel">
+                    <div class="row">
+                        {% for campaign in campaigns %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100">
+                                {% if campaign.video_path %}
+                                <div class="card-img-top bg-dark d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-video fa-3x text-white-50"></i>
+                                </div>
+                                {% elif campaign.image_path %}
+                                <img src="{{ campaign.image_path }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Campaign Image">
+                                {% else %}
+                                <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-font fa-3x text-white-50"></i>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ campaign.title }}</h6>
+                                    <p class="card-text small text-muted">
+                                        <strong>Voice:</strong> {{ campaign.brand_voice | title }}<br>
+                                        <strong>Goal:</strong> {{ campaign.campaign_goal | title }}<br>
+                                        <strong>Created:</strong> {{ campaign.created_at.strftime('%b %d, %Y') }}
+                                    </p>
+                                    {% if campaign.quality_score %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">Quality Score:</small>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ campaign.quality_score * 10 }}%"></div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="card-footer bg-transparent">
+                                    <div class="btn-group w-100" role="group">
+                                        <a href="{{ url_for('dashboard.view_campaign', campaign_id=campaign.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="editContent('{{ campaign.id }}')">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="schedulePost('{{ campaign.id }}')">
+                                            <i class="fas fa-calendar-plus"></i> Schedule
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if not campaigns %}
+                        <div class="col-12">
+                            <div class="text-center py-5">
+                                <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">No content yet</h4>
+                                <p class="text-muted">Create your first campaign to see content here.</p>
+                                <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Create Campaign
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Videos Tab -->
+                <div class="tab-pane fade" id="videos" role="tabpanel">
+                    <div class="row">
+                        {% for campaign in campaigns %}
+                        {% if campaign.video_path %}
+                        <div class="col-lg-6 col-md-12 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="bg-dark d-flex align-items-center justify-content-center" style="height: 120px;">
+                                                <i class="fas fa-video fa-2x text-white-50"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <h6>{{ campaign.title }}</h6>
+                                            <p class="small text-muted mb-2">{{ campaign.brand_voice | title }} • {{ campaign.created_at.strftime('%b %d') }}</p>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-primary btn-sm" onclick="playVideo('{{ campaign.video_path }}')">
+                                                    <i class="fas fa-play"></i> Play
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="regenerateVideo('{{ campaign.id }}')">
+                                                    <i class="fas fa-redo"></i> Regenerate
+                                                </button>
+                                                <button class="btn btn-outline-success btn-sm" onclick="schedulePost('{{ campaign.id }}')">
+                                                    <i class="fas fa-share"></i> Schedule
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Images Tab -->
+                <div class="tab-pane fade" id="images" role="tabpanel">
+                    <div class="row">
+                        {% for campaign in campaigns %}
+                        {% if campaign.image_path %}
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                            <div class="card">
+                                <img src="{{ campaign.image_path }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Campaign Image">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title small">{{ campaign.title }}</h6>
+                                    <div class="btn-group w-100" role="group">
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="regenerateImage('{{ campaign.id }}')">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="schedulePost('{{ campaign.id }}')">
+                                            <i class="fas fa-share"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Text Ads Tab -->
+                <div class="tab-pane fade" id="text" role="tabpanel">
+                    <div class="row">
+                        {% for campaign in campaigns %}
+                        {% if campaign.ad_text %}
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6>{{ campaign.title }}</h6>
+                                        <span class="badge bg-{{ 'warning' if campaign.brand_voice == 'edgy' else 'danger' if campaign.brand_voice == 'roast' else 'primary' }}">
+                                            {{ campaign.brand_voice | title }}
+                                        </span>
+                                    </div>
+                                    <p class="card-text">{{ campaign.ad_text[:150] }}{% if campaign.ad_text|length > 150 %}...{% endif %}</p>
+                                    <div class="btn-group w-100" role="group">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="editText('{{ campaign.id }}')">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="regenerateText('{{ campaign.id }}')">
+                                            <i class="fas fa-redo"></i> Regenerate
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="schedulePost('{{ campaign.id }}')">
+                                            <i class="fas fa-share"></i> Schedule
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Scheduled Posts Tab -->
+                <div class="tab-pane fade" id="scheduled" role="tabpanel">
+                    <div class="row">
+                        {% for post in scheduled_posts %}
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6>{{ post.campaign.title }}</h6>
+                                        <span class="badge bg-info">{{ post.platform | title }}</span>
+                                    </div>
+                                    <p class="small text-muted">
+                                        <i class="fas fa-clock"></i> Scheduled for {{ post.scheduled_time.strftime('%b %d, %Y at %I:%M %p') }}
+                                    </p>
+                                    <p class="card-text">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="editScheduledPost('{{ post.id }}')">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelScheduledPost('{{ post.id }}')">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if not scheduled_posts %}
+                        <div class="col-12">
+                            <div class="text-center py-4">
+                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No scheduled posts</h5>
+                                <p class="text-muted">Schedule your content to automatically post on social media.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Content Modal -->
+<div class="modal fade" id="editContentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editContentForm">
+                    <input type="hidden" id="editCampaignId">
+                    <div class="mb-3">
+                        <label for="editTitle" class="form-label">Campaign Title</label>
+                        <input type="text" class="form-control" id="editTitle">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAdText" class="form-label">Ad Text</label>
+                        <textarea class="form-control" id="editAdText" rows="6"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editImagePrompt" class="form-label">Image Prompt</label>
+                        <textarea class="form-control" id="editImagePrompt" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveContentEdits()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Post Modal -->
+<div class="modal fade" id="schedulePostModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule Social Media Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="schedulePostForm">
+                    <input type="hidden" id="scheduleCampaignId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Select Platforms</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="platformFacebook" value="facebook">
+                                    <label class="form-check-label" for="platformFacebook">
+                                        <i class="fab fa-facebook text-primary"></i> Facebook
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="platformInstagram" value="instagram">
+                                    <label class="form-check-label" for="platformInstagram">
+                                        <i class="fab fa-instagram text-danger"></i> Instagram
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="platformTwitter" value="twitter">
+                                    <label class="form-check-label" for="platformTwitter">
+                                        <i class="fab fa-twitter text-info"></i> X (Twitter)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="platformTiktok" value="tiktok">
+                                    <label class="form-check-label" for="platformTiktok">
+                                        <i class="fab fa-tiktok text-dark"></i> TikTok
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="platformLinkedin" value="linkedin">
+                                    <label class="form-check-label" for="platformLinkedin">
+                                        <i class="fab fa-linkedin text-primary"></i> LinkedIn
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="scheduleTime" class="form-label">Schedule Time</label>
+                        <input type="datetime-local" class="form-control" id="scheduleTime">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="postFrequency" class="form-label">Posting Frequency</label>
+                        <select class="form-select" id="postFrequency">
+                            <option value="once">Post Once</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="customContent" class="form-label">Custom Content (Optional)</label>
+                        <textarea class="form-control" id="customContent" rows="4" placeholder="Leave blank to use original campaign content"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="saveScheduledPost()">Schedule Post</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editContent(campaignId) {
+    // Load campaign data and show edit modal
+    fetch(`/dashboard/campaigns/${campaignId}/edit`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('editCampaignId').value = campaignId;
+            document.getElementById('editTitle').value = data.title;
+            document.getElementById('editAdText').value = data.ad_text || '';
+            document.getElementById('editImagePrompt').value = data.image_prompt || '';
+            new bootstrap.Modal(document.getElementById('editContentModal')).show();
+        });
+}
+
+function saveContentEdits() {
+    const campaignId = document.getElementById('editCampaignId').value;
+    const formData = new FormData();
+    formData.append('title', document.getElementById('editTitle').value);
+    formData.append('ad_text', document.getElementById('editAdText').value);
+    formData.append('image_prompt', document.getElementById('editImagePrompt').value);
+    
+    fetch(`/dashboard/campaigns/${campaignId}/update`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error saving changes: ' + data.error);
+        }
+    });
+}
+
+function schedulePost(campaignId) {
+    document.getElementById('scheduleCampaignId').value = campaignId;
+    // Set default time to 1 hour from now
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    document.getElementById('scheduleTime').value = now.toISOString().slice(0, 16);
+    new bootstrap.Modal(document.getElementById('schedulePostModal')).show();
+}
+
+function saveScheduledPost() {
+    const campaignId = document.getElementById('scheduleCampaignId').value;
+    const platforms = [];
+    document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        platforms.push(cb.value);
+    });
+    
+    const formData = new FormData();
+    formData.append('campaign_id', campaignId);
+    formData.append('platforms', JSON.stringify(platforms));
+    formData.append('schedule_time', document.getElementById('scheduleTime').value);
+    formData.append('frequency', document.getElementById('postFrequency').value);
+    formData.append('custom_content', document.getElementById('customContent').value);
+    
+    fetch('/dashboard/schedule-post', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error scheduling post: ' + data.error);
+        }
+    });
+}
+
+function regenerateVideo(campaignId) {
+    if (confirm('Regenerate video content? This will create a new video.')) {
+        fetch(`/dashboard/campaigns/${campaignId}/regenerate-video`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error regenerating video: ' + data.error);
+                }
+            });
+    }
+}
+
+function regenerateImage(campaignId) {
+    if (confirm('Regenerate image content? This will create a new image.')) {
+        fetch(`/dashboard/campaigns/${campaignId}/regenerate-image`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error regenerating image: ' + data.error);
+                }
+            });
+    }
+}
+
+function regenerateText(campaignId) {
+    if (confirm('Regenerate text content? This will create new ad copy.')) {
+        fetch(`/dashboard/campaigns/${campaignId}/regenerate-text`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error regenerating text: ' + data.error);
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+requests
+beautifulsoup4
+lxml
+trafilatura
+flask
+flask-login
+flask-sqlalchemy
+python-dotenv
+sqlalchemy
+werkzeug
+reflex
+uvicorn
+openai
+google-generativeai
+reflex==0.8.5

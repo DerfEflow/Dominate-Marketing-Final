@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}Social Media Scheduling - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-2">Social Media Scheduling</h1>
+                    <p class="text-muted">Schedule and manage posts across all platforms</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#schedulePostModal">
+                        <i class="fas fa-plus me-2"></i>Schedule New Post
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connected Accounts Status -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-link me-2"></i>Connected Accounts
+                            </h5>
+                            <div class="row">
+                                {% for platform in ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'] %}
+                                <div class="col-md-2 text-center mb-3">
+                                    {% set account = social_accounts.get(platform) %}
+                                    <div class="p-3 border rounded">
+                                        <i class="fab fa-{{ platform }} fa-2x mb-2 
+                                           {% if account and account.is_active %}text-success{% else %}text-muted{% endif %}"></i>
+                                        <h6 class="mb-1">{{ platform.title() }}</h6>
+                                        {% if account and account.is_active %}
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>@{{ account.username }}
+                                            </small>
+                                            <br>
+                                            <button class="btn btn-sm btn-outline-danger mt-2" onclick="disconnectAccount('{{ platform }}')">
+                                                Disconnect
+                                            </button>
+                                        {% else %}
+                                            <small class="text-muted">Not connected</small>
+                                            <br>
+                                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="connectAccount('{{ platform }}')">
+                                                Connect
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduling Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                            <h5 class="card-title">{{ stats.scheduled }}</h5>
+                            <p class="card-text text-muted">Scheduled</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h5 class="card-title">{{ stats.posted }}</h5>
+                            <p class="card-text text-muted">Posted</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                            <h5 class="card-title">{{ stats.failed }}</h5>
+                            <p class="card-text text-muted">Failed</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-repeat fa-2x text-info mb-2"></i>
+                            <h5 class="card-title">{{ stats.recurring }}</h5>
+                            <p class="card-text text-muted">Recurring</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduled Posts Table -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Scheduled Posts
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterPosts('all')">All</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterPosts('scheduled')">Scheduled</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterPosts('posted')">Posted</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterPosts('failed')">Failed</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if scheduled_posts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Content</th>
+                                    <th>Platform</th>
+                                    <th>Scheduled</th>
+                                    <th>Status</th>
+                                    <th>Campaign</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for post in scheduled_posts %}
+                                <tr data-status="{{ post.status }}">
+                                    <td>
+                                        <div class="d-flex align-items-start">
+                                            {% if post.image_url %}
+                                            <img src="{{ post.image_url }}" alt="Post image" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% endif %}
+                                            <div>
+                                                <p class="mb-1">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                                                {% if post.is_recurring %}
+                                                <small class="badge bg-info">{{ post.post_frequency.title() }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <i class="fab fa-{{ post.platform }} me-2"></i>{{ post.platform.title() }}
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {{ post.scheduled_time.strftime('%b %d, %Y') }}<br>
+                                            <small class="text-muted">{{ post.scheduled_time.strftime('%I:%M %p') }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if post.status == 'scheduled' %}
+                                        <span class="badge bg-warning">Scheduled</span>
+                                        {% elif post.status == 'posted' %}
+                                        <span class="badge bg-success">Posted</span>
+                                        {% elif post.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% elif post.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('dashboard.view_campaign', campaign_id=post.campaign_id) }}" class="text-decoration-none">
+                                            {{ post.campaign.title[:30] }}{% if post.campaign.title|length > 30 %}...{% endif %}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% if post.status == 'scheduled' %}
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editPost('{{ post.id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success" onclick="postNow('{{ post.id }}')">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="cancelPost('{{ post.id }}')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            {% elif post.status == 'posted' %}
+                                            <button class="btn btn-sm btn-outline-info" onclick="viewMetrics('{{ post.id }}')">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </button>
+                                            {% elif post.status == 'failed' %}
+                                            <button class="btn btn-sm btn-outline-warning" onclick="retryPost('{{ post.id }}')">
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+                        <h5>No scheduled posts</h5>
+                        <p class="text-muted">Schedule your first post to get started</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#schedulePostModal">
+                            Schedule Post
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Post Modal -->
+<div class="modal fade" id="schedulePostModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Schedule New Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="schedulePostForm">
+                    <!-- Campaign Selection -->
+                    <div class="mb-4">
+                        <label for="campaignSelect" class="form-label">Select Campaign</label>
+                        <select class="form-select" id="campaignSelect" name="campaign_id" required>
+                            <option value="">Choose a campaign...</option>
+                            {% for campaign in user_campaigns %}
+                            <option value="{{ campaign.id }}">{{ campaign.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="mb-4">
+                        <label for="postContent" class="form-label">Post Content</label>
+                        <textarea class="form-control" id="postContent" name="content" rows="4" 
+                                  placeholder="Write your post content..." required></textarea>
+                        <div class="form-text">Content will be auto-filled when you select a campaign, but you can customize it.</div>
+                    </div>
+
+                    <!-- Platforms -->
+                    <div class="mb-4">
+                        <label class="form-label">Platforms</label>
+                        <div class="row">
+                            {% for platform in ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'] %}
+                            {% set account = social_accounts.get(platform) %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="platforms" 
+                                           value="{{ platform }}" id="platform_{{ platform }}"
+                                           {% if not (account and account.is_active) %}disabled{% endif %}>
+                                    <label class="form-check-label" for="platform_{{ platform }}">
+                                        <i class="fab fa-{{ platform }} me-2"></i>{{ platform.title() }}
+                                        {% if not (account and account.is_active) %}
+                                        <small class="text-muted">(Not connected)</small>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Scheduling Options -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="scheduleDate" class="form-label">Schedule Date</label>
+                            <input type="date" class="form-control" id="scheduleDate" name="schedule_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="scheduleTime" class="form-label">Schedule Time</label>
+                            <input type="time" class="form-control" id="scheduleTime" name="schedule_time" required>
+                        </div>
+                    </div>
+
+                    <!-- Frequency -->
+                    <div class="mb-4">
+                        <label for="frequency" class="form-label">Post Frequency</label>
+                        <select class="form-select" id="frequency" name="frequency">
+                            <option value="once">Post Once</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+
+                    <!-- Media Preview -->
+                    <div id="mediaPreview" class="mb-4" style="display: none;">
+                        <label class="form-label">Campaign Media</label>
+                        <div class="border rounded p-3">
+                            <div id="imagePreview"></div>
+                            <div id="videoPreview"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="schedulePost()">Schedule Post</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter posts by status
+function filterPosts(status) {
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        if (status === 'all' || row.dataset.status === status) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update active button
+    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// Load campaign content when campaign is selected
+document.getElementById('campaignSelect').addEventListener('change', function() {
+    const campaignId = this.value;
+    if (campaignId) {
+        fetch(`/api/campaign/${campaignId}/content`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('postContent').value = data.content;
+                    showMediaPreview(data.media);
+                }
+            })
+            .catch(error => console.error('Error loading campaign content:', error));
+    } else {
+        document.getElementById('postContent').value = '';
+        hideMediaPreview();
+    }
+});
+
+// Show media preview
+function showMediaPreview(media) {
+    const preview = document.getElementById('mediaPreview');
+    const imagePreview = document.getElementById('imagePreview');
+    const videoPreview = document.getElementById('videoPreview');
+    
+    imagePreview.innerHTML = '';
+    videoPreview.innerHTML = '';
+    
+    if (media.image) {
+        imagePreview.innerHTML = `<img src="${media.image}" alt="Campaign image" class="img-thumbnail" style="max-width: 200px;">`;
+    }
+    
+    if (media.video) {
+        videoPreview.innerHTML = `<video controls class="img-thumbnail" style="max-width: 200px;"><source src="${media.video}" type="video/mp4"></video>`;
+    }
+    
+    if (media.image || media.video) {
+        preview.style.display = 'block';
+    }
+}
+
+// Hide media preview
+function hideMediaPreview() {
+    document.getElementById('mediaPreview').style.display = 'none';
+}
+
+// Schedule post
+function schedulePost() {
+    const form = document.getElementById('schedulePostForm');
+    const formData = new FormData(form);
+    
+    // Get selected platforms
+    const platforms = Array.from(document.querySelectorAll('input[name="platforms"]:checked')).map(cb => cb.value);
+    formData.delete('platforms');
+    formData.append('platforms', JSON.stringify(platforms));
+    
+    // Combine date and time
+    const date = formData.get('schedule_date');
+    const time = formData.get('schedule_time');
+    formData.delete('schedule_date');
+    formData.delete('schedule_time');
+    formData.append('schedule_datetime', `${date}T${time}`);
+    
+    fetch('/schedule-post', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error scheduling post: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error scheduling post:', error);
+        alert('Error scheduling post');
+    });
+}
+
+// Connect social account
+function connectAccount(platform) {
+    window.location.href = `/auth/social/${platform}`;
+}
+
+// Disconnect social account
+function disconnectAccount(platform) {
+    if (confirm(`Are you sure you want to disconnect your ${platform} account?`)) {
+        fetch(`/api/social/disconnect/${platform}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error disconnecting account: ' + data.error);
+            }
+        });
+    }
+}
+
+// Post management functions
+function editPost(postId) {
+    // Implementation for editing posts
+    console.log('Edit post:', postId);
+}
+
+function postNow(postId) {
+    if (confirm('Post this content immediately?')) {
+        fetch(`/api/social/post-now/${postId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error posting: ' + data.error);
+            }
+        });
+    }
+}
+
+function cancelPost(postId) {
+    if (confirm('Cancel this scheduled post?')) {
+        fetch(`/api/social/cancel/${postId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error cancelling post: ' + data.error);
+            }
+        });
+    }
+}
+
+function retryPost(postId) {
+    fetch(`/api/social/retry/${postId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error retrying post: ' + data.error);
+        }
+    });
+}
+
+function viewMetrics(postId) {
+    // Implementation for viewing post metrics
+    console.log('View metrics for post:', postId);
+}
+
+// Set minimum date to today
+document.getElementById('scheduleDate').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Privacy Policy</h1>
+            <p class="text-muted mb-4">Last updated: January 8, 2025</p>
+
+            <h3>1. Information We Collect</h3>
+            
+            <h5>Account Information</h5>
+            <ul>
+                <li>Email address and name (via Google OAuth or direct signup)</li>
+                <li>Profile picture (if provided through Google)</li>
+                <li>Business information you voluntarily provide</li>
+            </ul>
+
+            <h5>Marketing Profile Data (Optional)</h5>
+            <ul>
+                <li>Company details, industry, size, revenue range</li>
+                <li>Marketing budget and goals</li>
+                <li>Target audience descriptions</li>
+                <li>Contact preferences and consent choices</li>
+            </ul>
+
+            <h5>Usage Data</h5>
+            <ul>
+                <li>Campaign creation and content generation history</li>
+                <li>Feature usage and performance analytics</li>
+                <li>Login times and subscription activity</li>
+            </ul>
+
+            <h3>2. How We Use Your Information</h3>
+            <ul>
+                <li><strong>Service Delivery:</strong> Generate personalized marketing content and campaigns</li>
+                <li><strong>Personalization:</strong> Improve AI recommendations based on your business profile</li>
+                <li><strong>Communications:</strong> Send service updates and marketing (only with your consent)</li>
+                <li><strong>Analytics:</strong> Understand platform usage to improve features</li>
+                <li><strong>Support:</strong> Provide customer service and technical assistance</li>
+            </ul>
+
+            <h3>3. Information Sharing</h3>
+            
+            <h5>We share data with:</h5>
+            <ul>
+                <li><strong>AI Providers:</strong> OpenAI, Google, and other AI services process your content to generate marketing materials</li>
+                <li><strong>Social Platforms:</strong> When you authorize posting, we share content with Facebook, Instagram, X, TikTok, LinkedIn</li>
+                <li><strong>Payment Processors:</strong> Stripe processes subscription payments (we don't store card details)</li>
+                <li><strong>Analytics:</strong> Anonymized usage data for platform improvement</li>
+            </ul>
+
+            <h5>We never share:</h5>
+            <ul>
+                <li>Your personal contact information with third parties for their marketing</li>
+                <li>Detailed business information outside of necessary service delivery</li>
+                <li>Generated content with other users or competitors</li>
+            </ul>
+
+            <h3>4. Data Sources We Access</h3>
+            <ul>
+                <li><strong>Public Business Data:</strong> Websites, social media profiles, public business listings</li>
+                <li><strong>Trend Data:</strong> Public social media trends, viral content, and cultural moments</li>
+                <li><strong>Competitor Analysis:</strong> Publicly available marketing materials and website content</li>
+                <li><strong>Market Research:</strong> Industry reports and public marketing data</li>
+            </ul>
+
+            <h3>5. Data Security</h3>
+            <ul>
+                <li>All data transmitted using HTTPS encryption</li>
+                <li>OAuth tokens stored securely with industry-standard practices</li>
+                <li>Regular security audits and monitoring</li>
+                <li>No plain-text password storage (OAuth authentication preferred)</li>
+                <li>Database backups encrypted and access-controlled</li>
+            </ul>
+
+            <h3>6. Your Rights and Choices</h3>
+            
+            <h5>Account Control</h5>
+            <ul>
+                <li>Update or delete your profile information anytime</li>
+                <li>Revoke social media authorizations through account settings</li>
+                <li>Cancel subscription and delete account through dashboard</li>
+            </ul>
+
+            <h5>Communication Preferences</h5>
+            <ul>
+                <li>Opt out of marketing emails and SMS at any time</li>
+                <li>Control newsletter and product update preferences</li>
+                <li>Essential service communications cannot be disabled</li>
+            </ul>
+
+            <h5>Data Portability</h5>
+            <ul>
+                <li>Export your generated content and campaign data</li>
+                <li>Download your marketing profile information</li>
+                <li>Request data deletion (subject to legal retention requirements)</li>
+            </ul>
+
+            <h3>7. Cookies and Tracking</h3>
+            <ul>
+                <li><strong>Essential Cookies:</strong> Login sessions and security features</li>
+                <li><strong>Analytics:</strong> Anonymous usage statistics to improve the platform</li>
+                <li><strong>Preferences:</strong> Remember your settings and customizations</li>
+                <li>No third-party advertising cookies or tracking pixels</li>
+            </ul>
+
+            <h3>8. International Users</h3>
+            <ul>
+                <li>Data processed in the United States with appropriate safeguards</li>
+                <li>GDPR rights respected for European users</li>
+                <li>Data Processing Addendum available for Enterprise customers</li>
+            </ul>
+
+            <h3>9. Children's Privacy</h3>
+            <p>Our service is intended for businesses and users 18+. We do not knowingly collect information from children under 13.</p>
+
+            <h3>10. Third-Party Links</h3>
+            <p>Our platform may link to external websites. This privacy policy does not cover third-party sites. Review their privacy policies independently.</p>
+
+            <h3>11. Data Retention</h3>
+            <ul>
+                <li><strong>Active Accounts:</strong> Data retained while account is active</li>
+                <li><strong>Deleted Accounts:</strong> Personal data deleted within 30 days</li>
+                <li><strong>Anonymized Analytics:</strong> May be retained longer for service improvement</li>
+                <li><strong>Legal Requirements:</strong> Some data retained as required by law</li>
+            </ul>
+
+            <h3>12. Changes to Privacy Policy</h3>
+            <p>We'll notify you of significant privacy policy changes via email or platform notification. Continued use indicates acceptance.</p>
+
+            <h3>13. Contact Information</h3>
+            <p>Questions about privacy? Contact us through:</p>
+            <ul>
+                <li>Account dashboard support system</li>
+                <li>Email provided in your account settings</li>
+                <li>Privacy-specific inquiries handled within 5 business days</li>
+            </ul>
+
+            <h3>14. Compliance</h3>
+            <p>We comply with applicable privacy laws including GDPR, CCPA, and other regional requirements. Enterprise customers can request additional compliance documentation.</p>
+
+            <div class="mt-5 pt-4 border-top">
+                <p class="text-muted text-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Back to Home</a>
+                    <a href="{{ url_for('terms') }}" class="btn btn-link">Terms of Service</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

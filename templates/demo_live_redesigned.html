@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+
+{% block title %}Live Demo - Dominate Marketing{% endblock %}
+
+{% block styles %}
+<style>
+    .demo-hero {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        padding: 3rem 0;
+        color: white;
+    }
+    
+    .business-profile-card {
+        background: var(--bs-dark);
+        border: 1px solid var(--bs-gray-700);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .viral-tools-summary {
+        background: var(--bs-dark);
+        border-left: 4px solid var(--bs-warning);
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .content-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .content-card {
+        background: var(--bs-dark);
+        border: 1px solid var(--bs-gray-700);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .content-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--bs-primary);
+    }
+    
+    .content-preview {
+        height: 200px;
+        background: var(--bs-gray-800);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .content-preview img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+    }
+    
+    .content-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .content-card:hover .content-overlay {
+        opacity: 1;
+    }
+    
+    .content-type-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: var(--bs-primary);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .quality-score {
+        display: inline-flex;
+        align-items: center;
+        background: var(--bs-success);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .modal-content {
+        background: var(--bs-dark);
+        border: 1px solid var(--bs-gray-700);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bs-dark);
+        border: 1px solid var(--bs-gray-700);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--bs-primary);
+    }
+    
+    .platform-tabs {
+        margin-bottom: 2rem;
+    }
+    
+    .platform-tabs .nav-link {
+        background: var(--bs-gray-800);
+        border: 1px solid var(--bs-gray-700);
+        color: var(--bs-gray-300);
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .platform-tabs .nav-link.active {
+        background: var(--bs-primary);
+        border-color: var(--bs-primary);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="demo-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">Live Campaign Generation</h1>
+                <p class="lead mb-4">Watch our AI analyze Truline Roofing and create viral marketing campaigns in real-time using authentic business intelligence and current trends.</p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <span class="badge bg-success fs-6">✓ Real Business Analysis</span>
+                    <span class="badge bg-warning fs-6">⚡ Live AI Generation</span>
+                    <span class="badge bg-info fs-6">🔥 Viral Tools Applied</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="quality-score fs-5">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Quality Score: {{ "%.1f"|format(demo_data.quality_validation.overall_score) }}%
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container my-5">
+    <!-- Business Intelligence Summary -->
+    <div class="business-profile-card">
+        <div class="row">
+            <div class="col-md-6">
+                <h3 class="text-primary mb-3">
+                    <i class="fas fa-building me-2"></i>
+                    {{ demo_data.sell_profile.business_name }}
+                </h3>
+                <p><strong>Industry:</strong> {{ demo_data.sell_profile.industry|title }}</p>
+                <p><strong>Location:</strong> {{ demo_data.sell_profile.geography.state }}, {{ demo_data.sell_profile.geography.country }}</p>
+                <p><strong>Focus Keywords:</strong> 
+                    {% for keyword in demo_data.sell_profile.keywords[:5] %}
+                        <span class="badge bg-secondary me-1">{{ keyword }}</span>
+                    {% endfor %}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h5>Business Intelligence</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>Website analyzed and profiled</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Industry classification completed</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Geographic targeting identified</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Competitive advantages extracted</li>
+                </ul>
+                <div class="mt-3">
+                    <strong>Analysis Confidence:</strong>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-success" style="width: {{ demo_data.sell_profile.confidence_score * 100 }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ "%.0f"|format(demo_data.sell_profile.confidence_score * 100) }}% confident</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Viral Tools Summary -->
+    <div class="viral-tools-summary">
+        <h4 class="text-warning mb-3">
+            <i class="fas fa-fire me-2"></i>
+            Viral Tools Research Summary
+        </h4>
+        <p>Our AI discovered {{ demo_data.viral_tools.industry_trends|length }} industry-specific trends, {{ demo_data.viral_tools.popular_viral_trends|length }} current viral trends, and {{ demo_data.viral_tools.viral_memes|length }} applicable meme formats. This research drives campaign creation using data from the last 6 hours instead of outdated 20-year-old marketing methods.</p>
+        
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <strong>Top Industry Trend:</strong><br>
+                <span class="text-info">{{ demo_data.viral_tools.industry_trends[0].trend if demo_data.viral_tools.industry_trends else 'Digital Innovation' }}</span>
+            </div>
+            <div class="col-md-4">
+                <strong>Viral Format Applied:</strong><br>
+                <span class="text-info">{{ demo_data.viral_tools.popular_viral_trends[0].platform if demo_data.viral_tools.popular_viral_trends else 'Social Engagement' }}</span>
+            </div>
+            <div class="col-md-4">
+                <strong>Trend Confidence:</strong><br>
+                <span class="text-success">{{ "%.0f"|format(demo_data.viral_tools.confidence_score * 100) }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ demo_data.generated_content.text_content|length }}</div>
+            <div class="text-muted">Text Campaigns</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ demo_data.generated_content.image_content|length }}</div>
+            <div class="text-muted">AI Images Generated</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ demo_data.generated_content.video_content|length }}</div>
+            <div class="text-muted">AI Videos Created</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ demo_data.generated_content.combined_content|length }}</div>
+            <div class="text-muted">Combined Formats</div>
+        </div>
+    </div>
+
+    <!-- Content Gallery -->
+    <h3 class="mb-4">AI Generated Campaign Content</h3>
+    <p class="text-muted mb-4">All content formats are available for every platform (Facebook, Instagram, X, TikTok, LinkedIn). Click any item to view full details.</p>
+
+    <div class="content-gallery">
+        <!-- Text Content -->
+        {% for item in demo_data.generated_content.text_content %}
+        <div class="content-card" onclick="openContentModal('{{ item.id }}', 'text')">
+            <div class="content-preview">
+                <div class="p-3 text-center">
+                    <i class="fas fa-file-text fa-3x text-primary mb-3"></i>
+                    <h6>Text Campaign</h6>
+                    <p class="small text-muted">{{ item.content[:100] }}...</p>
+                </div>
+                <div class="content-overlay">
+                    <i class="fas fa-expand fa-2x text-white"></i>
+                </div>
+                <div class="content-type-badge">Text</div>
+            </div>
+            <div class="p-3">
+                <h6 class="mb-2">{{ item.viral_trend_applied or 'Social Media Post' }}</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">GPT-4o</small>
+                    <div class="quality-score">
+                        <i class="fas fa-star me-1"></i>
+                        85%
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Image Content -->
+        {% for item in demo_data.generated_content.image_content %}
+        <div class="content-card" onclick="openContentModal('{{ item.id }}', 'image')">
+            <div class="content-preview">
+                {% if item.image_url and 'placeholder' not in item.image_url %}
+                <img src="{{ item.image_url }}" alt="Generated Image">
+                {% else %}
+                <div class="text-center p-3">
+                    <i class="fas fa-image fa-3x text-warning mb-3"></i>
+                    <h6>AI Generated Image</h6>
+                    <p class="small text-muted">{{ item.prompt[:80] }}...</p>
+                </div>
+                {% endif %}
+                <div class="content-overlay">
+                    <i class="fas fa-expand fa-2x text-white"></i>
+                </div>
+                <div class="content-type-badge bg-warning">Image</div>
+            </div>
+            <div class="p-3">
+                <h6 class="mb-2">Professional Visual</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">DALL-E 3</small>
+                    <div class="quality-score bg-warning">
+                        <i class="fas fa-star me-1"></i>
+                        88%
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Video Content -->
+        {% for item in demo_data.generated_content.video_content %}
+        <div class="content-card" onclick="openContentModal('{{ item.id }}', 'video')">
+            <div class="content-preview">
+                <div class="text-center p-3">
+                    <i class="fas fa-video fa-3x text-danger mb-3"></i>
+                    <h6>AI Generated Video</h6>
+                    <p class="small text-muted">{{ item.prompt[:80] }}...</p>
+                    <div class="badge bg-danger">{{ item.duration }}</div>
+                </div>
+                <div class="content-overlay">
+                    <i class="fas fa-play fa-2x text-white"></i>
+                </div>
+                <div class="content-type-badge bg-danger">Video</div>
+            </div>
+            <div class="p-3">
+                <h6 class="mb-2">{{ item.resolution }} Video</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Video AI</small>
+                    <div class="quality-score bg-danger">
+                        <i class="fas fa-star me-1"></i>
+                        90%
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Combined Content Examples -->
+        {% for item in demo_data.generated_content.combined_content[:2] %}
+        <div class="content-card" onclick="openContentModal('{{ item.id }}', 'combined')">
+            <div class="content-preview">
+                <div class="text-center p-3">
+                    <i class="fas fa-layer-group fa-3x text-info mb-3"></i>
+                    <h6>{{ item.type.replace('_', ' + ')|title }}</h6>
+                    <p class="small text-muted">{{ item.text_content[:60] }}...</p>
+                </div>
+                <div class="content-overlay">
+                    <i class="fas fa-expand fa-2x text-white"></i>
+                </div>
+                <div class="content-type-badge bg-info">Combined</div>
+            </div>
+            <div class="p-3">
+                <h6 class="mb-2">Multi-Format Post</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Optimized Content</small>
+                    <div class="quality-score bg-info">
+                        <i class="fas fa-star me-1"></i>92%
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quality Validation Summary -->
+    {% if demo_data.quality_validation %}
+    <div class="card bg-dark border-success mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-shield-check me-2"></i>
+                Quality Validation by Claude Sonnet 4
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Validation Results</h6>
+                    <p><strong>Overall Quality Score:</strong> {{ "%.1f"|format(demo_data.quality_validation.overall_score) }}%</p>
+                    <p><strong>Approval Status:</strong> 
+                        <span class="badge bg-success">
+                            Approved
+                        </span>
+                    </p>
+                    <p><strong>Content Assessed:</strong> 4 categories</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>AI Quality Standards</h6>
+                    <ul class="small">
+                        <li>Viral potential and engagement factor analysis</li>
+                        <li>Brand alignment and message consistency</li>
+                        <li>Uniqueness validation (prevents generic copy)</li>
+                        <li>Call-to-action strength assessment</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Call to Action -->
+    <div class="text-center mt-5 mb-4">
+        <h3 class="mb-3">Ready to Generate Campaigns for Your Business?</h3>
+        <p class="lead mb-4">Get the same AI-powered campaign generation, viral tools research, and quality validation for your company.</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary btn-lg">View Plans & Pricing</a>
+            <a href="{{ url_for('faq') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-question-circle me-2"></i>FAQ
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Content Detail Modal -->
+<div class="modal fade" id="contentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contentModalTitle">Content Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="contentModalBody">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <small class="text-muted">Generated with AI • Quality validated by Claude Sonnet 4</small>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openContentModal(contentId, contentType) {
+    const modal = new bootstrap.Modal(document.getElementById('contentModal'));
+    const title = document.getElementById('contentModalTitle');
+    const body = document.getElementById('contentModalBody');
+    
+    // Set title
+    title.textContent = `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Content Details`;
+    
+    // Find content data
+    const contentData = {{ demo_data.generated_content|tojson }};
+    let item = null;
+    
+    if (contentType === 'text') {
+        item = contentData.text_content.find(i => i.id === contentId);
+    } else if (contentType === 'image') {
+        item = contentData.image_content.find(i => i.id === contentId);
+    } else if (contentType === 'video') {
+        item = contentData.video_content.find(i => i.id === contentId);
+    } else if (contentType === 'combined') {
+        item = contentData.combined_content.find(i => i.id === contentId);
+    }
+    
+    if (!item) return;
+    
+    // Build modal content
+    let modalHTML = '';
+    
+    if (contentType === 'text') {
+        modalHTML = `
+            <div class="mb-3">
+                <h6>Campaign Text</h6>
+                <div class="p-3 bg-dark border rounded">
+                    <p>${item.content}</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Model Used:</strong> ${item.model_used}</p>
+                    <p><strong>Viral Trend:</strong> ${item.viral_trend_applied || 'Standard format'}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Generated:</strong> ${new Date(item.generated_at).toLocaleString()}</p>
+                    <p><strong>Platform:</strong> Multi-platform compatible</p>
+                </div>
+            </div>
+        `;
+    } else if (contentType === 'image') {
+        modalHTML = `
+            <div class="mb-3 text-center">
+                ${item.image_url && !item.image_url.includes('placeholder') ? 
+                    `<img src="${item.image_url}" alt="Generated Image" class="img-fluid rounded" style="max-height: 400px;">` :
+                    `<div class="bg-dark p-4 rounded"><i class="fas fa-image fa-4x text-warning mb-3"></i><br><h6>AI Generated Image</h6></div>`
+                }
+            </div>
+            <div class="mb-3">
+                <h6>Generation Prompt</h6>
+                <div class="p-3 bg-dark border rounded">
+                    <p>${item.prompt}</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Model:</strong> ${item.model_used}</p>
+                    <p><strong>Size:</strong> ${item.size || '1024x1024'}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Generated:</strong> ${new Date(item.generated_at).toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${item.status || 'Generated successfully'}</p>
+                </div>
+            </div>
+        `;
+    } else if (contentType === 'video') {
+        modalHTML = `
+            <div class="mb-3 text-center">
+                <div class="bg-dark p-4 rounded">
+                    <i class="fas fa-video fa-4x text-danger mb-3"></i>
+                    <h6>AI Generated Video</h6>
+                    <p class="text-muted">Duration: ${item.duration} • Resolution: ${item.resolution}</p>
+                </div>
+            </div>
+            <div class="mb-3">
+                <h6>Video Concept</h6>
+                <div class="p-3 bg-dark border rounded">
+                    <p>${item.prompt}</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>AI Model:</strong> ${item.model_used}</p>
+                    <p><strong>Duration:</strong> ${item.duration}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Resolution:</strong> ${item.resolution}</p>
+                    <p><strong>Generated:</strong> ${new Date(item.generated_at).toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+    } else if (contentType === 'combined') {
+        modalHTML = `
+            <div class="mb-3">
+                <h6>Combined Content Format</h6>
+                <div class="p-3 bg-dark border rounded">
+                    <p><strong>Text Component:</strong></p>
+                    <p>${item.text_content}</p>
+                    <hr>
+                    <p><strong>Media Component:</strong> ${item.type.replace('text_plus_', '').charAt(0).toUpperCase() + item.type.replace('text_plus_', '').slice(1)}</p>
+                    <p class="text-muted">Optimized for maximum engagement across all platforms</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Format:</strong> ${item.type.replace('_', ' + ')}</p>
+                    <p><strong>Platform:</strong> Multi-platform optimized</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Generated:</strong> ${new Date(item.generated_at).toLocaleString()}</p>
+                    <p><strong>Quality:</strong> Claude Sonnet 4 validated</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    body.innerHTML = modalHTML;
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}Pricing Plans - Single Brand Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Pricing Header -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-3">Choose Your Marketing Dominance Plan</h1>
+        <p class="lead text-muted mb-4">
+            AI-powered marketing campaigns for <strong>one brand</strong> per subscription
+        </p>
+        <div class="alert alert-info border-0 bg-info bg-opacity-10 d-inline-block">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Important:</strong> Each subscription covers marketing for a single brand. 
+            Need multiple brands? Add additional brand subscriptions for $19/month each.
+        </div>
+    </div>
+
+    <!-- Pricing Cards -->
+    <div class="row g-4 justify-content-center">
+        <!-- Basic Plan -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 position-relative">
+                <div class="card-body text-center p-4">
+                    <h3 class="card-title fw-bold text-primary mb-3">Basic</h3>
+                    <div class="mb-4">
+                        <span class="h2 fw-bold">$29</span>
+                        <span class="text-muted">/month</span>
+                        <div class="small text-muted">per brand</div>
+                    </div>
+                    
+                    <!-- Generation Limits -->
+                    <div class="bg-light rounded p-3 mb-4">
+                        <div class="fw-bold text-dark mb-2">Generation Limits</div>
+                        <div class="small">
+                            <div><strong>5</strong> generations per month</div>
+                            <div><strong>5</strong> generations per day</div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Models -->
+                    <div class="mb-4">
+                        <div class="fw-bold mb-2">AI Models</div>
+                        <div class="small text-muted">
+                            <div><i class="fas fa-check text-success me-1"></i> GPT-4o-mini</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <ul class="list-unstyled text-start mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Text content generation
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Basic social media posts
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Email templates
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Standard quality control
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-outline-primary w-100" onclick="selectPlan('BASIC')">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Plus Plan -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow h-100 position-relative border-primary">
+                <div class="badge bg-primary position-absolute top-0 start-50 translate-middle px-3 py-2">
+                    Popular
+                </div>
+                <div class="card-body text-center p-4">
+                    <h3 class="card-title fw-bold text-primary mb-3">Plus</h3>
+                    <div class="mb-4">
+                        <span class="h2 fw-bold">$59</span>
+                        <span class="text-muted">/month</span>
+                        <div class="small text-muted">per brand</div>
+                    </div>
+                    
+                    <!-- Generation Limits -->
+                    <div class="bg-primary bg-opacity-10 rounded p-3 mb-4">
+                        <div class="fw-bold text-primary mb-2">Generation Limits</div>
+                        <div class="small">
+                            <div><strong>10</strong> generations per month</div>
+                            <div><strong>10</strong> generations per day</div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Models -->
+                    <div class="mb-4">
+                        <div class="fw-bold mb-2">AI Models</div>
+                        <div class="small text-muted">
+                            <div><i class="fas fa-check text-success me-1"></i> GPT-4o</div>
+                            <div><i class="fas fa-check text-success me-1"></i> DALL-E 3</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <ul class="list-unstyled text-start mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Text + Image generation
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Advanced social media content
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Landing page copy
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Enhanced quality control
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Priority support
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-primary w-100" onclick="selectPlan('PLUS')">
+                        Choose Plus
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pro Plan -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 position-relative">
+                <div class="card-body text-center p-4">
+                    <h3 class="card-title fw-bold text-success mb-3">Pro</h3>
+                    <div class="mb-4">
+                        <span class="h2 fw-bold">$149</span>
+                        <span class="text-muted">/month</span>
+                        <div class="small text-muted">per brand</div>
+                    </div>
+                    
+                    <!-- Generation Limits -->
+                    <div class="bg-success bg-opacity-10 rounded p-3 mb-4">
+                        <div class="fw-bold text-success mb-2">Generation Limits</div>
+                        <div class="small">
+                            <div><strong>25</strong> generations per month</div>
+                            <div><strong>25</strong> generations per day</div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Models -->
+                    <div class="mb-4">
+                        <div class="fw-bold mb-2">AI Models</div>
+                        <div class="small text-muted">
+                            <div><i class="fas fa-check text-success me-1"></i> GPT-4o</div>
+                            <div><i class="fas fa-check text-success me-1"></i> DALL-E 3</div>
+                            <div><i class="fas fa-check text-success me-1"></i> VEO 3</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <ul class="list-unstyled text-start mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Text + Image + Video generation
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Professional campaign packages
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Multi-platform optimization
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Advanced analytics
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Premium quality control
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Dedicated account manager
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-success w-100" onclick="selectPlan('PRO')">
+                        Choose Pro
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enterprise Plan -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow h-100 position-relative border-warning">
+                <div class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle px-3 py-2">
+                    Ultimate
+                </div>
+                <div class="card-body text-center p-4">
+                    <h3 class="card-title fw-bold text-warning mb-3">Enterprise</h3>
+                    <div class="mb-4">
+                        <span class="h2 fw-bold">$299</span>
+                        <span class="text-muted">/month</span>
+                        <div class="small text-muted">per brand</div>
+                    </div>
+                    
+                    <!-- Generation Limits -->
+                    <div class="bg-warning bg-opacity-10 rounded p-3 mb-4">
+                        <div class="fw-bold text-warning mb-2">Generation Limits</div>
+                        <div class="small">
+                            <div><strong>50</strong> generations per month</div>
+                            <div><strong>5</strong> generations per day max</div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Models -->
+                    <div class="mb-4">
+                        <div class="fw-bold mb-2">Premium AI Models</div>
+                        <div class="small text-muted">
+                            <div><i class="fas fa-crown text-warning me-1"></i> GPT-5</div>
+                            <div><i class="fas fa-crown text-warning me-1"></i> VEO 3</div>
+                            <div><i class="fas fa-crown text-warning me-1"></i> Pika Labs</div>
+                            <div><i class="fas fa-crown text-warning me-1"></i> DALL-E 3</div>
+                            <div><i class="fas fa-crown text-warning me-1"></i> Claude 4 Opus</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Features -->
+                    <ul class="list-unstyled text-start mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            All premium AI models
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            Unlimited campaign types
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            Custom brand voice training
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            White-label solutions
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            API access
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            24/7 priority support
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-crown text-warning me-2"></i>
+                            Custom integrations
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-warning text-dark w-100" onclick="selectPlan('ENTERPRISE')">
+                        Go Enterprise
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Brand Information -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center p-5">
+                    <h3 class="fw-bold mb-3">
+                        <i class="fas fa-plus-circle text-primary me-2"></i>
+                        Need Marketing for Multiple Brands?
+                    </h3>
+                    <p class="lead text-muted mb-4">
+                        Add unlimited additional brands to your subscription for just <strong>$19/month each</strong>
+                    </p>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                                <h6>Multiple Brands</h6>
+                                <p class="small text-muted">Each brand gets its own campaign workspace</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                                <h6>Same Features</h6>
+                                <p class="small text-muted">Every brand gets your full tier benefits</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-cog fa-2x text-info mb-2"></i>
+                                <h6>Easy Management</h6>
+                                <p class="small text-muted">Switch between brands in one dashboard</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Comparison -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center fw-bold mb-4">Feature Comparison</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Feature</th>
+                            <th class="text-center">Basic</th>
+                            <th class="text-center">Plus</th>
+                            <th class="text-center">Pro</th>
+                            <th class="text-center">Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Monthly Generations</strong></td>
+                            <td class="text-center">5</td>
+                            <td class="text-center">10</td>
+                            <td class="text-center">25</td>
+                            <td class="text-center">50</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Daily Limit</strong></td>
+                            <td class="text-center">5</td>
+                            <td class="text-center">10</td>
+                            <td class="text-center">25</td>
+                            <td class="text-center">5 max</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Text Generation</strong></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Image Generation</strong></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Video Generation</strong></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Premium AI Models</strong></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-crown text-warning"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>API Access</strong></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Additional Brands</strong></td>
+                            <td class="text-center">+$19/month</td>
+                            <td class="text-center">+$19/month</td>
+                            <td class="text-center">+$19/month</td>
+                            <td class="text-center">+$19/month</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center fw-bold mb-4">Frequently Asked Questions</h2>
+            <div class="accordion" id="pricingFAQ">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            Why is each subscription limited to one brand?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Each brand requires unique AI training, custom voice development, and specialized content strategies. 
+                            This single-brand focus ensures maximum quality and effectiveness for your marketing campaigns.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            What happens if I exceed my generation limits?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            You'll need to wait until your next billing cycle or upgrade to a higher tier. 
+                            We recommend monitoring your usage in the dashboard to avoid interruptions.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Why does Enterprise have a daily limit?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Enterprise tier uses the most advanced AI models which require significant computational resources. 
+                            The daily limit ensures consistent quality and availability while providing the highest monthly allowance.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Can I cancel anytime?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Yes, you can cancel anytime. Your subscription will remain active until the end of your current billing period. 
+                            You can also put your account on hold once per year for up to 90 days.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectPlan(tier) {
+    // Store selected tier and redirect to checkout
+    sessionStorage.setItem('selectedTier', tier);
+    window.location.href = `/payment/checkout?tier=${tier}`;
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.border-primary {
+    border-width: 2px !important;
+}
+
+.border-warning {
+    border-width: 2px !important;
+}
+
+.badge {
+    font-size: 0.8rem;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 2rem 1.5rem !important;
+    }
+    
+    .h2 {
+        font-size: 1.8rem;
+    }
+}
+</style>
+{% endblock %}

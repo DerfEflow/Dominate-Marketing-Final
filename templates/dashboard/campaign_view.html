@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}{{ campaign.title }} - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Campaign Details</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-1">{{ campaign.title }}</h1>
+            <p class="text-muted">{{ campaign.business_url }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-download me-2"></i>Download Content
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='text') }}">
+                            <i class="fas fa-file-text me-2"></i>Ad Copy (Text)
+                        </a>
+                        <a class="dropdown-item" href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='json') }}">
+                            <i class="fas fa-code me-2"></i>Complete Data (JSON)
+                        </a>
+                        <a class="dropdown-item" href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='csv') }}">
+                            <i class="fas fa-table me-2"></i>Campaign Report (CSV)
+                        </a>
+                    </li>
+                    {% if current_user.can_access_tier('plus') and campaign.image_prompt %}
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='image') }}">
+                            <i class="fas fa-image me-2"></i>Marketing Images
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.can_access_tier('pro') and campaign.video_prompt %}
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='video') }}">
+                            <i class="fas fa-video me-2"></i>Campaign Videos
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h6 class="mb-1">Status</h6>
+                            {% if campaign.status == 'completed' %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                </span>
+                            {% elif campaign.status == 'processing' %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="fas fa-clock me-1"></i>Processing
+                                </span>
+                            {% elif campaign.status == 'failed' %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Failed
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6">{{ campaign.status.title() }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-1">Created</h6>
+                            <span class="text-muted">{{ campaign.created_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-1">Goal</h6>
+                            <span class="text-muted">{{ campaign.campaign_goal.title() if campaign.campaign_goal else 'Not specified' }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-1">Target Audience</h6>
+                            <span class="text-muted">{{ campaign.target_audience or 'General audience' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marketing Theme -->
+    {% if marketing_theme %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Marketing Theme
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">{{ marketing_theme.get('theme_title', 'Creative Theme') }}</h6>
+                    <p class="mb-3">{{ marketing_theme.get('core_concept', 'Creative marketing concept generated by AI') }}</p>
+                    
+                    {% if marketing_theme.get('key_messages') %}
+                    <div class="mb-3">
+                        <strong>Key Messages:</strong>
+                        <ul class="mt-2">
+                            {% for message in marketing_theme.get('key_messages', []) %}
+                            <li>{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Visual Style:</strong>
+                            <p class="text-muted mb-0">{{ marketing_theme.get('visual_style', 'Modern and professional') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Tone of Voice:</strong>
+                            <p class="text-muted mb-0">{{ marketing_theme.get('tone_of_voice', 'Professional and engaging') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Generated Content -->
+    <div class="row">
+        <!-- Ad Copy -->
+        {% if campaign.ad_text %}
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-text me-2"></i>Ad Copy
+                        <span class="badge bg-success ms-2">Generated</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="bg-light p-3 rounded">
+                        <pre class="mb-0 text-dark" style="white-space: pre-wrap; font-family: inherit;">{{ campaign.ad_text }}</pre>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="copyToClipboard('ad-copy')">
+                            <i class="fas fa-copy me-1"></i>Copy Text
+                        </button>
+                        <a href="{{ url_for('dashboard.request_revision', campaign_id=campaign.id) }}" class="btn btn-outline-warning btn-sm ms-2">
+                            <i class="fas fa-edit me-1"></i>Request Revision
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Image Prompt -->
+        {% if campaign.image_prompt and current_user.can_access_tier('plus') %}
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-image me-2"></i>Image Concept
+                        <span class="badge bg-info ms-2">Plus Feature</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>AI Image Prompt:</strong></p>
+                    <div class="bg-light p-3 rounded mb-3">
+                        <small class="text-muted">{{ campaign.image_prompt }}</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <div class="text-white text-center">
+                                <i class="fas fa-image fa-3x mb-2"></i>
+                                <p>AI-Generated Image<br>Would Appear Here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Video Prompt -->
+        {% if campaign.video_prompt and current_user.can_access_tier('pro') %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-video me-2"></i>Video Campaign
+                        <span class="badge bg-primary ms-2">Pro Feature</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="mb-3">
+                                <strong>Video Concept:</strong>
+                                <p class="text-muted">{{ campaign.video_prompt.get('prompt', 'AI-generated video concept') if campaign.video_prompt is mapping else 'Professional marketing video generated with AI' }}</p>
+                            </div>
+                            
+                            {% if campaign.video_prompt is mapping %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Duration:</strong>
+                                    <p class="text-muted">{{ campaign.video_prompt.get('duration', 30) }} seconds</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Aspect Ratio:</strong>
+                                    <p class="text-muted">{{ campaign.video_prompt.get('aspect_ratio', '9:16') }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="text-center">
+                                <div class="bg-dark rounded d-flex align-items-center justify-content-center" style="height: 250px; width: 140px; margin: 0 auto;">
+                                    <div class="text-white text-center">
+                                        <i class="fas fa-play-circle fa-3x mb-2"></i>
+                                        <p class="small">AI Video<br>Generated Here</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Business Analysis -->
+    {% if campaign.business_metadata %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Business Analysis
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleEditMode('business-analysis')">
+                        <i class="fas fa-edit me-1"></i>Edit Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="business-analysis-form" style="display: none;" onsubmit="updateBusinessData(event)">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Business Name:</strong></label>
+                                <input type="text" class="form-control" name="business_name" 
+                                       value="{{ campaign.business_metadata.get('title', '') }}" placeholder="Enter business name">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Industry:</strong></label>
+                                <input type="text" class="form-control" name="industry" 
+                                       value="{{ campaign.business_metadata.get('industry', '') }}" placeholder="e.g. construction, retail, technology">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Location (State):</strong></label>
+                                <input type="text" class="form-control" name="state" 
+                                       value="{{ campaign.business_metadata.get('location', {}).get('state', '') }}" placeholder="e.g. North Carolina">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Cities Served:</strong></label>
+                                <input type="text" class="form-control" name="cities" 
+                                       value="{{ campaign.business_metadata.get('location', {}).get('cities', []) | join(', ') }}" placeholder="e.g. Charlotte, Raleigh">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Description:</strong></label>
+                            <textarea class="form-control" name="description" rows="3" 
+                                      placeholder="Brief business description">{{ campaign.business_metadata.get('description', '') }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Key Services/Products (comma-separated):</strong></label>
+                            <input type="text" class="form-control" name="keywords" 
+                                   value="{{ campaign.business_metadata.get('keywords', []) | join(', ') }}" 
+                                   placeholder="e.g. roofing, repair, restoration, emergency service">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Unique Selling Points (one per line):</strong></label>
+                            <textarea class="form-control" name="distinctives" rows="3" 
+                                      placeholder="e.g. 24/7 Emergency Service">{{ campaign.business_metadata.get('distinctives', []) | join('\n') }}</textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary me-2" onclick="cancelEditMode('business-analysis')">Cancel</button>
+                            <button type="submit" class="btn btn-success">Save Changes</button>
+                        </div>
+                    </form>
+                    
+                    <div id="business-analysis-display">
+                        <div class="row">
+                            {% if campaign.business_metadata.get('title') %}
+                            <div class="col-md-6 mb-3">
+                                <strong>Business Name:</strong>
+                                <p class="text-muted mb-0">{{ campaign.business_metadata.get('title', 'Not detected') }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if campaign.business_metadata.get('industry') %}
+                            <div class="col-md-6 mb-3">
+                                <strong>Industry:</strong>
+                                <p class="text-muted mb-0">{{ campaign.business_metadata.get('industry', 'Not detected') }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if campaign.business_metadata.get('description') %}
+                            <div class="col-12 mb-3">
+                                <strong>Description:</strong>
+                                <p class="text-muted mb-0">{{ campaign.business_metadata.get('description', 'Not available') }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if campaign.business_metadata.get('location') %}
+                            <div class="col-md-6 mb-3">
+                                <strong>Location:</strong>
+                                <p class="text-muted mb-0">
+                                    {{ campaign.business_metadata.get('location', {}).get('state', 'Not detected') }}
+                                    {% if campaign.business_metadata.get('location', {}).get('cities') %}
+                                        ({{ campaign.business_metadata.get('location', {}).get('cities') | join(', ') }})
+                                    {% endif %}
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if campaign.business_metadata.get('keywords') %}
+                        <div class="mb-3">
+                            <strong>Key Services/Products:</strong>
+                            <div class="mt-2">
+                                {% for keyword in campaign.business_metadata.get('keywords', [])[:10] %}
+                                <span class="badge bg-secondary me-1">{{ keyword }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if campaign.business_metadata.get('distinctives') %}
+                        <div class="mb-3">
+                            <strong>Unique Selling Points:</strong>
+                            <ul class="mt-2">
+                                {% for distinctive in campaign.business_metadata.get('distinctives', []) %}
+                                <li>{{ distinctive }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Upgrade Notice -->
+    {% if not current_user.can_access_tier('pro') %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info border-0">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="alert-heading mb-1">
+                            <i class="fas fa-star me-2"></i>Unlock More Features
+                        </h6>
+                        <p class="mb-0">
+                            Upgrade to Pro for AI video generation and detailed competitor analysis, 
+                            or Enterprise for automated social media posting.
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary">
+                            Upgrade Plan <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<textarea id="ad-copy" style="position: absolute; left: -9999px;">{{ campaign.ad_text }}</textarea>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyToClipboard(elementId) {
+    const textarea = document.getElementById(elementId);
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+    btn.classList.remove('btn-outline-primary');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-primary');
+    }, 2000);
+}
+
+function toggleEditMode(sectionId) {
+    const displayDiv = document.getElementById(`${sectionId}-display`);
+    const formDiv = document.getElementById(`${sectionId}-form`);
+    const editBtn = event.target.closest('button');
+    
+    if (formDiv.style.display === 'none') {
+        displayDiv.style.display = 'none';
+        formDiv.style.display = 'block';
+        editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+        editBtn.classList.remove('btn-outline-primary');
+        editBtn.classList.add('btn-outline-danger');
+    } else {
+        displayDiv.style.display = 'block';
+        formDiv.style.display = 'none';
+        editBtn.innerHTML = '<i class="fas fa-edit me-1"></i>Edit Data';
+        editBtn.classList.remove('btn-outline-danger');
+        editBtn.classList.add('btn-outline-primary');
+    }
+}
+
+function cancelEditMode(sectionId) {
+    const displayDiv = document.getElementById(`${sectionId}-display`);
+    const formDiv = document.getElementById(`${sectionId}-form`);
+    const editBtn = document.querySelector(`[onclick="toggleEditMode('${sectionId}')"]`);
+    
+    displayDiv.style.display = 'block';
+    formDiv.style.display = 'none';
+    editBtn.innerHTML = '<i class="fas fa-edit me-1"></i>Edit Data';
+    editBtn.classList.remove('btn-outline-danger');
+    editBtn.classList.add('btn-outline-primary');
+}
+
+function updateBusinessData(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const campaignId = {{ campaign.id }};
+    
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    submitBtn.disabled = true;
+    
+    fetch(`/dashboard/campaigns/${campaignId}/update-business-data`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh page to show updated data
+        } else {
+            alert('Error updating data: ' + data.error);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Error updating data: ' + error.message);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

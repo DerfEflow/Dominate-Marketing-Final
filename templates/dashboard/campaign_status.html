@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Campaign Status - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- Campaign Status Header -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h2 class="card-title">
+                        <i class="fas fa-cogs fa-spin text-warning me-2"></i>
+                        Generating Your Campaign
+                    </h2>
+                    <h5 class="text-muted">{{ campaign.title }}</h5>
+                    <p class="lead">Creating personalized content for <strong>{{ campaign.business_url }}</strong></p>
+                </div>
+            </div>
+            
+            <!-- Progress Status -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Generation Progress
+                    </h5>
+                    
+                    {% if job_status.status == 'queued' %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="spinner-border spinner-border-sm text-warning me-3" role="status"></div>
+                        <div>
+                            <strong>Queued</strong><br>
+                            <small class="text-muted">Your campaign is in the generation queue</small>
+                        </div>
+                    </div>
+                    {% elif job_status.status == 'processing' %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="spinner-border spinner-border-sm text-success me-3" role="status"></div>
+                        <div>
+                            <strong>Processing</strong><br>
+                            <small class="text-muted">AI is analyzing your business and generating content</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Processing Steps -->
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-search fa-2x text-primary mb-2"></i>
+                                <h6>Website Analysis</h6>
+                                <small class="text-muted">Analyzing your business profile</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-trending-up fa-2x text-info mb-2"></i>
+                                <h6>Viral Research</h6>
+                                <small class="text-muted">Finding trending opportunities</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-magic fa-2x text-warning mb-2"></i>
+                                <h6>Content Generation</h6>
+                                <small class="text-muted">Creating personalized content</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 border rounded">
+                                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                <h6>Quality Validation</h6>
+                                <small class="text-muted">Ensuring viral potential</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Campaign Details -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Campaign Details
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Business URL:</strong> {{ campaign.business_url }}</p>
+                            <p><strong>Target Audience:</strong> {{ campaign.target_audience or 'General' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Campaign Goal:</strong> {{ campaign.campaign_goal.title() }}</p>
+                            <p><strong>Subscription Tier:</strong> <span class="badge bg-primary">{{ campaign.tier_used.title() }}</span></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <p><strong>Started:</strong> {{ job_status.created_at }}</p>
+                            <p><strong>Estimated Completion:</strong> 2-3 minutes from start time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Auto-refresh notice -->
+            <div class="alert alert-info">
+                <i class="fas fa-refresh me-2"></i>
+                This page will automatically refresh every 10 seconds to check for updates.
+                You can also refresh manually to check the latest status.
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="text-center">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Back to Dashboard
+                </a>
+                <button onclick="window.location.reload()" class="btn btn-primary">
+                    <i class="fas fa-refresh me-2"></i>
+                    Check Status
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh script -->
+<script>
+// Auto-refresh every 10 seconds to check for completion
+setTimeout(function() {
+    window.location.reload();
+}, 10000);
+</script>
+{% endblock %}

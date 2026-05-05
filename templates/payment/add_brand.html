@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Add Additional Brand - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-3">Scale to Multiple Brands</h1>
+        <p class="lead text-muted">
+            Extend your marketing power to additional brands for just <strong>${{ additional_brand_price }}/month each</strong>
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <!-- Current Brands Overview -->
+        <div class="col-lg-5 mb-4">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        Your Current Brands
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if existing_brands %}
+                    <div class="mb-3">
+                        {% for brand in existing_brands %}
+                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                            {% if brand.logo_url %}
+                                <img src="{{ brand.logo_url }}" alt="{{ brand.name }}" class="rounded me-3" width="40" height="40">
+                            {% else %}
+                                <div class="bg-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-building text-white"></i>
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ brand.name }}</div>
+                                <div class="small text-muted">{{ brand.industry or 'Industry not specified' }}</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No brands created yet</h6>
+                        <p class="small text-muted mb-3">Create your first brand to get started</p>
+                        <a href="{{ url_for('dashboard.brands') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Create First Brand
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info border-0 bg-info bg-opacity-10">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Each brand gets its own workspace with the same features as your main subscription.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Brand Subscription -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        Add New Brand
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="h2 fw-bold text-success">${{ additional_brand_price }}</div>
+                        <div class="text-muted">per month, per additional brand</div>
+                    </div>
+                    
+                    <!-- What's Included -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">What Each Additional Brand Gets:</h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Full access to your current plan features
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Separate generation allowance
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Independent campaign workspace
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                All AI models from your tier
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Quality control and analytics
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Same support level
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Billing Information -->
+                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 mb-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Billing Details
+                        </h6>
+                        <ul class="small mb-0">
+                            <li>Charged monthly on your existing billing date</li>
+                            <li>Prorated for current month if added mid-cycle</li>
+                            <li>Can be cancelled independently</li>
+                            <li>No setup fees or hidden costs</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg" onclick="addBrandSubscription()">
+                            <i class="fas fa-plus me-2"></i>
+                            Add Brand for ${{ additional_brand_price }}/month
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="createBrandFirst()">
+                            <i class="fas fa-building me-2"></i>
+                            Create Brand First
+                        </button>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Secure payment • Cancel anytime
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Benefits Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center fw-bold mb-4">Why Add Multiple Brands?</h3>
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                        <h5>Scale Your Business</h5>
+                        <p class="text-muted">Manage marketing for multiple brands from one dashboard</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-users fa-3x text-success mb-3"></i>
+                        <h5>Serve More Clients</h5>
+                        <p class="text-muted">Perfect for agencies managing multiple client brands</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-cog fa-3x text-info mb-3"></i>
+                        <h5>Centralized Management</h5>
+                        <p class="text-muted">Switch between brands seamlessly in one interface</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-dollar-sign fa-3x text-warning mb-3"></i>
+                        <h5>Cost Effective</h5>
+                        <p class="text-muted">Much cheaper than separate subscriptions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Example Pricing -->
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center">
+                    <h4 class="fw-bold mb-3">Example: 3 Brands Total Cost</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="h5 text-primary">Your Current Plan</div>
+                                <div class="h4 fw-bold">${{ current_user.get_tier_config().price_monthly }}</div>
+                                <div class="small text-muted">Main brand subscription</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="h5 text-success">2 Additional Brands</div>
+                                <div class="h4 fw-bold">+${{ additional_brand_price * 2 }}</div>
+                                <div class="small text-muted">2 × ${{ additional_brand_price }}/month</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="h5 text-warning">Total Monthly</div>
+                                <div class="h4 fw-bold">${{ current_user.get_tier_config().price_monthly + (additional_brand_price * 2) }}</div>
+                                <div class="small text-muted">For 3 brands total</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addBrandSubscription() {
+    // Check if user has at least one brand
+    const hasBrands = {{ existing_brands|length > 0 }};
+    
+    if (!hasBrands) {
+        if (confirm('You need to create a brand first. Would you like to create one now?')) {
+            window.location.href = '/dashboard/brands';
+        }
+        return;
+    }
+    
+    // Confirm additional brand subscription
+    if (confirm(`Add an additional brand subscription for ${{ additional_brand_price }}/month? This will be added to your next billing cycle.`)) {
+        // In a real implementation, this would create a Stripe subscription for additional brand
+        fetch('/payment/add-brand-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'add_brand_subscription'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Additional brand subscription added successfully!');
+                window.location.href = '/dashboard/brands';
+            } else {
+                alert('Failed to add brand subscription: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to add brand subscription. Please try again.');
+        });
+    }
+}
+
+function createBrandFirst() {
+    window.location.href = '/dashboard/brands';
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .h2 {
+        font-size: 1.6rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

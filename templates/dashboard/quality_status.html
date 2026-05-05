@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Control Status - {{ campaign.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Quality Control Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Quality Control Status</h2>
+                    <p class="text-muted mb-0">Campaign: {{ campaign.title }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('dashboard.campaign_detail', campaign_id=campaign.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Campaign
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2">
+                        {% if quality_status.latest_check and quality_status.latest_check.passed %}
+                            <span class="text-success">✅</span>
+                        {% else %}
+                            <span class="text-danger">❌</span>
+                        {% endif %}
+                    </div>
+                    <h6 class="card-title">Quality Status</h6>
+                    <p class="card-text small text-muted">
+                        {% if quality_status.latest_check %}
+                            {{ "Passed" if quality_status.latest_check.passed else "Failed" }}
+                        {% else %}
+                            Not Assessed
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-info">
+                        {{ "%.1f"|format(quality_status.quality_score or 0) }}/10
+                    </div>
+                    <h6 class="card-title">Quality Score</h6>
+                    <p class="card-text small text-muted">
+                        {% if quality_status.quality_score >= 8 %}
+                            Excellent
+                        {% elif quality_status.quality_score >= 7 %}
+                            Good
+                        {% elif quality_status.quality_score >= 5 %}
+                            Needs Work
+                        {% else %}
+                            Poor
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2 text-warning">
+                        {{ quality_status.regeneration_attempts }}/5
+                    </div>
+                    <h6 class="card-title">Regeneration Attempts</h6>
+                    <p class="card-text small text-muted">
+                        {% if quality_status.can_regenerate %}
+                            {{ 5 - quality_status.regeneration_attempts }} remaining
+                        {% else %}
+                            Max reached
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 bg-dark">
+                <div class="card-body text-center">
+                    <div class="h3 mb-2">
+                        {% set status_icons = {
+                            'completed': '✅',
+                            'processing': '⚙️',
+                            'regenerating': '🔄',
+                            'human_review': '👤',
+                            'failed': '❌'
+                        } %}
+                        {{ status_icons.get(quality_status.current_status, '⏳') }}
+                    </div>
+                    <h6 class="card-title">Current Status</h6>
+                    <p class="card-text small text-muted">
+                        {{ quality_status.current_status.replace('_', ' ').title() }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Quality Check Details -->
+    {% if quality_status.latest_check %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Latest Quality Assessment
+                        <small class="text-muted ms-2">
+                            ({{ quality_status.latest_check.checked_at.split('T')[0] }})
+                        </small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if quality_status.latest_check.criteria_scores %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-light mb-3">Quality Criteria Scores</h6>
+                            {% for criteria, score in quality_status.latest_check.criteria_scores.items() %}
+                            {% if score %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">{{ criteria.replace('_', ' ').title() }}:</span>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress me-2" style="width: 100px; height: 8px;">
+                                        <div class="progress-bar 
+                                            {% if score >= 7 %}bg-success
+                                            {% elif score >= 5 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                            style="width: {{ (score/10)*100 }}%"></div>
+                                    </div>
+                                    <span class="small {% if score >= 7 %}text-success{% elif score >= 5 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ "%.1f"|format(score) }}/10
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-light mb-3">Assessment Details</h6>
+                            <div class="small text-muted">
+                                <p><strong>Model Used:</strong> GPT-5-mini</p>
+                                <p><strong>Attempt:</strong> {{ quality_status.latest_check.attempt_number }}/5</p>
+                                <p><strong>Overall Score:</strong> 
+                                    <span class="{% if quality_status.latest_check.quality_score >= 7 %}text-success{% elif quality_status.latest_check.quality_score >= 5 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ "%.1f"|format(quality_status.latest_check.quality_score) }}/10
+                                    </span>
+                                </p>
+                                <p><strong>Status:</strong> 
+                                    {% if quality_status.latest_check.passed %}
+                                        <span class="text-success">✅ Passed</span>
+                                    {% else %}
+                                        <span class="text-danger">❌ Failed</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quality Control Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Quality Control Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if quality_status.current_status == 'completed' %}
+                        <div class="alert alert-success border-0 bg-success bg-opacity-10">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Content Approved!</strong> All content has passed quality control and is ready for delivery.
+                        </div>
+                    {% elif quality_status.current_status == 'human_review' %}
+                        <div class="alert alert-warning border-0 bg-warning bg-opacity-10">
+                            <i class="fas fa-user-tie me-2"></i>
+                            <strong>Human Review Required</strong> Content has been escalated to our live design team for enhancement. You'll receive improved content within 24 hours.
+                        </div>
+                    {% elif quality_status.current_status == 'regenerating' %}
+                        <div class="alert alert-info border-0 bg-info bg-opacity-10">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            <strong>Regenerating Content</strong> AI is creating improved content based on quality feedback.
+                        </div>
+                    {% elif not quality_status.latest_check %}
+                        <div class="mb-3">
+                            <button class="btn btn-primary" onclick="assessQuality('{{ campaign.id }}')">
+                                <i class="fas fa-clipboard-check me-2"></i>
+                                Run Quality Assessment
+                            </button>
+                        </div>
+                    {% elif not quality_status.latest_check.passed and quality_status.can_regenerate %}
+                        <div class="mb-3">
+                            <button class="btn btn-warning" onclick="regenerateContent('{{ campaign.id }}')">
+                                <i class="fas fa-redo me-2"></i>
+                                Regenerate Content ({{ quality_status.regeneration_attempts + 1 }}/5)
+                            </button>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-info btn-sm w-100" onclick="viewQualityHistory('{{ campaign.id }}')">
+                                <i class="fas fa-history me-1"></i>
+                                View History
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary btn-sm w-100" onclick="downloadQualityReport('{{ campaign.id }}')">
+                                <i class="fas fa-download me-1"></i>
+                                Download Report
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="contactSupport('{{ campaign.id }}')">
+                                <i class="fas fa-support me-1"></i>
+                                Contact Support
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Control Information -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 bg-dark">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Quality Control Process
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-light mb-3">Assessment Criteria</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Coherent:</strong> Logical and well-structured content</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Relevant:</strong> Matches brand and audience perfectly</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Compelling:</strong> Grabs attention and drives action</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Fresh:</strong> Current and not cliché</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Unique:</strong> Distinctive, not generic</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Creative:</strong> Shows innovation and originality</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Edgy:</strong> Pushes boundaries appropriately</li>
+                                <li><i class="fas fa-check text-success me-2"></i><strong>Worth Paying For:</strong> Premium quality content</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-light mb-3">Process Steps</h6>
+                            <ul class="list-unstyled small text-muted">
+                                <li><i class="fas fa-robot text-info me-2"></i><strong>Step 1:</strong> GPT-5-mini assesses all content</li>
+                                <li><i class="fas fa-sync text-warning me-2"></i><strong>Step 2:</strong> Failed content regenerated (up to 5x)</li>
+                                <li><i class="fas fa-user-tie text-primary me-2"></i><strong>Step 3:</strong> Human designer assigned if needed</li>
+                                <li><i class="fas fa-envelope text-secondary me-2"></i><strong>Step 4:</strong> Admin notification for intervention</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i><strong>Step 5:</strong> Final approval and delivery</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Quality Control JavaScript Functions
+function assessQuality(campaignId) {
+    // Show loading state
+    const btn = event.target;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Assessing...';
+    btn.disabled = true;
+    
+    fetch(`/api/quality/assess/${campaignId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh to show updated status
+        } else {
+            alert('Quality assessment failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Quality assessment failed. Please try again.');
+    })
+    .finally(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    });
+}
+
+function regenerateContent(campaignId) {
+    if (!confirm('Are you sure you want to regenerate the content? This will use one of your remaining regeneration attempts.')) {
+        return;
+    }
+    
+    const btn = event.target;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Regenerating...';
+    btn.disabled = true;
+    
+    fetch(`/api/quality/regenerate/${campaignId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            guidance: [] // Could be populated with specific guidance
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Content regeneration initiated. Please check back in a few minutes.');
+            location.reload();
+        } else {
+            alert('Regeneration failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Regeneration failed. Please try again.');
+    })
+    .finally(() => {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    });
+}
+
+function viewQualityHistory(campaignId) {
+    fetch(`/api/quality/history/${campaignId}`)
+    .then(response => response.json())
+    .then(data => {
+        // Show quality history in a modal or new page
+        console.log('Quality History:', data);
+        alert('Quality history loaded. Check browser console for details.');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to load quality history.');
+    });
+}
+
+function downloadQualityReport(campaignId) {
+    // Generate and download quality report
+    alert('Quality report download feature coming soon!');
+}
+
+function contactSupport(campaignId) {
+    // Redirect to support with campaign context
+    window.location.href = `/support?campaign=${campaignId}&issue=quality_concern`;
+}
+</script>
+{% endblock %}

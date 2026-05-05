@@ -1,0 +1,203 @@
+Build me a small full-stack app that does this end-to-end:
+
+Title: Category-Aware Viral Trend Harvester
+
+Goal: Given a user’s products/services webpage URL, auto-infer the best content category, then run a combined trend query pipeline (Google Trends via pytrends, YouTube Data API v3, and Google News via SerpAPI or GNews) focused on that category. Persist results, expose simple APIs and a minimal UI dashboard.
+
+Stack & structure:
+
+Backend: Python 3.11, FastAPI, Uvicorn, requests, readability-lxml, beautifulsoup4, scikit-learn (for keyword extraction), nltk (stopwords), pytrends, APScheduler, sqlite3 (via SQLAlchemy).
+
+Optional providers: YouTube Data API v3, SerpAPI OR GNews API. Use env vars YT_API_KEY, SERPAPI_KEY, GNEWS_API_KEY (support either SerpAPI or GNews; prefer SerpAPI if both present).
+
+Frontend: React + Vite (or simple static HTML served by FastAPI) with a single page to run a URL, show detected category, and display top trends/cards.
+
+Repo layout: /server (FastAPI app) /web (React app) Single Dockerfile optional, but not required.
+
+
+Environment variables:
+
+YT_API_KEY=…
+
+SERPAPI_KEY=… (optional; if absent, try GNEWS_API_KEY)
+
+GNEWS_API_KEY=… (optional)
+
+REGION=US (default), COUNTRY=US (for Trends), LANGUAGE=en
+
+
+Data model (SQLite):
+
+runs(id PK, url, detected_category_name, detected_category_id, youtube_category_id, started_at, finished_at, status, notes)
+
+page_keywords(run_id FK, keyword, score)
+
+trends_interest(run_id FK, keyword, date, interest)
+
+trends_related_queries(run_id FK, base_keyword, query, type, value)
+
+youtube_videos(run_id FK, video_id, title, channel, published_at, view_count, like_count, comment_count, category_id)
+
+news_articles(run_id FK, title, source, url, published_at, snippet) Add indexes on published_at and run_id.
+
+
+Backend logic:
+
+1. Scrape + extract:
+
+Input: URL.
+
+Download HTML with requests, timeout and UA header.
+
+Use readability-lxml to extract main content; fallback to BeautifulSoup to get text.
+
+Normalize text, strip boilerplate, lowercase.
+
+
+
+2. Keyword extraction:
+
+Use scikit-learn TfidfVectorizer with English stopwords + nltk stopwords. N-grams (1,2). Keep top 25 by TF-IDF. Also extract top 15 noun-ish tokens via a simple POS heuristic (optional) and merge. Deduplicate, keep 25 total.
+
+
+
+3. Category inference:
+
+Build a canonical list of Google-like high-level categories as strings (e.g., “Arts & Entertainment”, “Autos & Vehicles”, “Beauty & Fitness”, “Books & Literature”, “Business & Industrial”, “Computers & Electronics”, “Finance”, “Food & Drink”, “Games”, “Health”, “Hobbies & Leisure”, “Home & Garden”, “Internet & Telecom”, “Jobs & Education”, “Law & Government”, “News”, “Online Communities”, “People & Society”, “Pets & Animals”, “Real Estate”, “Reference”, “Science”, “Shopping”, “Sports”, “Travel”).
+
+Call pytrends.TrendReq().categories() to retrieve the official Trends category tree and map the chosen string to the closest Trends category id by fuzzy string match (case-insensitive; pick the best score). Save both name and id.
+
+Also fetch YouTube videoCategories.list for region=REGION and map the detected category name to the closest YouTube category id; if no decent match, default to “28” (Science & Technology) for techy pages, or “24” (Entertainment) as last resort, using a simple keyword heuristic (document this in code).
+
+
+
+4. Trends queries (pytrends):
+
+Pick top 5–7 keywords from step 2 as “seed_keywords”.
+
+For each seed (batch in groups of <=5), call build_payload(keywords=[…], cat=detected_category_id, timeframe=“now 7-d”, geo=COUNTRY, gprop=“”).
+
+Pull interest_over_time(), related_queries(), and suggestions() (to expand keyword set; add “rising” ones).
+
+Persist time-series rows in trends_interest; persist related queries (both “top” and “rising”) in trends_related_queries with type field.
+
+
+
+5. YouTube trending by category:
+
+If YT_API_KEY present:
+
+If you resolved a youtube_category_id, call videos.list with chart=mostPopular, regionCode=REGION, videoCategoryId=the id, maxResults=25.
+
+Also run search.list for each top 3 seed keywords, order=date, publishedAfter=(now-7d), type=video, maxResults=10; then videos.list to get stats (viewCount, likeCount, commentCount).
+
+Persist to youtube_videos. De-dupe by video_id.
+
+
+
+
+6. News pulse:
+
+If SERPAPI_KEY present:
+
+Query Google News for the detected category name and top 3 seed keywords combined (boolean OR) within the last 7 days, language=LANGUAGE, num=50. Store title, source, url, snippet, published date.
+
+
+Else if GNEWS_API_KEY present:
+
+Use category endpoint if available; otherwise query with keywords (same logic).
+
+
+If neither key exists, skip news gracefully.
+
+
+
+7. Scheduling:
+
+Use APScheduler to allow a daily job (midnight local) to re-run the last URL(s) and append a new run row.
+
+Also provide an on-demand endpoint to trigger immediately.
+
+
+
+
+API endpoints (FastAPI):
+
+POST /run Body: { "url": "https://example.com/products" } Action: executes steps 1–6, creates a new run, returns { run_id } immediately and streams progress via server-sent events at /runs/{run_id}/events or polls with /runs/{run_id}/status.
+
+GET /runs/{run_id}/results Returns detected category, top 10 keywords, top 10 rising related queries, condensed interest_over_time (per keyword; last 7 days), top 15 YouTube items (combined mostPopular + search), and top 25 news articles.
+
+GET /healthz Returns { ok: true }.
+
+
+Frontend (React):
+
+Single page with:
+
+URL input and “Analyze” button.
+
+Status spinner while the run executes.
+
+Cards: • Detected Category (name + Trends id + YouTube id) • Top Keywords (chips with TF-IDF scores) • Google Trends sparkline per keyword (7-day line chart; downsample client-side if needed) • Rising Related Queries (list with value/score) • YouTube (grid of thumbnails with title, channel, views, published date) • News (list with source, time-ago, link)
+
+“Re-run daily” toggle that hits a backend endpoint to register the URL for APScheduler.
+
+
+
+Quality & fallbacks:
+
+Robust error handling: 5–10 second HTTP timeouts, retry once for pytrends, and graceful skipping of missing providers.
+
+If the category match score is low (<0.5 cosine similarity or similar), default to “News” or “Shopping” based on keywords, and log a warning in runs.notes.
+
+Deduplicate news by normalized title; dedupe YouTube by video_id; dedupe keywords by lowercase token.
+
+Sanitization: Strip query params from news URLs for display, but keep original in DB.
+
+
+Install/setup steps the project should perform automatically:
+
+Create a Python venv, install dependencies, download nltk stopwords at startup if missing.
+
+Initialize the SQLite schema if not present (SQLAlchemy create_all).
+
+Start FastAPI on port 8000; concurrently run the React dev server on port 5173 with a proxy to 8000, or build React and serve static assets from FastAPI in production mode.
+
+Provide a Makefile or npm/yarn scripts to run: “dev” (both servers) and “start” (prod build + single server).
+
+
+Acceptance criteria:
+
+I can visit the UI, paste a URL, click “Analyze”, and within ~30–60 seconds see:
+
+A detected category with both a Trends category id and a YouTube category id.
+
+Top keywords and rising related queries.
+
+At least some interest_over_time series points for several keywords.
+
+A grid of relevant YouTube videos when YT_API_KEY is set.
+
+A list of relevant news articles when SERPAPI_KEY or GNEWS_API_KEY is set.
+
+
+I can hit GET /runs/{run_id}/results and get clean JSON that matches what the UI shows.
+
+If I toggle “Re-run daily,” the scheduler persists and creates a new run automatically each day.
+
+
+Notes to implementer:
+
+Keep the category mapping modular: a CategoryResolver class with methods resolve_trends_category(text) and resolve_youtube_category(text). Use fuzzy matching against the fetched official lists plus a simple keyword heuristic fallback.
+
+For keyword extraction, cap vocabulary to 10k, min_df=2, smooth idf, and return top N by tf-idf weight. Remove very short tokens (<3 chars).
+
+For charts, keep it simple—client-side line charts with a lightweight library (e.g., Chart.js) or just tiny SVG sparklines.
+
+Write docstrings and brief README with env var instructions and API examples.
+
+Log structured JSON to stdout for each run step with timings so we can debug performance.
+
+
+Build this exactly as specified. If any API key is missing, the app should still run and just omit that provider’s section while clearly labeling it “No provider key set”.
+

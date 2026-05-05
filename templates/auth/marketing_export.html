@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-download me-2"></i>Marketing Data Export
+                    </h4>
+                    <p class="mb-0 mt-2">User information for marketing campaigns ({{ total_users }} users with consent)</p>
+                </div>
+                
+                <div class="card-body">
+                    {% if users %}
+                        <!-- Summary Stats -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3>{{ total_users }}</h3>
+                                        <p class="mb-0">Total Users</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3>{{ users | selectattr('email_consent') | list | length }}</h3>
+                                        <p class="mb-0">Email Consent</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3>{{ users | selectattr('sms_consent') | list | length }}</h3>
+                                        <p class="mb-0">SMS Consent</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h3>{{ users | selectattr('company_name') | list | length }}</h3>
+                                        <p class="mb-0">Business Users</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Export Actions -->
+                        <div class="mb-4">
+                            <button class="btn btn-primary me-2" onclick="exportToCSV()">
+                                <i class="fas fa-file-csv me-2"></i>Export to CSV
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="copyEmails()">
+                                <i class="fas fa-copy me-2"></i>Copy Email Lists
+                            </button>
+                        </div>
+
+                        <!-- User Data Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Company</th>
+                                        <th>Industry</th>
+                                        <th>Budget</th>
+                                        <th>Tier</th>
+                                        <th>Email Consent</th>
+                                        <th>SMS Consent</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.full_name or 'N/A' }}</td>
+                                        <td>{{ user.email }}</td>
+                                        <td>{{ user.phone_number or 'N/A' }}</td>
+                                        <td>{{ user.company_name or 'N/A' }}</td>
+                                        <td>{{ user.industry or 'N/A' }}</td>
+                                        <td>{{ user.marketing_budget or 'N/A' }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'primary' if user.subscription_tier == 'enterprise' else 'secondary' }}">
+                                                {{ user.subscription_tier.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user.email_consent %}
+                                                <span class="badge bg-success">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if user.sms_consent %}
+                                                <span class="badge bg-success">Yes</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Hidden data for export -->
+                        <div id="hiddenData" style="display: none;">
+                            {{ users | tojson }}
+                        </div>
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5>No users with marketing consent found</h5>
+                            <p class="text-muted">Users need to complete their profiles and provide consent for marketing communications.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportToCSV() {
+    const users = JSON.parse(document.getElementById('hiddenData').textContent);
+    
+    const headers = [
+        'Full Name', 'Email', 'Phone', 'Company', 'Industry', 'Company Size',
+        'Annual Revenue', 'Marketing Budget', 'Target Audience', 'Marketing Goals',
+        'Biggest Challenge', 'How Heard About Us', 'Country', 'Subscription Tier',
+        'Email Consent', 'SMS Consent', 'Created Date', 'Last Login'
+    ];
+    
+    let csvContent = headers.join(',') + '\n';
+    
+    users.forEach(user => {
+        const row = [
+            user.full_name || '',
+            user.email || '',
+            user.phone_number || '',
+            user.company_name || '',
+            user.industry || '',
+            user.company_size || '',
+            user.annual_revenue || '',
+            user.marketing_budget || '',
+            (user.target_audience || '').replace(/,/g, ';'),
+            (user.marketing_goals || '').replace(/,/g, ';'),
+            (user.biggest_challenge || '').replace(/,/g, ';'),
+            user.how_heard_about_us || '',
+            user.country || '',
+            user.subscription_tier || '',
+            user.email_consent ? 'Yes' : 'No',
+            user.sms_consent ? 'Yes' : 'No',
+            user.created_at ? user.created_at.substring(0, 10) : '',
+            user.last_login ? user.last_login.substring(0, 10) : ''
+        ];
+        
+        csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `marketing_data_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function copyEmails() {
+    const users = JSON.parse(document.getElementById('hiddenData').textContent);
+    const emailConsent = users.filter(u => u.email_consent).map(u => u.email).join(', ');
+    const allEmails = users.map(u => u.email).join(', ');
+    
+    const emailList = `
+Marketing Consent Emails (${users.filter(u => u.email_consent).length}):
+${emailConsent}
+
+All Newsletter Subscribers (${users.length}):
+${allEmails}
+    `;
+    
+    navigator.clipboard.writeText(emailList).then(() => {
+        alert('Email lists copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tier Features - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>AI Model Tiers</h1>
+                <span class="badge bg-{{ tier_color }} fs-6">Your Tier: {{ current_user.subscription_tier.value.title() }}</span>
+            </div>
+
+            <!-- Tier Comparison Cards -->
+            <div class="row">
+                <!-- Basic Tier -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100 {% if current_user.subscription_tier.value == 'basic' %}border-primary{% endif %}">
+                        <div class="card-header text-center">
+                            <h5 class="mb-0">Basic</h5>
+                            <span class="badge bg-secondary">$19/month</span>
+                        </div>
+                        <div class="card-body">
+                            <h6>AI Models:</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>Text:</strong> GPT-5-mini</li>
+                                <li><strong>Quality:</strong> Claude Sonnet 4</li>
+                            </ul>
+                            
+                            <h6>Features:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Text content generation</li>
+                                <li><i class="fas fa-check text-success"></i> Quality assessment</li>
+                                <li><i class="fas fa-times text-muted"></i> Image generation</li>
+                                <li><i class="fas fa-times text-muted"></i> Video creation</li>
+                                <li><i class="fas fa-times text-muted"></i> Image animation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plus Tier -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100 {% if current_user.subscription_tier.value == 'plus' %}border-primary{% endif %}">
+                        <div class="card-header text-center">
+                            <h5 class="mb-0">Plus</h5>
+                            <span class="badge bg-info">$49/month</span>
+                        </div>
+                        <div class="card-body">
+                            <h6>AI Models:</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>Text:</strong> GPT-5-mini</li>
+                                <li><strong>Quality:</strong> Claude Sonnet 4</li>
+                            </ul>
+                            
+                            <h6>Features:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Text content generation</li>
+                                <li><i class="fas fa-check text-success"></i> Image generation</li>
+                                <li><i class="fas fa-check text-success"></i> Quality assessment</li>
+                                <li><i class="fas fa-times text-muted"></i> Video creation</li>
+                                <li><i class="fas fa-times text-muted"></i> Image animation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pro Tier -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100 {% if current_user.subscription_tier.value == 'pro' %}border-warning{% endif %}">
+                        <div class="card-header text-center">
+                            <h5 class="mb-0">Pro</h5>
+                            <span class="badge bg-warning">$99/month</span>
+                        </div>
+                        <div class="card-body">
+                            <h6>AI Models:</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>Text:</strong> GPT-5 Premium</li>
+                                <li><strong>Video:</strong> Google VEO 3</li>
+                                <li><strong>Quality:</strong> Claude Sonnet 4</li>
+                            </ul>
+                            
+                            <h6>Features:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Advanced text generation</li>
+                                <li><i class="fas fa-check text-success"></i> Image generation</li>
+                                <li><i class="fas fa-check text-success"></i> Professional video creation</li>
+                                <li><i class="fas fa-check text-success"></i> Quality assessment</li>
+                                <li><i class="fas fa-times text-muted"></i> Image animation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enterprise Tier -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100 {% if current_user.subscription_tier.value == 'enterprise' %}border-success{% endif %}">
+                        <div class="card-header text-center">
+                            <h5 class="mb-0">Enterprise</h5>
+                            <span class="badge bg-success">$199/month</span>
+                        </div>
+                        <div class="card-body">
+                            <h6>AI Models:</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>Text:</strong> GPT-5 Premium</li>
+                                <li><strong>Video:</strong> Google VEO 3</li>
+                                <li><strong>Animation:</strong> Pika Labs</li>
+                                <li><strong>Quality:</strong> Claude Sonnet 4</li>
+                            </ul>
+                            
+                            <h6>Features:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success"></i> Advanced text generation</li>
+                                <li><i class="fas fa-check text-success"></i> Image generation</li>
+                                <li><i class="fas fa-check text-success"></i> Professional video creation</li>
+                                <li><i class="fas fa-check text-success"></i> Image-to-video animation</li>
+                                <li><i class="fas fa-check text-success"></i> Premium quality assessment</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Model Details -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Model Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Premium Models (Pro/Enterprise):</h6>
+                                    <ul>
+                                        <li><strong>GPT-5:</strong> Most advanced reasoning and creativity for viral content</li>
+                                        <li><strong>Google VEO 3:</strong> Professional video generation from scripts</li>
+                                        <li><strong>Pika Labs:</strong> Transform static images into dynamic videos</li>
+                                        <li><strong>Claude Sonnet 4:</strong> Advanced quality assessment and optimization</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Cost-Optimized Models (Basic/Plus):</h6>
+                                    <ul>
+                                        <li><strong>GPT-5-mini:</strong> Fast, efficient content generation with cost savings</li>
+                                        <li><strong>Same Video/Quality:</strong> No compromise on video generation or quality assessment</li>
+                                    </ul>
+                                    
+                                    <div class="alert alert-info mt-3">
+                                        <small><strong>Why the tier system?</strong> Premium users get access to the most advanced AI models, while lower tiers use optimized versions for cost savings and speed, ensuring everyone gets great results at their price point.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="{{ url_for('dashboard.ai_services_status') }}" class="btn btn-info">
+                    <i class="fas fa-cogs"></i> Check Service Status
+                </a>
+                {% if current_user.subscription_tier.value in ['basic', 'plus'] %}
+                <a href="{{ url_for('main.pricing') }}" class="btn btn-primary">
+                    <i class="fas fa-rocket"></i> Upgrade Tier
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

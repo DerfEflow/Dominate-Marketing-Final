@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Export Data - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Export Data</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Export Campaign Data</h1>
+            <p class="text-muted">Download your marketing campaigns in various formats</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Bulk Export Options -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-download me-2"></i>Bulk Export Options
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-code fa-2x text-primary mb-3"></i>
+                                    <h6>JSON Export</h6>
+                                    <p class="small text-muted mb-3">Complete campaign data with full content and metadata</p>
+                                    <a href="{{ url_for('dashboard.export_bulk_data', export_format='json') }}" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-download me-1"></i>Download JSON
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-table fa-2x text-success mb-3"></i>
+                                    <h6>CSV Export</h6>
+                                    <p class="small text-muted mb-3">Spreadsheet-friendly format for analysis and reporting</p>
+                                    <a href="{{ url_for('dashboard.export_bulk_data', export_format='csv') }}" 
+                                       class="btn btn-success btn-sm">
+                                        <i class="fas fa-download me-1"></i>Download CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <div class="card h-100 border-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-code fa-2x text-info mb-3"></i>
+                                    <h6>Download Complete App</h6>
+                                    <p class="small text-muted mb-3">Download the entire application source code as a zip file</p>
+                                    <a href="{{ url_for('dashboard.download_app') }}" 
+                                       class="btn btn-info btn-sm">
+                                        <i class="fas fa-download me-1"></i>Download App ZIP
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual Campaign Exports -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Individual Campaign Exports
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if campaigns %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Campaign</th>
+                                    <th>Goal</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Export</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campaign in campaigns %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ campaign.title }}</strong>
+                                        <br><small class="text-muted">{{ campaign.business_url[:50] }}...</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ campaign.campaign_goal.replace('_', ' ').title() if campaign.campaign_goal else 'General' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if campaign.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif campaign.status == 'processing' %}
+                                        <span class="badge bg-warning">Processing</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ campaign.status.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ campaign.created_at.strftime('%m/%d/%Y') if campaign.created_at else 'Unknown' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='text') }}" 
+                                               class="btn btn-outline-primary" title="Download Text">
+                                                <i class="fas fa-file-text"></i>
+                                            </a>
+                                            <a href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='json') }}" 
+                                               class="btn btn-outline-info" title="Download JSON">
+                                                <i class="fas fa-code"></i>
+                                            </a>
+                                            <a href="{{ url_for('dashboard.download_content', campaign_id=campaign.id, content_type='csv') }}" 
+                                               class="btn btn-outline-success" title="Download CSV">
+                                                <i class="fas fa-table"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">No campaigns to export</h6>
+                        <p class="text-muted">Create your first campaign to see export options</p>
+                        <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Campaign
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Information Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Export Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>JSON Format:</strong>
+                        <p class="small text-muted mb-0">
+                            Complete structured data including all campaign content, metadata, 
+                            and AI-generated assets. Perfect for backup and data analysis.
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>CSV Format:</strong>
+                        <p class="small text-muted mb-0">
+                            Spreadsheet-compatible format with key campaign metrics. 
+                            Ideal for reporting and integration with other tools.
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Text Format:</strong>
+                        <p class="small text-muted mb-0">
+                            Plain text ad copy ready for direct use in your marketing campaigns.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Export Statistics
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span>Total Campaigns:</span>
+                        <strong>{{ campaigns|length }}</strong>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span>Completed:</span>
+                        <strong>{{ campaigns|selectattr("status", "equalto", "completed")|list|length }}</strong>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span>Processing:</span>
+                        <strong>{{ campaigns|selectattr("status", "equalto", "processing")|list|length }}</strong>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span>With Ad Copy:</span>
+                        <strong>{{ campaigns|selectattr("ad_text")|list|length }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

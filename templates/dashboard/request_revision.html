@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Request Revision - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.campaign_view', campaign_id=campaign.id) }}">{{ campaign.title }}</a></li>
+                    <li class="breadcrumb-item active">Request Revision</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Request Campaign Revision</h1>
+            <p class="text-muted">Tell us what you'd like to improve about your campaign</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Revision Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Revision Request
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Revision Type -->
+                        <div class="mb-4">
+                            <label class="form-label">What would you like to revise?</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="revision_type" id="text_revision" value="text" checked>
+                                        <label class="form-check-label" for="text_revision">
+                                            <strong>Ad Copy Text</strong>
+                                            <br><small class="text-muted">Revise the marketing text and messaging</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% if current_user.can_access_tier('plus') %}
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="revision_type" id="image_revision" value="image">
+                                        <label class="form-check-label" for="image_revision">
+                                            <strong>Image Concept</strong>
+                                            <br><small class="text-muted">Adjust visual elements and imagery</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if current_user.can_access_tier('pro') %}
+                                <div class="col-md-6 mt-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="revision_type" id="video_revision" value="video">
+                                        <label class="form-check-label" for="video_revision">
+                                            <strong>Video Concept</strong>
+                                            <br><small class="text-muted">Modify video script and visual flow</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div class="col-md-6 mt-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="revision_type" id="all_revision" value="all">
+                                        <label class="form-check-label" for="all_revision">
+                                            <strong>Complete Campaign</strong>
+                                            <br><small class="text-muted">Regenerate everything with new direction</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Feedback -->
+                        <div class="mb-4">
+                            <label for="user_notes" class="form-label">
+                                <strong>Your Feedback & Revision Notes</strong>
+                            </label>
+                            <textarea class="form-control" id="user_notes" name="user_notes" rows="6" 
+                                      placeholder="Tell us what you'd like to change. Be specific about:&#10;• Tone (more professional, casual, urgent)&#10;• Target audience adjustments&#10;• Key messages to emphasize&#10;• Style preferences&#10;• Any specific requirements or concerns" 
+                                      required></textarea>
+                            <div class="form-text">
+                                Minimum 10 characters. The more specific you are, the better our AI can revise your campaign.
+                            </div>
+                        </div>
+
+                        <!-- Examples Section -->
+                        <div class="mb-4">
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-lightbulb text-warning me-2"></i>Revision Examples
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Good feedback:</strong>
+                                            <ul class="small mb-0">
+                                                <li>"Make it more urgent and action-oriented"</li>
+                                                <li>"Focus on cost savings instead of features"</li>
+                                                <li>"Target small business owners, not enterprises"</li>
+                                                <li>"Use a more casual, friendly tone"</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Avoid:</strong>
+                                            <ul class="small mb-0">
+                                                <li>"Make it better"</li>
+                                                <li>"I don't like it"</li>
+                                                <li>"Change everything"</li>
+                                                <li>"It's not good enough"</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('dashboard.campaign_view', campaign_id=campaign.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Campaign
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Revision Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Campaign Preview -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-eye me-2"></i>Current Campaign
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">{{ campaign.title }}</h6>
+                    <p class="small text-muted mb-3">{{ campaign.business_url }}</p>
+                    
+                    {% if campaign.ad_text %}
+                    <div class="mb-3">
+                        <strong>Current Ad Copy:</strong>
+                        <div class="bg-light p-2 rounded mt-1" style="max-height: 150px; overflow-y: auto;">
+                            <small>{{ campaign.ad_text[:200] }}{% if campaign.ad_text|length > 200 %}...{% endif %}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <strong class="d-block">Goal</strong>
+                                <small class="text-muted">{{ campaign.campaign_goal.replace('_', ' ').title() }}</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2">
+                                <strong class="d-block">Status</strong>
+                                <span class="badge bg-success">{{ campaign.status.title() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if campaign.target_audience %}
+                    <div class="mt-3">
+                        <strong>Target Audience:</strong>
+                        <p class="small text-muted mb-0">{{ campaign.target_audience }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

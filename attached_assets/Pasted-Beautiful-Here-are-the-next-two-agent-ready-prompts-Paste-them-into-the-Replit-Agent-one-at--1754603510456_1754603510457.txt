@@ -1,0 +1,195 @@
+Beautiful. Here are the next two **agent-ready** prompts. Paste them into the Replit Agent **one at a time**, in order.
+
+---
+
+# Prompt 5 — add **QC pass + platform captions/hashtags + thumbnail/title pack**
+
+> Extend the current Flask app to include a **quality-control (QC) pass** and **platform-ready captions/hashtags/titles/thumbnail text**. Keep everything minimal and deterministic.
+>
+> **Goals**
+>
+> 1. After `script.json` is created, run an OpenAI-powered **QC check** that validates:
+>
+>    * Hook strength in first 3 seconds
+>    * Clear value prop and proof point
+>    * CTA present and legible
+>    * On-screen text lines are ≤ 6 words
+>    * No risky claims (e.g., “guaranteed savings,” medical claims, etc.)
+>    * Duration alignment with platform norms
+> 2. If QC fails, return **fix instructions** for copy (short, actionable).
+> 3. Generate **platform packs**:
+>
+>    * Captions (1 primary + 2 alts per platform)
+>    * 10–14 hashtags per platform (mix: niche + locality + brand)
+>    * 3 short titles (YouTube Shorts) and **thumbnail text** (≤ 4 words)
+> 4. Save results to `/outputs/<job_id>/qc.json` and `/outputs/<job_id>/platform_pack.json`, and show both on the results page.
+>
+> **Changes**
+>
+> * Add `services/qc.py` with:
+>
+>   ```python
+>   from openai import OpenAI
+>   import json, os
+>
+>   def run_qc(script_json:dict, on_screen:list, goal:str, platforms:list, length_sec:int, compliance_notes:str|None=None) -> dict:
+>       """
+>       Calls OpenAI (gpt-4o-mini) in JSON mode.
+>       Input keys:
+>         - script_json: { voiceover_lines:[], visuals:[], on_screen_text:[{t,text}] }
+>         - on_screen: list of short strings from script_json['on_screen_text']
+>         - goal: leads|sales|traffic|awareness
+>         - platforms: ['instagram_reels','tiktok','facebook','youtube_shorts']
+>         - length_sec: int
+>         - compliance_notes: optional text
+>       Output JSON:
+>       {
+>         "qc_result":"pass"|"fail",
+>         "issues":[ "...", ... ],
+>         "fix_instructions":{ "copy":"...", "video":"..." }
+>       }
+>       """
+>   ```
+>
+>   * Use `response_format={"type":"json_object"}`, `temperature=0.2`, `max_tokens=500`.
+>   * Guardrails to check: hook @ ≤3s, CTA visibility, line length ≤6 words, claim safety, platform fit.
+> * Add `services/platform_pack.py` with:
+>
+>   ```python
+>   from openai import OpenAI
+>   import json, os
+>
+>   def build_platform_pack(region:str, brand_voice:str, goal:str, platforms:list, cta:str, length_sec:int, summary:dict) -> dict:
+>       """
+>       Creates caption/hashtag/title/thumbnail pack per platform.
+>       Input: region, brand_voice, goal, platforms, cta, length_sec, summary (product, audience, value_props, proof_points, tone_guess)
+>       Output JSON:
+>       {
+>         "captions": { "<platform>": [ {"variant":"primary","text":"..."}, {"variant":"alt1","text":"..."}, {"variant":"alt2","text":"..."} ] },
+>         "hashtags": { "<platform>": ["#...", "..."] },
+>         "titles":   { "youtube_shorts": ["...","...","..."] },
+>         "thumbnail_text": "≤ 4 words"
+>       }
+>       """
+>   ```
+>
+>   * Use `gpt-4o-mini`, `response_format={"type":"json_object"}`, `temperature=0.6`, `max_tokens=800`.
+>   * Caption tone must match `brand_voice`. Add locality (from `region`) where natural.
+> * In `app.py`:
+>
+>   * Import and call `run_qc(...)` **after** writing `script.json`. Save to `/outputs/<job_id>/qc.json`.
+>   * Import and call `build_platform_pack(...)` using the previously saved `summary.json`. Save to `/outputs/<job_id>/platform_pack.json`.
+>   * On the **results page**, render both JSON files in `<pre>` blocks below existing sections.
+> * Do **not** alter existing routes or break PRG. Keep the Veo step as-is (adapter still optional).
+>
+> **Deliverables**
+>
+> * New files: `services/qc.py`, `services/platform_pack.py`
+> * Updated `app.py`, updated results template
+> * After submit, I should see: `summary.json`, `script.json`, `veo_request.json`, **`qc.json`**, **`platform_pack.json`**.
+
+---
+
+# Prompt 6 — add **scheduler (Buffer API) + calendar builder + opt-in autopost**
+
+> Add an **autoposting scheduler** using the Buffer API (or stub if keys not set), a simple **calendar builder**, and a toggle on the form for “Autopost after generation.”
+>
+> **Goals**
+>
+> 1. Add form controls:
+>
+>    * Checkbox: `autopost` (boolean)
+>    * Timezone text field (default: `America/New_York`)
+>    * Preferred days multi-select: Tue, Thu (default these two)
+>    * Preferred times multi-select: 10:30, 16:00 (defaults)
+> 2. Build a calendar for the next **two posts** per platform using those preferences.
+> 3. If `autopost` and platform tokens are present, schedule posts via Buffer API. Otherwise, mark as “pending connection”.
+> 4. Save a `schedule.json` with what was attempted and the results.
+> 5. Add a section on the results page that shows scheduled posts (or pending status) in a readable table.
+>
+> **Changes**
+>
+> * Update the HTML form (`index.html`) to include:
+>
+>   * `<input type="checkbox" name="autopost" value="1">`
+>   * `<input type="text" name="tz" value="America/New_York">`
+>   * `<select multiple name="days">` with Tue, Thu pre-selected
+>   * `<select multiple name="times">` with 10:30 and 16:00 pre-selected
+> * Add `services/calendar.py`:
+>
+>   ```python
+>   from datetime import datetime, timedelta
+>   import pytz
+>
+>   def build_calendar(platforms:list, tz_str:str, days:list, times:list, posts_per_platform:int=2) -> list:
+>       """
+>       Returns a list of items:
+>       [{ "platform":"instagram_reels", "datetime_iso":"2025-08-12T14:30:00-04:00" }, ...]
+>       Logic:
+>         - Use tz_str for timezone.
+>         - Next matching day/time slots in the future, chronological.
+>         - Generate 'posts_per_platform' slots per platform.
+>       """
+>   ```
+>
+>   * Use `pytz` (add `pytz==2024.1` to requirements).
+> * Add `services/buffer_client.py`:
+>
+>   ```python
+>   import os, requests
+>
+>   def schedule_posts(manifest:dict, calendar:list, platform_pack:dict) -> dict:
+>       """
+>       Reads env:
+>         - BUFFER_API_URL (e.g., https://api.bufferapp.com/1/updates/create.json)
+>         - BUFFER_ACCESS_TOKEN
+>       If missing, return {"note":"Buffer disabled. Set BUFFER_* env vars."}
+>
+>       For each calendar item:
+>         - Pick platform-specific caption (use 'primary')
+>         - Use manifest['primary_video'] or poster if platform requires image
+>         - POST to Buffer with scheduled_time and text
+>       Return:
+>         {
+>           "scheduled":[ { "platform":..., "scheduled_for":..., "status":"queued", "post_id":"..." } ],
+>           "pending_connection":[ "tiktok", ... ]
+>         }
+>       """
+>   ```
+>
+>   * Include `timeout=30` on requests; catch and return errors per item.
+> * In `app.py`:
+>
+>   * After creating/reading `manifest.json` and `platform_pack.json`, call `build_calendar(...)` with the selected platforms, tz, days, times. Save to `/outputs/<job_id>/calendar.json`.
+>   * If `autopost` is truthy, call `schedule_posts(...)` with:
+>
+>     * `manifest` (ensure it includes `primary_video` and platform list)
+>     * `calendar`
+>     * `platform_pack`
+>       Save result as `/outputs/<job_id>/schedule.json`.
+>   * If `autopost` is false or Buffer env is missing, write `/outputs/<job_id>/schedule.json` with a helpful note and the generated calendar so the user can post manually.
+> * Update the **results page**:
+>
+>   * Render `calendar.json`
+>   * Render `schedule.json` (table with platform, datetime, status/post\_id or “pending”)
+> * Update `requirements.txt` to include:
+>
+>   * `pytz==2024.1`
+> * Add env placeholders (don’t set values):
+>
+>   * `BUFFER_API_URL`
+>   * `BUFFER_ACCESS_TOKEN`
+>
+> **Deliverables**
+>
+> * New files: `services/calendar.py`, `services/buffer_client.py`
+> * Updated `index.html` (new form fields), `requirements.txt`, `app.py`, results template
+> * After submit, I should see the new **calendar** and either scheduled posts or a clear “Buffer disabled / connect accounts” note.
+
+---
+
+When 5 and 6 are in and working, you’ll have a full loop:
+
+* Inputs → Summary → Script → Veo Prompt → QC → Platform Pack → Manifest → Calendar → (Optional) Autopost.
+
+If you want, I’ll give you **Prompt 7** for a tiny **admin dashboard** (list jobs, view artifacts, re-run QC), and **Prompt 8** to add a **simple auth gate** so only you or invited testers can use it while you iterate.

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Complete Your Profile
+                    </h4>
+                    <p class="mb-0 mt-2">Help us create better marketing campaigns for your business</p>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Progress bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Profile Completion</span>
+                            <span class="badge bg-primary">{{ current_user.profile_completion_percentage or 20 }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width: {{ current_user.profile_completion_percentage or 20 }}%"></div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.update_profile') }}">
+                        <!-- Personal Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-user me-2"></i>Personal Information
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" name="full_name" 
+                                       value="{{ current_user.full_name or '' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Job Title</label>
+                                <input type="text" class="form-control" name="job_title" 
+                                       value="{{ current_user.job_title or '' }}" 
+                                       placeholder="e.g., Marketing Director, CEO">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" name="phone_number" 
+                                       value="{{ current_user.phone_number or '' }}" 
+                                       placeholder="+1 (555) 123-4567">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Country</label>
+                                <select class="form-select" name="country">
+                                    <option value="">Select Country</option>
+                                    <option value="US" {{ 'selected' if current_user.country == 'US' }}>United States</option>
+                                    <option value="CA" {{ 'selected' if current_user.country == 'CA' }}>Canada</option>
+                                    <option value="GB" {{ 'selected' if current_user.country == 'GB' }}>United Kingdom</option>
+                                    <option value="AU" {{ 'selected' if current_user.country == 'AU' }}>Australia</option>
+                                    <option value="DE" {{ 'selected' if current_user.country == 'DE' }}>Germany</option>
+                                    <option value="FR" {{ 'selected' if current_user.country == 'FR' }}>France</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Business Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-building me-2"></i>Business Information
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" class="form-control" name="company_name" 
+                                       value="{{ current_user.company_name or '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Industry</label>
+                                <select class="form-select" name="industry">
+                                    <option value="">Select Industry</option>
+                                    <option value="technology" {{ 'selected' if current_user.industry == 'technology' }}>Technology</option>
+                                    <option value="healthcare" {{ 'selected' if current_user.industry == 'healthcare' }}>Healthcare</option>
+                                    <option value="finance" {{ 'selected' if current_user.industry == 'finance' }}>Finance</option>
+                                    <option value="retail" {{ 'selected' if current_user.industry == 'retail' }}>Retail/E-commerce</option>
+                                    <option value="manufacturing" {{ 'selected' if current_user.industry == 'manufacturing' }}>Manufacturing</option>
+                                    <option value="education" {{ 'selected' if current_user.industry == 'education' }}>Education</option>
+                                    <option value="real_estate" {{ 'selected' if current_user.industry == 'real_estate' }}>Real Estate</option>
+                                    <option value="consulting" {{ 'selected' if current_user.industry == 'consulting' }}>Consulting</option>
+                                    <option value="food_service" {{ 'selected' if current_user.industry == 'food_service' }}>Food & Service</option>
+                                    <option value="other" {{ 'selected' if current_user.industry == 'other' }}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Company Size</label>
+                                <select class="form-select" name="company_size">
+                                    <option value="">Select Size</option>
+                                    <option value="1-10" {{ 'selected' if current_user.company_size == '1-10' }}>1-10 employees</option>
+                                    <option value="11-50" {{ 'selected' if current_user.company_size == '11-50' }}>11-50 employees</option>
+                                    <option value="51-200" {{ 'selected' if current_user.company_size == '51-200' }}>51-200 employees</option>
+                                    <option value="201-500" {{ 'selected' if current_user.company_size == '201-500' }}>201-500 employees</option>
+                                    <option value="500+" {{ 'selected' if current_user.company_size == '500+' }}>500+ employees</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Annual Revenue</label>
+                                <select class="form-select" name="annual_revenue">
+                                    <option value="">Select Revenue Range</option>
+                                    <option value="under_100k" {{ 'selected' if current_user.annual_revenue == 'under_100k' }}>Under $100K</option>
+                                    <option value="100k_500k" {{ 'selected' if current_user.annual_revenue == '100k_500k' }}>$100K - $500K</option>
+                                    <option value="500k_1m" {{ 'selected' if current_user.annual_revenue == '500k_1m' }}>$500K - $1M</option>
+                                    <option value="1m_5m" {{ 'selected' if current_user.annual_revenue == '1m_5m' }}>$1M - $5M</option>
+                                    <option value="5m_10m" {{ 'selected' if current_user.annual_revenue == '5m_10m' }}>$5M - $10M</option>
+                                    <option value="10m_plus" {{ 'selected' if current_user.annual_revenue == '10m_plus' }}>$10M+</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Marketing Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-bullhorn me-2"></i>Marketing Information
+                                </h5>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Monthly Marketing Budget</label>
+                                <select class="form-select" name="marketing_budget">
+                                    <option value="">Select Budget Range</option>
+                                    <option value="under_1k" {{ 'selected' if current_user.marketing_budget == 'under_1k' }}>Under $1,000</option>
+                                    <option value="1k_5k" {{ 'selected' if current_user.marketing_budget == '1k_5k' }}>$1,000 - $5,000</option>
+                                    <option value="5k_10k" {{ 'selected' if current_user.marketing_budget == '5k_10k' }}>$5,000 - $10,000</option>
+                                    <option value="10k_25k" {{ 'selected' if current_user.marketing_budget == '10k_25k' }}>$10,000 - $25,000</option>
+                                    <option value="25k_50k" {{ 'selected' if current_user.marketing_budget == '25k_50k' }}>$25,000 - $50,000</option>
+                                    <option value="50k_plus" {{ 'selected' if current_user.marketing_budget == '50k_plus' }}>$50,000+</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">How did you hear about us?</label>
+                                <select class="form-select" name="how_heard_about_us">
+                                    <option value="">Select Source</option>
+                                    <option value="google_search" {{ 'selected' if current_user.how_heard_about_us == 'google_search' }}>Google Search</option>
+                                    <option value="social_media" {{ 'selected' if current_user.how_heard_about_us == 'social_media' }}>Social Media</option>
+                                    <option value="referral" {{ 'selected' if current_user.how_heard_about_us == 'referral' }}>Referral</option>
+                                    <option value="online_ad" {{ 'selected' if current_user.how_heard_about_us == 'online_ad' }}>Online Advertisement</option>
+                                    <option value="content_blog" {{ 'selected' if current_user.how_heard_about_us == 'content_blog' }}>Blog/Content</option>
+                                    <option value="email" {{ 'selected' if current_user.how_heard_about_us == 'email' }}>Email</option>
+                                    <option value="other" {{ 'selected' if current_user.how_heard_about_us == 'other' }}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Target Audience Description</label>
+                                <textarea class="form-control" name="target_audience" rows="3" 
+                                          placeholder="Describe your ideal customers (demographics, interests, behavior)">{{ current_user.target_audience or '' }}</textarea>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Primary Marketing Goals</label>
+                                <textarea class="form-control" name="marketing_goals" rows="3" 
+                                          placeholder="What are your main marketing objectives? (brand awareness, lead generation, sales, etc.)">{{ current_user.marketing_goals or '' }}</textarea>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Biggest Marketing Challenge</label>
+                                <textarea class="form-control" name="biggest_marketing_challenge" rows="3" 
+                                          placeholder="What's your biggest challenge in marketing right now?">{{ current_user.biggest_marketing_challenge or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Communication Preferences -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-envelope me-2"></i>Communication Preferences
+                                </h5>
+                            </div>
+                            
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="email_marketing_consent" 
+                                           {{ 'checked' if current_user.email_marketing_consent }} id="email_consent">
+                                    <label class="form-check-label" for="email_consent">
+                                        <strong>Email Marketing:</strong> Receive marketing emails with tips, offers, and product updates
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="sms_marketing_consent" 
+                                           {{ 'checked' if current_user.sms_marketing_consent }} id="sms_consent">
+                                    <label class="form-check-label" for="sms_consent">
+                                        <strong>SMS Marketing:</strong> Receive text messages for urgent updates and exclusive offers
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="newsletter_subscription" 
+                                           {{ 'checked' if current_user.newsletter_subscription }} id="newsletter">
+                                    <label class="form-check-label" for="newsletter">
+                                        <strong>Newsletter:</strong> Weekly marketing insights and industry trends
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" name="product_updates_consent" 
+                                           {{ 'checked' if current_user.product_updates_consent }} id="product_updates">
+                                    <label class="form-check-label" for="product_updates">
+                                        <strong>Product Updates:</strong> Important announcements about new features and improvements
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Profile
+                            </button>
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                                Skip for Now
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

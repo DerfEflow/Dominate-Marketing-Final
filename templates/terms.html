@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Terms of Service - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-5">Terms of Service</h1>
+            
+            <div class="terms-content">
+                <h3>1. Service Description</h3>
+                <p>Dominate Marketing provides AI-powered marketing campaign generation services using advanced machine learning models to create unique, trend-based content for businesses.</p>
+                
+                <h3>2. Subscription Tiers</h3>
+                <p>We offer multiple subscription tiers with different AI model access:</p>
+                <ul>
+                    <li>Plus ($59/month): GPT-4o-mini + DALL-E for text and images</li>
+                    <li>Pro ($99/month): GPT-4o + Google VEO 3 for videos</li>
+                    <li>Enterprise ($199/month): Full AI suite + automated social posting</li>
+                </ul>
+                
+                <h3>3. Content Usage Rights</h3>
+                <p>All generated content is provided under our licensing system. Users receive appropriate usage rights based on their subscription tier. Commercial use is permitted within tier limitations.</p>
+                
+                <h3>4. Quality Assurance</h3>
+                <p>All content undergoes automated quality validation through Claude Sonnet 4. However, final approval and use of content remains the user's responsibility.</p>
+                
+                <h3>5. Cancellation Policy</h3>
+                <p>Subscriptions may be cancelled at any time. Special coupon codes may have specific terms as outlined during signup.</p>
+                
+                <h3>6. Data Processing</h3>
+                <p>We process business information provided by users to generate relevant marketing campaigns. Data is handled in accordance with our Privacy Policy.</p>
+                
+                <h3>7. Limitation of Liability</h3>
+                <p>Dominate Marketing provides AI-generated content as-is. Users are responsible for reviewing and approving all content before publication.</p>
+                
+                <h3>8. Contact</h3>
+                <p>For questions about these terms, please contact support through the Replit platform.</p>
+                
+                <p class="text-muted mt-4"><small>Last updated: August 2025</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.terms-content h3 {
+    color: var(--bs-primary);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.terms-content h3:first-child {
+    margin-top: 0;
+}
+</style>
+{% endblock %}

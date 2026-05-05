@@ -1,0 +1,23 @@
+<!-- Profile Completion Prompt (shows when profile completion < 50%) -->
+{% if current_user.is_authenticated and current_user.profile_completion_percentage < 50 %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h6 class="alert-heading mb-1">
+                <i class="fas fa-user-plus me-2"></i>Complete Your Profile for Better Marketing Results
+            </h6>
+            <p class="mb-2">Help us create more targeted campaigns by sharing your business goals and audience details.</p>
+            <div class="progress mb-2" style="height: 8px;">
+                <div class="progress-bar" style="width: {{ current_user.profile_completion_percentage }}%"></div>
+            </div>
+            <small class="text-muted">{{ current_user.profile_completion_percentage }}% complete</small>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('auth.profile_completion') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-edit me-1"></i>Complete Profile
+            </a>
+        </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}

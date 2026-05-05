@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Create Marketing Campaign - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-3">
+            <i class="fas fa-rocket text-primary me-2"></i>
+            Create Marketing Campaign
+        </h1>
+        <p class="lead text-muted">
+            Generate comprehensive marketing strategies with AI-powered competitive analysis
+        </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('marketing_strategy.create_campaign') }}" id="campaignForm">
+        <div class="row">
+            <!-- Main Form -->
+            <div class="col-lg-8">
+                <!-- Brand Selection -->
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-building me-2"></i>
+                            Brand & Campaign Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Brand Selection -->
+                        <div class="mb-4">
+                            <label for="brand_id" class="form-label fw-bold">
+                                <i class="fas fa-tag text-success me-2"></i>
+                                Select Brand *
+                            </label>
+                            <select class="form-select" id="brand_id" name="brand_id" required>
+                                <option value="">Choose your brand...</option>
+                                {% for brand in brands %}
+                                <option value="{{ brand.id }}" data-tier="{{ current_user.subscription_tier }}">
+                                    {{ brand.name }} ({{ brand.industry or 'No industry specified' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if not brands %}
+                            <div class="form-text text-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <a href="{{ url_for('dashboard.brands') }}">Create a brand first</a> to start generating campaigns.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Product/Service Page URL -->
+                        <div class="mb-4">
+                            <label for="product_service_url" class="form-label fw-bold">
+                                <i class="fas fa-link text-info me-2"></i>
+                                Product/Service Page URL *
+                            </label>
+                            <input type="url" class="form-control" id="product_service_url" name="product_service_url" 
+                                   placeholder="https://yourbusiness.com/services/specific-service" required>
+                            <div class="form-text">
+                                Provide the specific product or service page for targeted analysis and strategy generation
+                            </div>
+                        </div>
+
+                        <!-- Campaign Goals -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-bullseye text-warning me-2"></i>
+                                Campaign Goals * (Select all that apply)
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="brand_awareness" id="goal_awareness">
+                                        <label class="form-check-label" for="goal_awareness">
+                                            Brand Awareness
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="lead_generation" id="goal_leads">
+                                        <label class="form-check-label" for="goal_leads">
+                                            Lead Generation
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="sales_conversion" id="goal_sales">
+                                        <label class="form-check-label" for="goal_sales">
+                                            Sales Conversion
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="customer_retention" id="goal_retention">
+                                        <label class="form-check-label" for="goal_retention">
+                                            Customer Retention
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="market_expansion" id="goal_expansion">
+                                        <label class="form-check-label" for="goal_expansion">
+                                            Market Expansion
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="campaign_goals" 
+                                               value="competitive_positioning" id="goal_competitive">
+                                        <label class="form-check-label" for="goal_competitive">
+                                            Competitive Positioning
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Audience -->
+                        <div class="mb-4">
+                            <label for="target_audience" class="form-label fw-bold">
+                                <i class="fas fa-users text-secondary me-2"></i>
+                                Target Audience
+                            </label>
+                            <input type="text" class="form-control" id="target_audience" name="target_audience" 
+                                   placeholder="e.g., Homeowners aged 35-55 in suburban areas">
+                            <div class="form-text">
+                                Describe your ideal customer demographic and psychographic profile
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Strategy Settings -->
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-palette me-2"></i>
+                            Content Strategy & Tone
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Tone Selection -->
+                        <div class="mb-4">
+                            <label for="tone" class="form-label fw-bold">
+                                <i class="fas fa-microphone text-primary me-2"></i>
+                                Content Tone *
+                            </label>
+                            <select class="form-select" id="tone" name="tone" required>
+                                <option value="">Select content tone...</option>
+                                <option value="professional">Professional - Polished, authoritative, business-focused</option>
+                                <option value="educational">Educational - Informative, teaching-focused, knowledge-sharing</option>
+                                <option value="joyful">Joyful - Upbeat, positive, celebratory</option>
+                                <option value="funny">Funny - Humorous, entertaining, lighthearted</option>
+                                <option value="serious">Serious - Authoritative, no-nonsense, straightforward</option>
+                                <option value="artistic">Artistic - Creative, aesthetic, visually-driven</option>
+                                <option value="dramatic">Dramatic - Intense, emotional, compelling narrative</option>
+                                <option value="stoic">Stoic - Calm, rational, emphasizing resilience</option>
+                                <option value="tongue_in_cheek">Tongue-in-Cheek - Playfully sarcastic, subtly ironic</option>
+                                <option value="slapstick">Slapstick - Physical comedy, exaggerated humor</option>
+                                <option value="goofy">Goofy - Silly, quirky, deliberately absurd</option>
+                                <option value="edgy" class="text-warning">Edgy - Boundary-pushing but brand-safe (rides the line appropriately)</option>
+                                <option value="roast" class="text-danger">Roast - Competitive content that playfully criticizes competitors (Wendy's-style)</option>
+                            </select>
+                            <div class="form-text">
+                                <strong>Special Tones:</strong><br>
+                                <span class="text-warning">Edgy:</span> Pushes boundaries appropriately without alienating audiences<br>
+                                <span class="text-danger">Roast:</span> Competitively criticizes competitors while staying legally safe (like Wendy's vs McDonald's)
+                            </div>
+                        </div>
+
+                        <!-- Geographic Focus -->
+                        <div class="mb-4">
+                            <label for="geo_location" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt text-info me-2"></i>
+                                Geographic Focus
+                            </label>
+                            <select class="form-select" id="geo_location" name="geo_location">
+                                <option value="US">United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="GB">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                                <option value="DE">Germany</option>
+                                <option value="FR">France</option>
+                                <option value="ES">Spain</option>
+                                <option value="IT">Italy</option>
+                                <option value="JP">Japan</option>
+                                <option value="BR">Brazil</option>
+                            </select>
+                        </div>
+
+                        <!-- Optional Campaign Parameters -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="budget_range" class="form-label fw-bold">
+                                    <i class="fas fa-dollar-sign text-success me-2"></i>
+                                    Budget Range (Optional)
+                                </label>
+                                <select class="form-select" id="budget_range" name="budget_range">
+                                    <option value="">Select budget range...</option>
+                                    <option value="under_1k">Under $1,000</option>
+                                    <option value="1k_5k">$1,000 - $5,000</option>
+                                    <option value="5k_10k">$5,000 - $10,000</option>
+                                    <option value="10k_25k">$10,000 - $25,000</option>
+                                    <option value="25k_plus">$25,000+</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="timeframe" class="form-label fw-bold">
+                                    <i class="fas fa-calendar text-warning me-2"></i>
+                                    Campaign Duration
+                                </label>
+                                <select class="form-select" id="timeframe" name="timeframe">
+                                    <option value="30_days">30 Days</option>
+                                    <option value="60_days">60 Days</option>
+                                    <option value="90_days">90 Days</option>
+                                    <option value="6_months">6 Months</option>
+                                    <option value="12_months">12 Months</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                        <i class="fas fa-magic me-2"></i>
+                        Generate Comprehensive Marketing Strategy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Subscription Info -->
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-crown me-2"></i>
+                            Your Subscription: {{ current_user.subscription_tier.title() }}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% set tier_config = current_user.get_tier_config() %}
+                        <div class="text-center mb-3">
+                            <div class="h4 fw-bold text-primary">
+                                {{ current_user.generations_used or 0 }} / {{ tier_config.generations_per_month }}
+                            </div>
+                            <div class="small text-muted">Generations Used This Month</div>
+                        </div>
+                        
+                        <div class="progress mb-3">
+                            {% set usage_percent = ((current_user.generations_used or 0) / tier_config.generations_per_month * 100) | int %}
+                            <div class="progress-bar bg-{% if usage_percent > 80 %}danger{% elif usage_percent > 60 %}warning{% else %}success{% endif %}" 
+                                 style="width: {{ usage_percent }}%"></div>
+                        </div>
+                        
+                        <div class="small text-muted text-center">
+                            Each campaign generation uses 1 credit
+                        </div>
+                        
+                        {% if usage_percent > 90 %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <small>
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Almost at your monthly limit. 
+                                <a href="{{ url_for('payment.manage_subscription') }}">Upgrade now</a>
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- What You'll Get -->
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list-check me-2"></i>
+                            Comprehensive Strategy Includes
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>Competitive Intelligence</strong><br>
+                                <small class="text-muted">Competitor analysis, pricing insights, market gaps</small>
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>Trend Analysis</strong><br>
+                                <small class="text-muted">Rising topics, seasonal patterns, cultural insights</small>
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>30-Day Content Calendar</strong><br>
+                                <small class="text-muted">Daily posts, hooks, CTAs, visual directions</small>
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>Platform Strategies</strong><br>
+                                <small class="text-muted">Facebook, Instagram, YouTube, LinkedIn, TikTok</small>
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>KPI Measurement Plan</strong><br>
+                                <small class="text-muted">Success metrics, UTM tracking, A/B test plans</small>
+                            </li>
+                            <li class="mb-0">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <strong>Cultural Localization</strong><br>
+                                <small class="text-muted">Local events, community insights, geo-specific content</small>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- AI Model Info -->
+                <div class="card border-0 shadow">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-robot me-2"></i>
+                            AI Model Access
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if current_user.subscription_tier == 'basic' %}
+                        <div class="small">
+                            <strong>Your Access:</strong> Advanced AI Content Generation<br>
+                            <em>Professional-grade strategies and content</em>
+                        </div>
+                        {% elif current_user.subscription_tier == 'pro' %}
+                        <div class="small">
+                            <strong>Your Access:</strong> Premium AI + Video Generation<br>
+                            <em>Advanced models plus VEO 3 video content</em>
+                        </div>
+                        {% elif current_user.subscription_tier == 'enterprise' %}
+                        <div class="small">
+                            <strong>Your Access:</strong> Enterprise AI Suite<br>
+                            <em>Top-tier models including Pika Labs animation</em>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-2">
+                            <a href="{{ url_for('payment.manage_subscription') }}" class="btn btn-outline-secondary btn-sm w-100">
+                                View All Tiers
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('campaignForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const goals = document.querySelectorAll('input[name="campaign_goals"]:checked');
+    
+    // Validate at least one goal is selected
+    if (goals.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one campaign goal.');
+        return;
+    }
+    
+    // Check generation limit
+    const usagePercent = {{ ((current_user.generations_used or 0) / current_user.get_tier_config().generations_per_month * 100) | int }};
+    if (usagePercent >= 100) {
+        e.preventDefault();
+        alert('You have reached your monthly generation limit. Please upgrade your subscription.');
+        return;
+    }
+    
+    // Update button state
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating Strategy...';
+    submitBtn.disabled = true;
+    
+    // Show progress message
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'alert alert-info mt-3';
+    progressDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>
+                <strong>Generating Comprehensive Marketing Strategy</strong><br>
+                <small>This process may take 3-5 minutes. Our AI is analyzing competitors, trends, and generating your complete strategy...</small>
+            </div>
+        </div>
+    `;
+    
+    this.appendChild(progressDiv);
+});
+
+// Tone selection help
+document.getElementById('tone').addEventListener('change', function() {
+    const selectedTone = this.value;
+    const helpTexts = {
+        'edgy': 'Creates boundary-pushing content that\'s provocative but stays brand-safe. Challenges conventional thinking without alienating your audience.',
+        'roast': 'Generates competitive content that playfully criticizes competitors, similar to Wendy\'s famous social media roasts. Stays legally safe while being witty.',
+        'educational': 'Focuses on teaching and informing your audience with valuable, actionable insights and knowledge.',
+        'professional': 'Maintains a polished, authoritative tone perfect for B2B and service-based businesses.'
+    };
+    
+    if (helpTexts[selectedTone]) {
+        // Show additional context for special tones
+        console.log('Tone selected:', selectedTone, '-', helpTexts[selectedTone]);
+    }
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.progress {
+    height: 8px;
+}
+
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+.text-warning option,
+.text-danger option {
+    color: inherit !important;
+}
+</style>
+{% endblock %}

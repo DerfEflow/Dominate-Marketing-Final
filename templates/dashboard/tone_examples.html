@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Voice Examples - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Brand Voice & Tone Examples</h1>
+                <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Campaign
+                </a>
+            </div>
+
+            <div class="row">
+                <!-- Professional -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-briefcase"></i> Professional & Trustworthy</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> B2B, financial services, healthcare, legal</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"Our proven methodology has helped over 500 Fortune 500 companies increase efficiency by 40%. With 15 years of industry expertise, we deliver reliable solutions backed by comprehensive data analysis and measurable results."</em></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Witty -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-laugh"></i> Witty & Humorous</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> Consumer brands, tech startups, lifestyle products</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"We're like the Swiss Army knife of marketing tools, except we actually work and won't get confiscated at the airport. Plus, we're 73% less likely to make you accidentally cut yourself."</em></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edgy (NEW) -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-fire"></i> Edgy & Provocative <span class="badge bg-dark">NEW</span></h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> Disruptive brands, young demographics, bold companies</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"While your competitors are still asking permission, we're already dominating the market. The truth? Most marketing agencies are just expensive consultants who Google stuff you could have found yourself. We actually get results."</em></small>
+                            </div>
+                            <div class="alert alert-warning mt-2">
+                                <small><i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Bold content that pushes boundaries. Use for brands that want to stand out and aren't afraid of controversy.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roast (NEW) -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100 border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="fas fa-burn"></i> Roast & Comedy <span class="badge bg-dark">NEW</span></h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> Confident brands, viral marketing, meme-worthy content</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"The current state of project management software is like watching your grandpa try to use TikTok - painful, outdated, and somehow everyone just accepts it. Most tools are so complicated they need a PhD to operate. That's why we built something that actually works without requiring a computer science degree."</em></small>
+                            </div>
+                            <div class="alert alert-danger mt-2">
+                                <small><i class="fas fa-fire"></i> <strong>Viral Potential:</strong> Hilariously roasts the market while positioning your product as the hero. High shareability but requires confident brand positioning.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Casual -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-users"></i> Casual & Friendly</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> Local businesses, consumer services, community brands</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"Hey there! We're just a bunch of regular folks who got tired of overcomplicated solutions. So we built something simple that actually works. No fancy jargon, no hidden fees, just honest service that gets the job done."</em></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inspirational -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-star"></i> Inspirational & Motivating</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Best for:</strong> Fitness, coaching, personal development, nonprofits</p>
+                            <div class="bg-light p-3 rounded">
+                                <small><em>"Every great achievement starts with a single decision to try. We're here to turn your potential into reality, your dreams into achievements, and your goals into unstoppable momentum."</em></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Guidelines -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Choosing the Right Tone</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>High-Impact Tones:</h6>
+                            <ul>
+                                <li><strong>Edgy:</strong> Use when you want to disrupt the market and stand out from boring competitors</li>
+                                <li><strong>Roast:</strong> Perfect for viral content that positions you as the obvious solution</li>
+                                <li><strong>Professional:</strong> Safe choice for established industries and B2B</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Considerations:</h6>
+                            <ul>
+                                <li><strong>Know Your Audience:</strong> Conservative industries may prefer professional tone</li>
+                                <li><strong>Brand Confidence:</strong> Edgy and roast require confidence in your positioning</li>
+                                <li><strong>Viral Potential:</strong> Bold tones get more shares but require careful execution</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('dashboard.create_campaign') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Create Your Campaign Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Brands - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-1">Your Brands</h1>
+            <p class="text-muted">Manage multiple brands with separate subscriptions</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('dashboard.add_brand') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New Brand
+            </a>
+        </div>
+    </div>
+
+    <!-- Brands Grid -->
+    {% if brands %}
+    <div class="row g-4">
+        {% for brand in brands %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        {% if brand.logo_url %}
+                            <img src="{{ brand.logo_url }}" alt="{{ brand.name }}" class="rounded me-3" width="40" height="40">
+                        {% else %}
+                            <div class="bg-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-building text-white"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="card-title mb-1">{{ brand.name }}</h5>
+                            <span class="tier-badge tier-{{ brand.subscription_tier.value }}">
+                                {{ brand.subscription_tier.value.title() }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {% if brand.description %}
+                    <p class="text-muted small mb-3">{{ brand.description[:100] }}{% if brand.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-globe me-1"></i>
+                            {% if brand.website_url %}
+                                <a href="{{ brand.website_url }}" target="_blank" class="text-decoration-none">{{ brand.website_url[:30] }}...</a>
+                            {% else %}
+                                No website set
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            {% if brand.has_active_subscription() %}
+                                <span class="text-success">Active until {{ brand.subscription_expires.strftime('%b %d, %Y') }}</span>
+                            {% else %}
+                                <span class="text-warning">No active subscription</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('dashboard.view_brand', brand_id=brand.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                        <a href="{{ url_for('dashboard.edit_brand', brand_id=brand.id) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+        <h4>No Brands Yet</h4>
+        <p class="text-muted mb-4">Add your first brand to start creating targeted campaigns</p>
+        <a href="{{ url_for('dashboard.add_brand') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Your First Brand
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

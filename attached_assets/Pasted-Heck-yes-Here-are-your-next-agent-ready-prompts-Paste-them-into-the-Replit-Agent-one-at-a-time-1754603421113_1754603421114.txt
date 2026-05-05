@@ -1,0 +1,176 @@
+Heck yes. Here are your next **agent-ready** prompts. Paste them into the Replit Agent one at a time, in order. They’re tight, bounded, and won’t let the agent “overhelp.”
+
+---
+
+# Prompt 2 — add Ad Script + Veo3 Prompt Builder (no API call yet)
+
+> Update the current Flask app to add an **ad script generator** and a **Veo 3 prompt builder**. Do **not** call Veo yet.
+>
+> **Goals**
+>
+> 1. After `summary.json` is produced, call OpenAI again to generate:
+>
+>    * a compact **voiceover script** that fits the chosen `length_sec`
+>    * **on-screen text beats** (<= 6 words each)
+>    * **visual suggestions** (3–5 concise shots)
+> 2. Build a ready-to-send **Veo 3 prompt JSON** from that script + the form inputs.
+> 3. Save both to `/outputs/<job_id>/script.json` and `/outputs/<job_id>/veo_request.json`.
+> 4. Show both on the results page below the summary.
+>
+> **Changes**
+>
+> * Add `services/script_builder.py` with a function:
+>
+>   ```python
+>   def build_ad_script(business_url:str, region:str, goal:str, brand_voice:str, cta:str, length_sec:int) -> dict:
+>       """
+>       Uses OpenAI to return JSON ONLY:
+>       {
+>         "voiceover_lines": ["...","..."],
+>         "on_screen_text": [{"t":0,"text":"..."}],
+>         "visuals": ["...","...","..."]
+>       }
+>       - voiceover should be tight and punchy, sized to ~length_sec (assume ~2.5 words/sec)
+>       - on_screen_text entries max 6 words each
+>       - visuals are short descriptions (no full sentences)
+>       """
+>   ```
+>
+>   * Use model `gpt-4o-mini`, `response_format={"type":"json_object"}`, `temperature=0.6`, `max_tokens=700`.
+> * Add `services/veo_request.py` with:
+>
+>   ```python
+>   def build_veo3_request(script_json:dict, brand_voice:str, cta:str, length_sec:int, logo_url:str|None) -> dict:
+>       """
+>       Returns a JSON object ready for Veo 3 (no API call).
+>       {
+>         "script": "<voiceover as one string>",
+>         "length_sec": length_sec,
+>         "style": f"{brand_voice} documentary realism",
+>         "voice": "confident American male",
+>         "music": "cinematic, modern",
+>         "sfx": ["subtle whooshes","light ambience"],
+>         "visuals": [...script_json['visuals'], f"End card with logo and CTA: {cta}"],
+>         "brand_assets": {"logo_url": logo_url or "", "color_hint":"steel gray"},
+>         "output": {"format":"mp4","aspect":"9:16"}
+>       }
+>       """
+>   ```
+>
+>   * Join `voiceover_lines` with spaces to form `script`.
+> * In `app.py` POST handler, after writing `summary.json`, call:
+>
+>   * `build_ad_script(...)` → save to `script.json`
+>   * `build_veo3_request(...)` → save to `veo_request.json`
+> * Update the results page to render both `script.json` and `veo_request.json` in `<pre>` blocks under the summary.
+> * Keep PRG (Post → Redirect → Get) intact. Do **not** add agents or planning UIs.
+>
+> **Deliverables**
+>
+> * New files: `services/script_builder.py`, `services/veo_request.py`
+> * Updated `app.py` and results template
+> * On submit, I should see `summary.json`, then `script.json`, then `veo_request.json`.
+
+---
+
+# Prompt 3 — wire a **Veo 3 Adapter** (configurable endpoint, safe stub by default)
+
+> Add a **Veo 3 adapter** that can be turned on later when I provide the real endpoint.
+>
+> **Goals**
+>
+> * Create a clean adapter function that reads its base URL and key from env, and gracefully **stubs** if missing.
+> * Save the Veo response to `/outputs/<job_id>/veo_result.json`.
+> * Show the returned `video_url` (if any) on the results page with a `<video>` tag.
+>
+> **Changes**
+>
+> * Add `services/veo_client.py` with:
+>
+>   ```python
+>   import os, requests
+>
+>   def generate_video(veo_request:dict) -> dict:
+>       """
+>       Reads:
+>         - VEO3_API_URL  (e.g., https://.../v1/video/generate)   # I will set this later
+>         - VEO3_API_KEY
+>       If missing, return {"note":"Veo disabled. Set VEO3_API_URL and VEO3_API_KEY."}
+>
+>       POST JSON to VEO3_API_URL with Bearer auth.
+>       Expect JSON response containing video URL(s).
+>       Return:
+>         {"video_url":"...", "poster":"..."} on success
+>       On error: {"error":"..."}
+>       """
+>   ```
+>
+>   * Include a `timeout=180` on `requests.post`.
+> * In `app.py` POST handler (after saving `veo_request.json`):
+>
+>   * Call `generate_video(veo_request)` and save to `/outputs/<job_id>/veo_result.json`.
+> * In the results GET route, load and display `veo_result.json`. If it contains `video_url`, render a `<video controls>` preview.
+> * Do not hardcode any real endpoint. Use env vars:
+>
+>   * `VEO3_API_URL`
+>   * `VEO3_API_KEY`
+> * Do not break the app if those are not set; just show the note in the results.
+>
+> **Deliverables**
+>
+> * New file: `services/veo_client.py`
+> * Updated `app.py`, results template
+> * If I don’t set env vars, I should see a friendly “Veo disabled” note. If I set them, the call should execute and the `video_url` preview should appear.
+
+---
+
+# Prompt 4 — add **manifest + ZIP download** (clean packaging)
+
+> Add a **manifest** and **ZIP packaging** so I can download all outputs as one file.
+>
+> **Goals**
+>
+> * After generation, create `/outputs/<job_id>/manifest.json` that lists:
+>
+>   * form inputs (url, voice, goal, region, platform, length, cta, logo)
+>   * file paths or URLs for `summary.json`, `script.json`, `veo_request.json`, `veo_result.json` (if present)
+> * Add a `/download/<job_id>.zip` route that zips the entire folder `/outputs/<job_id>` into a temp ZIP and returns it.
+> * Add a “Download ZIP” button on the results page.
+>
+> **Changes**
+>
+> * Utility function to write `manifest.json` with a stable schema:
+>
+>   ```json
+>   {
+>     "job_id":"20250807-abc123",
+>     "inputs":{ ... },
+>     "artifacts":{
+>       "summary":"outputs/<job_id>/summary.json",
+>       "script":"outputs/<job_id>/script.json",
+>       "veo_request":"outputs/<job_id>/veo_request.json",
+>       "veo_result":"outputs/<job_id>/veo_result.json"
+>     },
+>     "created_iso":"2025-08-07T12:34:56Z"
+>   }
+>   ```
+> * Add `/download/<job_id>.zip` route using Python’s `zipfile`.
+> * Link to this route from the results page.
+>
+> **Deliverables**
+>
+> * `manifest.json` written after generation
+> * Working ZIP download route
+> * Button on results page
+
+---
+
+### After these three prompts
+
+You’ll have:
+
+* Form → summary → script → Veo 3 prompt
+* Optional Veo 3 real render (once you add your endpoint + key)
+* Manifest + one-click ZIP packaging
+
+When you’re ready, I’ll give you **Prompt 5** to add a lightweight **QC pass** and **platform captions/hashtags**, and **Prompt 6** for a **Buffer**-based scheduler so you can autopost.

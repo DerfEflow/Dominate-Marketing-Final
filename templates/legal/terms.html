@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Terms of Service - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Terms of Service</h1>
+            <p class="text-muted mb-4">Last updated: January 8, 2025</p>
+
+            <h3>1. Acceptance of Terms</h3>
+            <p>By accessing and using Dominate Marketing ("Service"), you accept and agree to be bound by these Terms of Service.</p>
+
+            <h3>2. Description of Service</h3>
+            <p>Dominate Marketing is an AI-powered marketing platform that generates marketing content, analyzes competitors, and provides campaign management tools. We use third-party AI services including OpenAI, Google, and other providers to deliver our services.</p>
+
+            <h3>3. User Accounts</h3>
+            <ul>
+                <li>You must provide accurate information when creating an account</li>
+                <li>You are responsible for maintaining account security</li>
+                <li>We support Google OAuth authentication - we do not store your Google password</li>
+                <li>Demo accounts are provided for testing purposes only</li>
+            </ul>
+
+            <h3>4. Data Collection and Use</h3>
+            <ul>
+                <li>We collect business information to personalize marketing campaigns</li>
+                <li>Email and SMS marketing consent is optional and clearly requested</li>
+                <li>We analyze publicly available competitor data for market research</li>
+                <li>Your generated content belongs to you</li>
+                <li>We may use anonymized data to improve our AI models</li>
+            </ul>
+
+            <h3>5. Content and Intellectual Property</h3>
+            <ul>
+                <li>You retain ownership of content you create using our platform</li>
+                <li>We provide tools; you're responsible for content accuracy and compliance</li>
+                <li>Generated content should be reviewed before publication</li>
+                <li>Respect copyright and trademark laws when using competitor analysis</li>
+            </ul>
+
+            <h3>6. Subscription and Billing</h3>
+            <ul>
+                <li>Subscription tiers: Basic, Plus, Pro, Enterprise</li>
+                <li>Billing is monthly or annual as selected</li>
+                <li>Cancellations take effect at the end of the current billing period</li>
+                <li>Refunds available within 14 days of initial purchase</li>
+            </ul>
+
+            <h3>7. Prohibited Uses</h3>
+            <p>You may not use our service to:</p>
+            <ul>
+                <li>Create misleading, harmful, or illegal content</li>
+                <li>Spam or send unsolicited communications</li>
+                <li>Violate platform terms of service when posting to social media</li>
+                <li>Attempt to reverse engineer our AI models</li>
+            </ul>
+
+            <h3>8. Third-Party Integrations</h3>
+            <ul>
+                <li>Social media posting requires your platform authorization</li>
+                <li>We are not affiliated with Google, Facebook, Instagram, X, TikTok, or LinkedIn</li>
+                <li>You must comply with each platform's terms of service</li>
+                <li>Token revocation available through your account settings</li>
+            </ul>
+
+            <h3>9. Service Availability</h3>
+            <ul>
+                <li>We strive for 99% uptime but cannot guarantee continuous availability</li>
+                <li>Maintenance windows will be announced when possible</li>
+                <li>AI model availability depends on third-party providers</li>
+            </ul>
+
+            <h3>10. Limitation of Liability</h3>
+            <p>Dominate Marketing provides tools for marketing creation. We are not responsible for:</p>
+            <ul>
+                <li>Campaign performance or business outcomes</li>
+                <li>Content accuracy or legal compliance</li>
+                <li>Third-party platform policy violations</li>
+                <li>Data loss due to user error or system failures</li>
+            </ul>
+
+            <h3>11. Privacy</h3>
+            <p>Please review our <a href="{{ url_for('privacy') }}">Privacy Policy</a> for information about data collection and use.</p>
+
+            <h3>12. Changes to Terms</h3>
+            <p>We may update these terms periodically. Continued use constitutes acceptance of new terms.</p>
+
+            <h3>13. Contact</h3>
+            <p>Questions about these terms? Contact us through our support system or at the email provided in your account dashboard.</p>
+
+            <div class="mt-5 pt-4 border-top">
+                <p class="text-muted text-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Back to Home</a>
+                    <a href="{{ url_for('privacy') }}" class="btn btn-link">Privacy Policy</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

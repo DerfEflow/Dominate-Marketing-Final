@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subscription - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1 class="h2 mb-4">
+                <i class="fas fa-credit-card me-2"></i>
+                Subscription Management
+            </h1>
+            
+            <!-- Current Plan Card -->
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Plan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="text-primary">{{ current_tier.value.title() }} Plan</h4>
+                            <p class="text-muted mb-0">
+                                {% if subscription_details.success %}
+                                    Status: 
+                                    <span class="badge bg-{% if subscription_details.status == 'active' %}success{% elif subscription_details.status == 'cancelled' %}warning{% else %}secondary{% endif %}">
+                                        {{ subscription_details.status|title }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No Active Subscription</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            {% if subscription_details.success %}
+                                <div class="h4 mb-1">${{ "%.2f"|format(subscription_details.amount / 100) }}</div>
+                                <small class="text-muted">per month</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if subscription_details.success %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">Next billing date:</small><br>
+                            <strong>{{ subscription_details.current_period_end|timestamp_to_date }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            {% if subscription_details.cancel_at_period_end %}
+                                <small class="text-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Subscription will end after next billing date
+                                </small>
+                            {% else %}
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Auto-renewal enabled
+                                </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Subscription Actions -->
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Subscription Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-grid">
+                                <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary">
+                                    <i class="fas fa-arrow-up me-1"></i>
+                                    Upgrade/Change Plan
+                                </a>
+                            </div>
+                            <small class="text-muted">Switch to a different subscription tier</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {% if subscription_details.success and not subscription_details.cancel_at_period_end %}
+                            <div class="d-grid">
+                                <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                    <i class="fas fa-pause me-1"></i>
+                                    Cancel Subscription
+                                </button>
+                            </div>
+                            <small class="text-muted">Cancel at end of billing period</small>
+                            {% else %}
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary" disabled>
+                                    <i class="fas fa-check me-1"></i>
+                                    Already Cancelled
+                                </button>
+                            </div>
+                            <small class="text-muted">Subscription will end soon</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Billing History -->
+            <div class="card bg-dark">
+                <div class="card-header">
+                    <h5 class="mb-0">Billing History</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        For detailed billing history and invoice downloads, please contact our support team.
+                    </p>
+                    <a href="mailto:billing@dominatemarketing.com" class="btn btn-outline-info">
+                        <i class="fas fa-envelope me-1"></i>
+                        Request Billing History
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Need Help?</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">Our support team is ready to help with any billing questions or subscription changes.</p>
+                    <div class="d-grid gap-2">
+                        <a href="mailto:support@dominatemarketing.com" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-envelope me-1"></i>
+                            Email Support
+                        </a>
+                        <a href="{{ url_for('index') }}#faq" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-question-circle me-1"></i>
+                            View FAQ
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-dark">
+                <div class="card-header">
+                    <h6 class="mb-0">Payment Security</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fab fa-stripe text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="small text-muted">
+                        All payments are securely processed by Stripe. We never store your payment information on our servers.
+                    </p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <i class="fab fa-cc-visa text-primary"></i>
+                        <i class="fab fa-cc-mastercard text-warning"></i>
+                        <i class="fab fa-cc-amex text-info"></i>
+                        <i class="fab fa-google-pay text-success"></i>
+                        <i class="fab fa-apple-pay text-light"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Subscription Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Subscription</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel your subscription?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>What happens when you cancel:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Your subscription will remain active until {{ subscription_details.current_period_end|timestamp_to_date if subscription_details.success else 'the end of your billing period' }}</li>
+                        <li>You'll keep full access to all {{ current_tier.value.title() }} features until then</li>
+                        <li>No future charges will be made</li>
+                        <li>You can resubscribe anytime to continue using our services</li>
+                    </ul>
+                </div>
+                <p class="text-muted">We're sorry to see you go! If you have feedback on how we can improve, please let us know.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Subscription</button>
+                <form method="POST" action="{{ url_for('payments.cancel_subscription') }}" class="d-inline">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-pause me-1"></i>
+                        Yes, Cancel Subscription
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+// Custom filter for timestamp conversion
+function timestampToDate(timestamp) {
+    return new Date(timestamp * 1000).toLocaleDateString();
+}
+</script>
+{% endblock %}

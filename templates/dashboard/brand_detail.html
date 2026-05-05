@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block title %}{{ brand.name }} - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">{{ brand.name }}</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 mb-0 text-white">
+                        <i class="fas fa-building me-2"></i>{{ brand.name }}
+                    </h1>
+                    {% if brand.industry %}
+                    <p class="text-muted mb-0">{{ brand.industry }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{{ url_for('dashboard.new_campaign_form', brand_id=brand.id) }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>New Campaign
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Brand Info Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="text-white mb-3">Brand Information</h5>
+                            {% if brand.description %}
+                            <p class="text-muted">{{ brand.description }}</p>
+                            {% endif %}
+                            {% if brand.website_url %}
+                            <p class="mb-2">
+                                <strong class="text-info">Website:</strong> 
+                                <a href="{{ brand.website_url }}" target="_blank" class="text-white">{{ brand.website_url }}</a>
+                            </p>
+                            {% endif %}
+                            <p class="mb-0">
+                                <strong class="text-info">Created:</strong> 
+                                <span class="text-muted">{{ brand.created_at.strftime('%B %d, %Y') }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="mb-3">
+                                <span class="badge bg-{{ 'success' if brand.has_active_subscription() else 'secondary' }} fs-6">
+                                    {{ brand.subscription_tier.value.title() if brand.subscription_tier else 'Free' }} Plan
+                                </span>
+                            </div>
+                            {% if brand.subscription_expires %}
+                            <small class="text-muted">
+                                Expires: {{ brand.subscription_expires.strftime('%b %d, %Y') }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if campaign_data %}
+        <!-- Campaigns List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 text-white">
+                            <i class="fas fa-bullhorn me-2"></i>Marketing Campaigns
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Campaign</th>
+                                        <th>Status</th>
+                                        <th>Content</th>
+                                        <th>Scheduled Posts</th>
+                                        <th>Quality Score</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for data in campaign_data %}
+                                    <tr class="campaign-row" data-campaign-id="{{ data.campaign.id }}">
+                                        <td>
+                                            <div>
+                                                <strong class="text-white">{{ data.campaign.title }}</strong>
+                                                {% if data.campaign.target_audience %}
+                                                <br><small class="text-muted">{{ data.campaign.target_audience }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% set status_colors = {
+                                                'draft': 'secondary',
+                                                'processing': 'warning',
+                                                'completed': 'success',
+                                                'failed': 'danger'
+                                            } %}
+                                            <span class="badge bg-{{ status_colors.get(data.campaign.status, 'secondary') }}">
+                                                {{ data.campaign.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="content-summary">
+                                                {% if data.content_summary.total > 0 %}
+                                                <div class="small">
+                                                    {% if data.content_summary.images %}
+                                                    <span class="badge bg-info me-1">{{ data.content_summary.images }} Images</span>
+                                                    {% endif %}
+                                                    {% if data.content_summary.videos %}
+                                                    <span class="badge bg-warning me-1">{{ data.content_summary.videos }} Videos</span>
+                                                    {% endif %}
+                                                    {% if data.content_summary.texts %}
+                                                    <span class="badge bg-success me-1">{{ data.content_summary.texts }} Texts</span>
+                                                    {% endif %}
+                                                </div>
+                                                {% else %}
+                                                <span class="text-muted">No content</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="scheduling-summary">
+                                                {% if data.scheduling_summary.total > 0 %}
+                                                <div class="small">
+                                                    <span class="text-warning">{{ data.scheduling_summary.pending }} Pending</span><br>
+                                                    <span class="text-success">{{ data.scheduling_summary.published }} Published</span>
+                                                </div>
+                                                {% else %}
+                                                <span class="text-muted">None scheduled</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if data.campaign.quality_score %}
+                                            <div class="quality-score">
+                                                <span class="badge bg-{{ 'success' if data.campaign.quality_score >= 80 else 'warning' if data.campaign.quality_score >= 60 else 'danger' }}">
+                                                    {{ data.campaign.quality_score }}/100
+                                                </span>
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ data.campaign.created_at.strftime('%b %d, %Y') }}</span>
+                                            <br><small class="text-muted">{{ data.campaign.created_at.strftime('%I:%M %p') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('dashboard.campaign_detail', campaign_id=data.campaign.id) }}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if data.regeneration_attempts < 9 %}
+                                                <button class="btn btn-outline-warning btn-sm" 
+                                                        onclick="showRegenerateModal('{{ data.campaign.id }}')">
+                                                    <i class="fas fa-redo"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn btn-outline-info btn-sm" 
+                                                        onclick="showSupportModal('{{ data.campaign.id }}')">
+                                                    <i class="fas fa-question-circle"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    {% else %}
+        <!-- Empty State -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-bullhorn fa-4x text-muted mb-4"></i>
+                    <h3 class="text-white">No Campaigns Yet</h3>
+                    <p class="text-muted mb-4">Create your first AI-powered marketing campaign for {{ brand.name }}.</p>
+                    
+                    <a href="{{ url_for('dashboard.new_campaign_form', brand_id=brand.id) }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-magic me-2"></i>Create Your First Campaign
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Support Modal -->
+<div class="modal fade" id="supportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">Contact Support</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('dashboard.contact_support') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="content_id" id="supportContentId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-white">Issue Type</label>
+                        <select class="form-select" name="issue_type" required>
+                            <option value="">Select issue type</option>
+                            <option value="quality">Content Quality Issues</option>
+                            <option value="generation">Generation Errors</option>
+                            <option value="branding">Brand Alignment</option>
+                            <option value="technical">Technical Problems</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-white">Description</label>
+                        <textarea class="form-control" name="description" rows="4" 
+                                  placeholder="Please describe the issue with your content..."
+                                  required></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Our team will review your content and respond within 24 hours.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Support Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.campaign-row:hover {
+    background-color: rgba(255,255,255,0.1);
+    cursor: pointer;
+}
+.content-summary .badge {
+    font-size: 0.7em;
+}
+</style>
+
+<script>
+function showSupportModal(campaignId) {
+    document.getElementById('supportContentId').value = campaignId;
+    new bootstrap.Modal(document.getElementById('supportModal')).show();
+}
+
+// Make campaign rows clickable
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.campaign-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking buttons
+            if (e.target.closest('.btn') || e.target.closest('.btn-group')) return;
+            
+            const campaignId = this.dataset.campaignId;
+            window.location.href = `/dashboard/campaign/${campaignId}`;
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+
+{% block title %}Campaign Results - {{ brand.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('marketing_strategy.dashboard') }}">Strategy Dashboard</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('marketing_strategy.create_campaign_form') }}">Create Campaign</a>
+                </li>
+                <li class="breadcrumb-item active">Campaign Results</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="fw-bold mb-2">
+                    <i class="fas fa-trophy text-warning me-2"></i>
+                    Comprehensive Marketing Strategy
+                </h1>
+                <div class="text-muted">
+                    <i class="fas fa-building me-2"></i>
+                    {{ brand.name }} - {{ campaign.brand_voice.title() }} Tone
+                </div>
+                <div class="small text-success mt-1">
+                    Generated {{ campaign.created_at.strftime('%B %d, %Y at %I:%M %p') if campaign.created_at else 'Recently' }}
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="badge bg-success fs-6 mb-2">
+                    {{ (campaign.confidence_score * 100) | int if campaign.confidence_score else 85 }}% Confidence
+                </div>
+                <div>
+                    <span class="badge bg-primary">{{ campaign.campaign_type.replace('_', ' ').title() }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Summary -->
+    {% if strategy.get('executive_summary') %}
+    <div class="card border-0 shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                Executive Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            {% set summary = strategy.executive_summary %}
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-success mb-3">Key Opportunities</h6>
+                    <ul class="list-unstyled">
+                        {% for opportunity in summary.get('key_opportunities', []) %}
+                        <li class="mb-2">
+                            <i class="fas fa-arrow-right text-success me-2"></i>
+                            {{ opportunity }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-info mb-3">Competitive Advantages</h6>
+                    <ul class="list-unstyled">
+                        {% for advantage in summary.get('competitive_advantage', []) %}
+                        <li class="mb-2">
+                            <i class="fas fa-star text-warning me-2"></i>
+                            {{ advantage }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-warning mb-3">Recommended Focus</h6>
+                    <ul class="list-unstyled">
+                        {% for focus in summary.get('recommended_focus', []) %}
+                        <li class="mb-2">
+                            <i class="fas fa-bullseye text-primary me-2"></i>
+                            {{ focus }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-danger mb-3">Expected Outcomes</h6>
+                    <ul class="list-unstyled">
+                        {% for outcome in summary.get('expected_outcomes', []) %}
+                        <li class="mb-2">
+                            <i class="fas fa-chart-bar text-success me-2"></i>
+                            {{ outcome }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Strategy Tabs -->
+    <div class="card border-0 shadow">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="competitive-tab" data-bs-toggle="tab" 
+                            data-bs-target="#competitive" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>
+                        Competitive Intelligence
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trends-tab" data-bs-toggle="tab" 
+                            data-bs-target="#trends" type="button" role="tab">
+                        <i class="fas fa-trending-up me-2"></i>
+                        Trends & Culture
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="content-tab" data-bs-toggle="tab" 
+                            data-bs-target="#content" type="button" role="tab">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Content Strategy
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="kpis-tab" data-bs-toggle="tab" 
+                            data-bs-target="#kpis" type="button" role="tab">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        KPIs & Tracking
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Competitive Intelligence Tab -->
+                <div class="tab-pane fade show active" id="competitive" role="tabpanel">
+                    {% set competitive = strategy.get('competitive_intelligence', {}) %}
+                    
+                    <div class="row g-4">
+                        <!-- Competitor Map -->
+                        {% if competitive.get('competitor_map') %}
+                        <div class="col-md-8">
+                            <h6 class="fw-bold text-danger mb-3">Direct Competitors</h6>
+                            {% for competitor in competitive.competitor_map.get('direct_competitors', [])[:5] %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <strong>{{ competitor.get('name', 'Unknown Competitor') }}</strong>
+                                            {% if competitor.get('url') %}
+                                            <br><small class="text-muted">{{ competitor.url }}</small>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-auto">
+                                            {% if competitor.get('rating') %}
+                                            <div class="badge bg-primary">
+                                                {{ competitor.rating }}★ Rating
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% if competitor.get('discovery_method') %}
+                                    <div class="small text-info mt-1">
+                                        Discovered via: {{ competitor.discovery_method.replace('_', ' ').title() }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Market Gaps -->
+                        {% if competitive.get('content_gaps') %}
+                        <div class="col-md-4">
+                            <h6 class="fw-bold text-success mb-3">Market Opportunities</h6>
+                            {% set gaps = competitive.content_gaps %}
+                            
+                            {% if gaps.get('untapped_topics') %}
+                            <div class="mb-3">
+                                <strong class="small">Untapped Topics:</strong>
+                                <div class="mt-1">
+                                    {% for topic in gaps.untapped_topics[:5] %}
+                                    <span class="badge bg-success bg-opacity-10 text-success me-1 mb-1">{{ topic }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if gaps.get('content_format_gaps') %}
+                            <div class="mb-3">
+                                <strong class="small">Format Opportunities:</strong>
+                                <ul class="list-unstyled mt-1">
+                                    {% for format in gaps.content_format_gaps[:3] %}
+                                    <li class="small">
+                                        <i class="fas fa-arrow-right text-success me-1"></i>
+                                        {{ format }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Pricing Intelligence -->
+                        {% if competitive.get('pricing_intelligence') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-info mb-3">Pricing Intelligence</h6>
+                            {% set pricing = competitive.pricing_intelligence %}
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Competitor</th>
+                                            <th>Price Range</th>
+                                            <th>Positioning</th>
+                                            <th>Value Proposition</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for competitor, price_info in pricing.get('price_ranges', {}).items() %}
+                                        <tr>
+                                            <td>{{ competitor }}</td>
+                                            <td>
+                                                {% if price_info.get('price_level') %}
+                                                <span class="badge bg-warning">{{ price_info.price_level.title() }}</span>
+                                                {% else %}
+                                                <span class="text-muted">Not available</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% set positioning = pricing.get('positioning_strategies', {}).get(competitor, {}) %}
+                                                {{ positioning.get('primary_position', 'Unknown').replace('_', ' ').title() }}
+                                            </td>
+                                            <td>
+                                                {% set values = pricing.get('value_propositions', {}).get(competitor, []) %}
+                                                {% if values %}
+                                                {{ values[0] }}
+                                                {% if values | length > 1 %}
+                                                <small class="text-muted">+{{ values | length - 1 }} more</small>
+                                                {% endif %}
+                                                {% else %}
+                                                <span class="text-muted">Not specified</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Trends & Culture Tab -->
+                <div class="tab-pane fade" id="trends" role="tabpanel">
+                    {% set trends = strategy.get('trends_and_culture', {}) %}
+                    
+                    <div class="row g-4">
+                        <!-- Rising Trends -->
+                        {% if trends.get('rising_trends') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-warning mb-3">Rising Trends</h6>
+                            {% set rising = trends.rising_trends %}
+                            
+                            {% if rising.get('trending_searches') %}
+                            <div class="mb-3">
+                                <strong class="small">Trending Searches:</strong>
+                                <div class="mt-1">
+                                    {% for trend in rising.trending_searches[:8] %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning me-1 mb-1">{{ trend }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if rising.get('breakout_topics') %}
+                            <div class="mb-3">
+                                <strong class="small">Breakout Topics:</strong>
+                                {% for topic in rising.breakout_topics[:5] %}
+                                <div class="card border-0 bg-light mb-2">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="small">{{ topic.topic }}</span>
+                                            <span class="badge bg-success">{{ topic.growth }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Cultural Insights -->
+                        {% if trends.get('cultural_insights') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info mb-3">Cultural Insights</h6>
+                            {% set cultural = trends.cultural_insights %}
+                            
+                            {% if cultural.get('local_events') %}
+                            <div class="mb-3">
+                                <strong class="small">Upcoming Local Events:</strong>
+                                {% for event in cultural.local_events.get('upcoming_events', [])[:3] %}
+                                <div class="small mt-1">
+                                    <i class="fas fa-calendar text-primary me-1"></i>
+                                    {{ event.name }} - {{ event.date }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if cultural.get('local_interests') %}
+                            <div class="mb-3">
+                                <strong class="small">Popular Local Activities:</strong>
+                                {% for activity in cultural.local_interests.get('popular_activities', [])[:4] %}
+                                <div class="small mt-1">
+                                    <i class="fas fa-heart text-danger me-1"></i>
+                                    {{ activity.activity }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Localization Recommendations -->
+                        {% if trends.get('cultural_insights', {}).get('localization_recommendations') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-success mb-3">Localization Recommendations</h6>
+                            {% for rec in trends.cultural_insights.localization_recommendations %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <span class="badge bg-{{ 'danger' if rec.priority == 'high' else 'warning' if rec.priority == 'medium' else 'secondary' }}">
+                                                {{ rec.priority.title() }} Priority
+                                            </span>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <strong class="small">{{ rec.category.replace('_', ' ').title() }}:</strong>
+                                            <div class="small text-muted">{{ rec.recommendation }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Content Strategy Tab -->
+                <div class="tab-pane fade" id="content" role="tabpanel">
+                    {% set content = strategy.get('content_strategy', {}) %}
+                    
+                    <div class="row g-4">
+                        <!-- Content Calendar Preview -->
+                        {% if content.get('content_calendar') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-primary mb-3">
+                                30-Day Content Calendar (First 10 Days)
+                            </h6>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Platform</th>
+                                            <th>Content Type</th>
+                                            <th>Hook</th>
+                                            <th>Topic</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in content.content_calendar.get('calendar_entries', [])[:10] %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ entry.date }}</strong><br>
+                                                <small class="text-muted">{{ entry.day_of_week }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ entry.platform.title() }}</span>
+                                            </td>
+                                            <td>{{ entry.content_type.replace('_', ' ').title() }}</td>
+                                            <td class="small">{{ entry.hook[:50] }}...</td>
+                                            <td class="small">{{ entry.topic[:40] }}...</td>
+                                            <td>{{ entry.timing }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Hooks and Headlines -->
+                        {% if content.get('hooks_and_headlines') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-warning mb-3">Hook Examples ({{ campaign.brand_voice.title() }} Tone)</h6>
+                            {% set hooks = content.hooks_and_headlines %}
+                            
+                            {% if hooks.get('tone_specific') %}
+                            <div class="mb-3">
+                                <strong class="small">Tone-Specific Hooks:</strong>
+                                {% for hook in hooks.tone_specific[:4] %}
+                                <div class="card border-0 bg-light mb-1">
+                                    <div class="card-body py-2">
+                                        <small>"{{ hook }}"</small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if hooks.get('attention_grabbers') %}
+                            <div class="mb-3">
+                                <strong class="small">Attention Grabbers:</strong>
+                                {% for hook in hooks.attention_grabbers[:3] %}
+                                <div class="small mt-1">
+                                    <i class="fas fa-arrow-right text-warning me-1"></i>
+                                    "{{ hook }}"
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Platform Strategies -->
+                        {% if content.get('platform_strategies') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info mb-3">Platform Strategies</h6>
+                            
+                            {% for platform, strategy in content.platform_strategies.items() %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-4">
+                                            <strong class="small">{{ platform.title() }}:</strong>
+                                        </div>
+                                        <div class="col-8">
+                                            <div class="small">{{ strategy.posting_frequency }} posting</div>
+                                            <div class="small text-muted">
+                                                Best times: {{ strategy.optimal_times | join(', ') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- A/B Testing Plan -->
+                        {% if content.get('ab_test_plan') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-success mb-3">A/B Testing Plan</h6>
+                            {% set ab_plan = content.ab_test_plan %}
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong class="small">Test Variables:</strong>
+                                    <ul class="list-unstyled mt-1">
+                                        {% for variable in ab_plan.get('test_variables', []) %}
+                                        <li class="small">
+                                            <i class="fas fa-flask text-success me-1"></i>
+                                            {{ variable.replace('_', ' ').title() }}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong class="small">Success Criteria:</strong>
+                                    <div class="small mt-1">
+                                        <strong>Primary:</strong> {{ ab_plan.get('success_criteria', {}).get('primary_metric', 'Engagement Rate') }}<br>
+                                        <strong>Threshold:</strong> {{ ab_plan.get('success_criteria', {}).get('significance_threshold', '95%') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- KPIs & Tracking Tab -->
+                <div class="tab-pane fade" id="kpis" role="tabpanel">
+                    {% set kpis = strategy.get('kpi_measurement_plan', {}) %}
+                    
+                    <div class="row g-4">
+                        <!-- Primary KPIs -->
+                        {% if kpis.get('primary_kpis') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-3">Primary KPIs</h6>
+                            {% for kpi in kpis.primary_kpis %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="small fw-bold">{{ kpi.replace('_', ' ').title() }}</span>
+                                        {% set threshold = kpis.get('success_thresholds', {}).get(kpi) %}
+                                        {% if threshold %}
+                                        <span class="badge bg-success">Target: {{ threshold }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Measurement Windows -->
+                        {% if kpis.get('measurement_windows') %}
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-info mb-3">Measurement Schedule</h6>
+                            {% for window, metrics in kpis.measurement_windows.items() %}
+                            <div class="card border-0 bg-light mb-2">
+                                <div class="card-body py-2">
+                                    <strong class="small">{{ window.title() }}:</strong>
+                                    <div class="small text-muted">
+                                        {{ metrics | join(', ') | replace('_', ' ') | title }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- UTM Tracking Plan -->
+                        {% if kpis.get('utm_plan') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-warning mb-3">UTM Tracking Strategy</h6>
+                            {% set utm = kpis.utm_plan %}
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Purpose</th>
+                                            <th>Example Values</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>utm_source</code></td>
+                                            <td>Traffic source identification</td>
+                                            <td>{{ utm.get('source_tags', []) | join(', ') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>utm_medium</code></td>
+                                            <td>Marketing medium tracking</td>
+                                            <td>{{ utm.get('medium_tags', []) | join(', ') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>utm_campaign</code></td>
+                                            <td>Campaign performance</td>
+                                            <td>{{ utm.get('campaign_tags', []) | join(', ') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>utm_content</code></td>
+                                            <td>Content variation testing</td>
+                                            <td>{{ utm.get('content_tags', []) | join(', ') }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Kill/Scale Rules -->
+                        {% if kpis.get('kill_scale_rules') %}
+                        <div class="col-12">
+                            <h6 class="fw-bold text-danger mb-3">Optimization Rules</h6>
+                            {% set rules = kpis.kill_scale_rules %}
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card border-danger border-2">
+                                        <div class="card-header bg-danger text-white">
+                                            <strong class="small">Kill If:</strong>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <small>{{ rules.get('kill_if', 'Performance below threshold') }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-success border-2">
+                                        <div class="card-header bg-success text-white">
+                                            <strong class="small">Scale If:</strong>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <small>{{ rules.get('scale_if', 'High performance metrics') }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-warning border-2">
+                                        <div class="card-header bg-warning text-dark">
+                                            <strong class="small">Optimize If:</strong>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <small>{{ rules.get('optimize_if', 'Moderate performance') }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Steps -->
+    {% if strategy.get('next_steps') %}
+    <div class="card border-0 shadow mt-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-forward me-2"></i>
+                Next Steps
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for step in strategy.next_steps %}
+                <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start">
+                        <div class="badge bg-primary me-3 mt-1">{{ loop.index }}</div>
+                        <div class="small">{{ step }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('marketing_strategy.create_campaign_form') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>
+                Create New Campaign
+            </a>
+            <a href="{{ url_for('marketing_strategy.export_strategy', brand_id=brand.id) }}" class="btn btn-info">
+                <i class="fas fa-download me-2"></i>
+                Export Strategy
+            </a>
+            <a href="{{ url_for('marketing_strategy.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.tab-content {
+    min-height: 400px;
+}
+
+.card {
+    transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table td {
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+code {
+    font-size: 0.85rem;
+    background-color: #f8f9fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade Your Plan - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-3">Upgrade Your Marketing Power</h1>
+        <p class="lead text-muted">
+            Currently on <strong>{{ current_config.name }}</strong> - unlock more AI capabilities
+        </p>
+    </div>
+
+    <!-- Current Plan Summary -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0">Your Current Plan: {{ current_config.name }}</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="h3 fw-bold text-primary mb-3">${{ current_config.price_monthly }}/month</div>
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="h5 text-info">{{ current_config.generations_per_month }}</div>
+                            <div class="small text-muted">Monthly Generations</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 text-success">{{ current_config.ai_models|length }}</div>
+                            <div class="small text-muted">AI Models</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 text-warning">{{ current_config.features|length }}</div>
+                            <div class="small text-muted">Features</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upgrade Options -->
+    <div class="row g-4 justify-content-center">
+        {% for tier, config in upgrade_options.items() %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow h-100 position-relative
+                {% if tier == 'ENTERPRISE' %}border-warning{% elif tier == 'PRO' %}border-success{% else %}border-info{% endif %}">
+                
+                {% if tier == 'ENTERPRISE' %}
+                <div class="badge bg-warning text-dark position-absolute top-0 start-50 translate-middle px-3 py-2">
+                    Ultimate
+                </div>
+                {% elif tier == 'PRO' %}
+                <div class="badge bg-success position-absolute top-0 start-50 translate-middle px-3 py-2">
+                    Professional
+                </div>
+                {% endif %}
+                
+                <div class="card-body text-center p-4">
+                    <h3 class="card-title fw-bold 
+                        {% if tier == 'ENTERPRISE' %}text-warning
+                        {% elif tier == 'PRO' %}text-success
+                        {% else %}text-info{% endif %} mb-3">
+                        {{ config.name }}
+                    </h3>
+                    
+                    <div class="mb-4">
+                        <span class="h2 fw-bold">${{ config.price_monthly }}</span>
+                        <span class="text-muted">/month</span>
+                        <div class="small text-success">
+                            +${{ config.price_monthly - current_config.price_monthly }} more than current
+                        </div>
+                    </div>
+                    
+                    <!-- Upgrade Benefits -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-success mb-2">
+                            <i class="fas fa-arrow-up me-2"></i>
+                            What You Get Extra
+                        </h6>
+                        <div class="bg-light rounded p-3">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="h5 fw-bold text-primary">+{{ config.generations_per_month - current_config.generations_per_month }}</div>
+                                    <div class="small text-muted">More Generations</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="h5 fw-bold text-info">+{{ config.ai_models|length - current_config.ai_models|length }}</div>
+                                    <div class="small text-muted">More AI Models</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- New AI Models -->
+                    {% set new_models = config.ai_models | reject('in', current_config.ai_models) | list %}
+                    {% if new_models %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">New AI Models</h6>
+                        {% for model in new_models %}
+                        <div class="small mb-1">
+                            {% if tier == 'ENTERPRISE' %}
+                                <i class="fas fa-crown text-warning me-2"></i>
+                            {% else %}
+                                <i class="fas fa-plus text-success me-2"></i>
+                            {% endif %}
+                            <strong>{{ model }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Key Features -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">Key Features</h6>
+                        <ul class="list-unstyled text-start small">
+                            {% for feature in config.features[:4] %}
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success me-2"></i>
+                                {{ feature }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <button class="btn 
+                        {% if tier == 'ENTERPRISE' %}btn-warning text-dark
+                        {% elif tier == 'PRO' %}btn-success
+                        {% else %}btn-info{% endif %} w-100 btn-lg" 
+                        onclick="upgradeToTier('{{ tier }}')">
+                        <i class="fas fa-rocket me-2"></i>
+                        Upgrade to {{ config.name }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Upgrade Benefits Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="text-center mb-4">
+                <h3 class="fw-bold">Why Upgrade?</h3>
+                <p class="text-muted">Take your marketing to the next level with advanced AI capabilities</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                        <h5>Advanced AI Models</h5>
+                        <p class="text-muted">Access cutting-edge AI like GPT-5, VEO 3, and Pika Labs</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-bolt fa-3x text-warning mb-3"></i>
+                        <h5>More Generations</h5>
+                        <p class="text-muted">Create more campaigns and content without limits</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-video fa-3x text-success mb-3"></i>
+                        <h5>Video Generation</h5>
+                        <p class="text-muted">Create professional videos with VEO 3 and Pika Labs</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="fas fa-headset fa-3x text-info mb-3"></i>
+                        <h5>Priority Support</h5>
+                        <p class="text-muted">Get faster response times and dedicated assistance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+            <h3 class="text-center fw-bold mb-4">Upgrade Questions</h3>
+            <div class="accordion" id="upgradeAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#upgrade1">
+                            When does my upgrade take effect?
+                        </button>
+                    </h2>
+                    <div id="upgrade1" class="accordion-collapse collapse" data-bs-parent="#upgradeAccordion">
+                        <div class="accordion-body">
+                            Your upgrade takes effect immediately. You'll be charged the prorated difference for the current billing period, 
+                            then the full new amount on your next billing date.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#upgrade2">
+                            What happens to my unused generations?
+                        </button>
+                    </h2>
+                    <div id="upgrade2" class="accordion-collapse collapse" data-bs-parent="#upgradeAccordion">
+                        <div class="accordion-body">
+                            When you upgrade, your generation counter resets and you immediately get access to your new monthly allowance. 
+                            Previous usage doesn't carry over.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#upgrade3">
+                            Can I downgrade later?
+                        </button>
+                    </h2>
+                    <div id="upgrade3" class="accordion-collapse collapse" data-bs-parent="#upgradeAccordion">
+                        <div class="accordion-body">
+                            Yes, you can downgrade at any time. The change will take effect at your next billing cycle. 
+                            You'll retain access to premium features until then.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function upgradeToTier(tier) {
+    // Confirm upgrade
+    if (confirm(`Are you sure you want to upgrade to ${tier}? You'll be charged the prorated difference immediately.`)) {
+        // Redirect to checkout for upgrade
+        window.location.href = `/payment/checkout?tier=${tier}&upgrade=true`;
+    }
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.card {
+    transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.border-warning {
+    border-width: 2px !important;
+}
+
+.border-success {
+    border-width: 2px !important;
+}
+
+.border-info {
+    border-width: 2px !important;
+}
+
+.badge {
+    font-size: 0.8rem;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .h2 {
+        font-size: 1.6rem;
+    }
+    
+    .card-body {
+        padding: 2rem 1.5rem;
+    }
+}
+</style>
+{% endblock %}

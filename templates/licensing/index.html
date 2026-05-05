@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Media Licensing - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold">Media Licensing</h1>
+                <p class="lead text-muted">Understand your usage rights and generate licensing agreements for AI-generated content</p>
+            </div>
+
+            <!-- One-Click License Generator -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-certificate me-2"></i>One-Click License Generator</h5>
+                </div>
+                <div class="card-body">
+                    <p>Generate instant licensing agreements for your AI-generated marketing content based on your subscription tier.</p>
+                    
+                    <form id="licenseForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="contentType" class="form-label">Content Type</label>
+                                <select class="form-select" id="contentType" required>
+                                    <option value="Marketing Video">Marketing Video</option>
+                                    <option value="Product Images">Product Images</option>
+                                    <option value="Ad Copy">Ad Copy</option>
+                                    <option value="Social Media Content">Social Media Content</option>
+                                    <option value="Campaign Assets">Campaign Assets</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="campaignId" class="form-label">Campaign ID (Optional)</label>
+                                <input type="text" class="form-control" id="campaignId" placeholder="Enter campaign ID">
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                                <i class="fas fa-magic me-2"></i>Generate License Agreement
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- License Result -->
+                    <div id="licenseResult" class="mt-4" style="display: none;">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>License Generated Successfully!</h6>
+                            <div id="licenseDetails"></div>
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary me-2" onclick="downloadLicense()">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="viewLicense()">
+                                    <i class="fas fa-eye me-1"></i>View Full License
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- License Tiers Comparison -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-balance-scale me-2"></i>License Tiers Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="tierComparison">
+                        <div class="col-12 text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- License Verification -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>License Verification</h5>
+                </div>
+                <div class="card-body">
+                    <p>Verify the authenticity of a Dominate Marketing license.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="licenseIdVerify" placeholder="Enter License ID (e.g., DM-20250108-ABC12345)">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100" onclick="verifyLicense()">
+                                <i class="fas fa-search me-1"></i>Verify
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="verificationResult" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- License Modal -->
+<div class="modal fade" id="licenseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">License Agreement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="licenseDocument" style="white-space: pre-wrap; font-size: 0.9rem;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="downloadLicense()">Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentLicense = null;
+
+// Load tier comparison on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadTierComparison();
+});
+
+// Generate license form handler
+document.getElementById('licenseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const contentType = document.getElementById('contentType').value;
+    const campaignId = document.getElementById('campaignId').value || null;
+    const generateBtn = document.getElementById('generateBtn');
+    
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+    
+    fetch('/api/license/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            content_type: contentType,
+            campaign_id: campaignId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentLicense = data.license;
+            showLicenseResult(data.license);
+        } else {
+            alert('Error generating license: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error generating license');
+    })
+    .finally(() => {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Generate License Agreement';
+    });
+});
+
+function showLicenseResult(license) {
+    const resultDiv = document.getElementById('licenseResult');
+    const detailsDiv = document.getElementById('licenseDetails');
+    
+    detailsDiv.innerHTML = `
+        <strong>License ID:</strong> ${license.license_id}<br>
+        <strong>Type:</strong> ${license.terms.license_type}<br>
+        <strong>Commercial Use:</strong> ${license.terms.commercial_use ? 'Permitted' : 'Not Permitted'}<br>
+        <strong>Generated:</strong> ${new Date(license.generated_at).toLocaleString()}
+    `;
+    
+    resultDiv.style.display = 'block';
+}
+
+function loadTierComparison() {
+    const tiers = ['basic', 'plus', 'pro', 'enterprise'];
+    const comparisonDiv = document.getElementById('tierComparison');
+    
+    Promise.all(tiers.map(tier => 
+        fetch(`/api/license/summary/${tier}`).then(r => r.json())
+    )).then(responses => {
+        comparisonDiv.innerHTML = '';
+        
+        responses.forEach(response => {
+            if (response.success) {
+                const summary = response.summary;
+                const tierColors = {
+                    'basic': 'secondary',
+                    'plus': 'info', 
+                    'pro': 'primary',
+                    'enterprise': 'success'
+                };
+                
+                comparisonDiv.innerHTML += `
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-${tierColors[summary.tier]} text-white text-center">
+                                <h6 class="mb-0">${summary.tier.toUpperCase()}</h6>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title">${summary.license_type}</h6>
+                                <ul class="list-unstyled small">
+                                    ${summary.key_features.map(feature => `<li>${feature}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    });
+}
+
+function verifyLicense() {
+    const licenseId = document.getElementById('licenseIdVerify').value.trim();
+    const resultDiv = document.getElementById('verificationResult');
+    
+    if (!licenseId) {
+        alert('Please enter a license ID');
+        return;
+    }
+    
+    fetch(`/api/license/verify/${licenseId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.validation.valid) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Valid License</strong><br>
+                    License ID: ${data.validation.license_id}<br>
+                    Status: ${data.validation.status}<br>
+                    Verified: ${new Date(data.validation.verified_at).toLocaleString()}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>
+                    <strong>Invalid License</strong><br>
+                    ${data.validation?.error || 'License not found'}
+                </div>
+            `;
+        }
+        resultDiv.style.display = 'block';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error verifying license');
+    });
+}
+
+function downloadLicense() {
+    if (currentLicense) {
+        window.open(`/api/license/download/${currentLicense.license_id}`, '_blank');
+    }
+}
+
+function viewLicense() {
+    if (currentLicense) {
+        document.getElementById('licenseDocument').textContent = currentLicense.document;
+        new bootstrap.Modal(document.getElementById('licenseModal')).show();
+    }
+}
+</script>
+{% endblock %}

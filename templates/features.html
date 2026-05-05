@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Features - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-5">AI-Powered Marketing Features</h1>
+            
+            <div class="feature-section mb-5">
+                <h2><i class="fas fa-chart-line text-primary me-2"></i>Real-Time Trend Analysis</h2>
+                <p class="lead">Our AI monitors Google Trends API continuously, identifying viral opportunities within hours - not months like traditional agencies.</p>
+                <ul>
+                    <li>Industry-specific trend detection</li>
+                    <li>Viral meme integration suggestions</li>
+                    <li>Platform-specific content recommendations</li>
+                    <li>Competitor trend analysis</li>
+                </ul>
+            </div>
+            
+            <div class="feature-section mb-5">
+                <h2><i class="fas fa-robot text-primary me-2"></i>Multi-Tier AI Content Generation</h2>
+                <p class="lead">Different subscription tiers unlock increasingly powerful AI models for your campaigns.</p>
+                <div class="row g-4 mt-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Plus Tier</h5>
+                                <p>GPT-4o-mini + DALL-E for text and images</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Pro/Enterprise</h5>
+                                <p>GPT-4o + Google VEO 3 + Pika Labs for premium video content</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="feature-section mb-5">
+                <h2><i class="fas fa-shield-alt text-primary me-2"></i>Quality Assurance</h2>
+                <p class="lead">Every piece of content is validated by Claude Sonnet 4 for viral potential and brand alignment before delivery.</p>
+                <ul>
+                    <li>Automatic quality scoring</li>
+                    <li>Brand voice consistency checks</li>
+                    <li>Viral potential analysis</li>
+                    <li>Content regeneration options</li>
+                </ul>
+            </div>
+            
+            <div class="text-center">
+                <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary btn-lg">
+                    Start Creating Campaigns
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.feature-section {
+    border-bottom: 1px solid var(--bs-border-color);
+    padding-bottom: 2rem;
+}
+
+.feature-section:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}

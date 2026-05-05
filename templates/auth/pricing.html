@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}Pricing - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">Choose Your Plan</h2>
+        <p class="text-muted lead">Start creating viral campaigns that actually convert</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Basic Tier -->
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-10">
+            <div class="pricing-card card h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="tier-badge tier-basic mb-3">Basic</div>
+                    <div class="mb-3">
+                        <span class="display-5 fw-bold">$29</span>
+                        <span class="text-muted">/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>5 campaigns/month</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Text ad copy (GPT-5-mini)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Basic competitor research (3 competitors)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Manual posting recommendations
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Email support (48hr response)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-times text-muted me-2"></i>
+                            <span class="text-muted">No images or videos</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-outline-primary w-100" onclick="subscribeTo('basic')">Choose Basic</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plus Tier -->
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-10">
+            <div class="pricing-card card h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="tier-badge tier-plus mb-3">Plus</div>
+                    <div class="mb-3">
+                        <span class="display-5 fw-bold">$59</span>
+                        <span class="text-muted">/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>15 campaigns/month</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Everything in Basic +
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            AI images (GPT-5-mini + DALL-E)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            High-res downloads (1080p)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Enhanced competitor analysis (5 competitors)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Priority support (24hr response)
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-primary w-100" onclick="subscribeTo('plus')">Choose Plus</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pro Tier -->
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-10">
+            <div class="pricing-card featured card h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="tier-badge tier-pro mb-3">Pro</div>
+                    <div class="mb-3">
+                        <span class="display-5 fw-bold">$99</span>
+                        <span class="text-muted">/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>50 campaigns/month</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Everything in Plus +
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>AI video generation (GPT-5 + Google VEO 3)</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            HD videos up to 30 seconds
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Content editing and regeneration
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Custom competitor list (up to 10)
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-primary w-100" onclick="subscribeTo('pro')">Choose Pro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enterprise Tier -->
+        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-10">
+            <div class="pricing-card card h-100">
+                <div class="card-body p-4 text-center">
+                    <div class="tier-badge tier-enterprise mb-3">Enterprise</div>
+                    <div class="mb-3">
+                        <span class="display-5 fw-bold">$199</span>
+                        <span class="text-muted">/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Unlimited campaigns</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Everything in Pro +
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>Automated social posting (GPT-5 + Pika Labs)</strong>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Multi-platform (Facebook, Instagram, X, TikTok, LinkedIn)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Image-to-video animation (Pika Labs)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Custom schedules and frequency controls
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Dedicated account manager
+                        </li>
+                    </ul>
+                    
+                    <button class="btn btn-success w-100" onclick="subscribeTo('enterprise')">Choose Enterprise</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Comparison -->
+    <div class="mt-5">
+        <div class="text-center mb-4">
+            <h3>Compare Features</h3>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+                <thead>
+                    <tr>
+                        <th scope="col">Feature</th>
+                        <th scope="col" class="text-center">Basic</th>
+                        <th scope="col" class="text-center">Plus</th>
+                        <th scope="col" class="text-center">Pro</th>
+                        <th scope="col" class="text-center">Enterprise</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>AI Ad Copy Generation</td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td>AI Image Generation</td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td>AI Video Generation (Veo 3)</td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Competitor Analysis</td>
+                        <td class="text-center">Basic</td>
+                        <td class="text-center">Enhanced</td>
+                        <td class="text-center">Top 5 + Editable</td>
+                        <td class="text-center">Top 5 + Editable</td>
+                    </tr>
+                    <tr>
+                        <td>Automated Social Posting</td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-times text-muted"></i></td>
+                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="mt-5">
+        <div class="text-center mb-4">
+            <h3>Frequently Asked Questions</h3>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 col-12">
+                <div class="mb-4">
+                    <h6>How does the AI create videos?</h6>
+                    <p class="text-muted">We use Google's Veo 3 AI to generate professional videos based on AI-crafted scripts and visual directions tailored to your business.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-12">
+                <div class="mb-4">
+                    <h6>Can I cancel anytime?</h6>
+                    <p class="text-muted">Yes! All plans are month-to-month with no long-term commitments. Cancel anytime from your account dashboard.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coupon Code Modal -->
+    <div class="modal fade" id="couponModal" tabindex="-1" aria-labelledby="couponModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="couponModalLabel">Have a Coupon Code?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="couponCode" class="form-label">Enter coupon code (optional)</label>
+                        <input type="text" class="form-control" id="couponCode" placeholder="Enter coupon code">
+                        <div class="form-text">Special offers and trial codes can be applied here</div>
+                    </div>
+                    <div id="couponError" class="alert alert-danger d-none"></div>
+                    <div id="couponSuccess" class="alert alert-success d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Skip</button>
+                    <button type="button" class="btn btn-primary" onclick="proceedToCheckout()">Continue to Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedTier = '';
+
+async function subscribeTo(tier) {
+    // Store selected tier and show coupon modal directly
+    selectedTier = tier;
+    const couponModal = new bootstrap.Modal(document.getElementById('couponModal'));
+    couponModal.show();
+}
+
+async function proceedToCheckout() {
+    const couponCode = document.getElementById('couponCode').value.trim();
+    const couponError = document.getElementById('couponError');
+    const couponSuccess = document.getElementById('couponSuccess');
+    
+    // Clear previous messages
+    couponError.classList.add('d-none');
+    couponSuccess.classList.add('d-none');
+    
+    // Validate coupon if provided
+    if (couponCode) {
+        const validCoupons = ['SAINTSDOMINION', 'SAINTSDOMINIONSTEWARD'];
+        if (!validCoupons.includes(couponCode.toUpperCase())) {
+            couponError.textContent = 'Invalid coupon code. Please check and try again.';
+            couponError.classList.remove('d-none');
+            return;
+        }
+        
+        // Show success for valid coupon
+        if (couponCode.toUpperCase() === 'SAINTSDOMINION') {
+            couponSuccess.textContent = '24-hour free trial applied! You will not be charged until after the trial period.';
+            couponSuccess.classList.remove('d-none');
+        } else if (couponCode.toUpperCase() === 'SAINTSDOMINIONSTEWARD') {
+            couponSuccess.textContent = 'Lifetime Enterprise access applied! You will receive permanent top-tier membership.';
+            couponSuccess.classList.remove('d-none');
+        }
+    }
+    
+    try {
+        // First, check if user is logged in, if not, show signup modal
+        const isLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
+        
+        if (!isLoggedIn) {
+            // Close coupon modal and show signup modal
+            const couponModal = bootstrap.Modal.getInstance(document.getElementById('couponModal'));
+            couponModal.hide();
+            
+            // Create simple signup flow
+            const signupForm = `
+                <div class="modal fade" id="signupModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Create Account for ${selectedTier} Plan</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="d-grid gap-3">
+                                    <a href="/auth/google_login?plan=${selectedTier}&coupon=${encodeURIComponent(couponCode)}" class="btn btn-outline-primary">
+                                        <i class="fab fa-google me-2"></i>Sign up with Google
+                                    </a>
+                                    
+                                    <div class="text-center">
+                                        <small class="text-muted">Or</small>
+                                    </div>
+                                    
+                                    <form id="emailSignupForm" action="/auth/email-signup" method="POST">
+                                        <input type="hidden" name="plan" value="${selectedTier}">
+                                        <input type="hidden" name="coupon" value="${couponCode}">
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" name="email" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Password</label>
+                                            <input type="password" class="form-control" name="password" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Full Name</label>
+                                            <input type="text" class="form-control" name="full_name" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">Create Account & Subscribe</button>
+                                    </form>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">
+                                        Already have an account? 
+                                        <a href="/auth/login?plan=${selectedTier}&coupon=${encodeURIComponent(couponCode)}">Sign in</a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', signupForm);
+            const signupModal = new bootstrap.Modal(document.getElementById('signupModal'));
+            signupModal.show();
+            
+            // Remove modal after it's hidden
+            document.getElementById('signupModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+            
+            return;
+        }
+        
+        // User is logged in, proceed with checkout
+        const response = await fetch('/payments/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                tier: selectedTier,
+                coupon_code: couponCode.toUpperCase()
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Close modal and redirect to Stripe Checkout
+            bootstrap.Modal.getInstance(document.getElementById('couponModal')).hide();
+            window.location.href = data.checkout_url;
+        } else {
+            couponError.textContent = 'Error creating payment session: ' + data.error;
+            couponError.classList.remove('d-none');
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        couponError.textContent = 'Payment system temporarily unavailable. Please try again later.';
+        couponError.classList.remove('d-none');
+    }
+}
+</script>
+{% endblock %}

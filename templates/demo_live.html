@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Live Demo - Dominate Marketing{% endblock %}
+
+{% block extra_head %}
+<style>
+.demo-hero {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: white;
+    padding: 4rem 0;
+    margin-bottom: 0;
+}
+
+.business-profile-card {
+    background: var(--bs-dark);
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.viral-tools-section {
+    background: var(--bs-body-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--bs-border-color-translucent);
+}
+
+.campaign-content-card {
+    background: var(--bs-dark);
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    height: 100%;
+}
+
+.platform-tab {
+    background: var(--bs-secondary);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.platform-tab.active {
+    background: var(--bs-primary);
+}
+
+.content-type-selector {
+    background: var(--bs-gray-800);
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.content-type-btn {
+    background: transparent;
+    border: none;
+    color: var(--bs-light);
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.content-type-btn.active {
+    background: var(--bs-primary);
+    color: white;
+}
+
+.content-display {
+    background: var(--bs-gray-900);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 300px;
+}
+
+.metadata-badge {
+    background: var(--bs-primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 0.25rem;
+    display: inline-block;
+}
+
+.confidence-score {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--bs-success);
+}
+
+.viral-tool-item {
+    background: var(--bs-gray-800);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--bs-primary);
+}
+
+.data-derivation-section {
+    background: var(--bs-dark);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 3rem;
+    border: 1px solid var(--bs-border-color-translucent);
+}
+
+.process-step {
+    background: var(--bs-gray-800);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--bs-success);
+}
+
+@media (max-width: 768px) {
+    .platform-tab {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .demo-hero {
+        padding: 2rem 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Demo Hero Section -->
+<section class="demo-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">Live Demo: Complete AI Campaign Generation</h1>
+                <p class="lead mb-4">See how our Sell Profile → Viral Tools methodology creates authentic marketing campaigns using real business intelligence and trending data.</p>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2">✓ Real Business Analysis</span>
+                    <span class="badge bg-primary me-2">✓ Live Google Trends Data</span>
+                    <span class="badge bg-warning">✓ Authentic AI Generation</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="demo-stats">
+                    <h3 class="text-primary">{{ demo_data.generation_metadata.total_content_pieces }}</h3>
+                    <p class="mb-1">Content Pieces Generated</p>
+                    <small class="text-muted">Across 5 platforms, 3 content types each</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container my-5">
+    
+    <!-- Business Profile Section -->
+    <div class="business-profile-card">
+        <div class="row">
+            <div class="col-lg-8">
+                <h2 class="h3 mb-3">
+                    <i class="fas fa-building me-2"></i>
+                    Business Sell Profile: {{ demo_data.company.name }}
+                </h2>
+                <p class="mb-3">Comprehensive business intelligence extracted from <a href="{{ demo_data.company.url }}" target="_blank" class="text-primary">{{ demo_data.company.url }}</a></p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Business Intelligence</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Industry:</strong> {{ demo_data.sell_profile.industry|title }}</li>
+                            <li><strong>Location:</strong> {{ demo_data.sell_profile.geography.state or 'Alabama' }}, {{ demo_data.sell_profile.geography.country }}</li>
+                            <li><strong>Extraction Method:</strong> {{ demo_data.sell_profile.metadata.extracted_method|title }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Key Keywords Extracted</h5>
+                        <div class="mb-3">
+                            {% for keyword in demo_data.sell_profile.keywords[:8] %}
+                            <span class="metadata-badge">{{ keyword }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <h4 class="text-muted">Profile Confidence</h4>
+                <div class="confidence-score">{{ "%.0f" | format(demo_data.sell_profile.confidence_score * 100) }}%</div>
+                <small class="text-muted">Based on data quality and completeness</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Viral Tools Research -->
+    <div class="viral-tools-section">
+        <h2 class="h3 mb-4">
+            <i class="fas fa-fire me-2"></i>
+            Viral Tools Research Results
+        </h2>
+        <p class="mb-4">AI discovered viral opportunities in priority order using real Google Trends data and social media analysis.</p>
+        
+        <div class="row">
+            <div class="col-lg-4">
+                <h5 class="text-primary">Priority 1: Industry Trends</h5>
+                {% for trend in demo_data.viral_tools.industry_trends[:3] %}
+                <div class="viral-tool-item">
+                    <h6>{{ trend.title }}</h6>
+                    <p class="small mb-2">{{ trend.description }}</p>
+                    <small class="text-muted">Relevance: {{ "%.1f" | format(trend.relevance_score) }} | Trending: {{ "%.1f" | format(trend.trending_score) }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-lg-4">
+                <h5 class="text-success">Priority 2: Popular Viral Trends</h5>
+                {% for trend in demo_data.viral_tools.popular_viral_trends[:3] %}
+                <div class="viral-tool-item">
+                    <h6>{{ trend.title }}</h6>
+                    <p class="small mb-2">{{ trend.description }}</p>
+                    <small class="text-muted">Platforms: {{ trend.platform_fit|join(', ') }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-lg-4">
+                <h5 class="text-warning">Priority 3: Viral Memes</h5>
+                {% for meme in demo_data.viral_tools.viral_memes[:3] %}
+                <div class="viral-tool-item">
+                    <h6>{{ meme.title }}</h6>
+                    <p class="small mb-2">{{ meme.description }}</p>
+                    <small class="text-muted">Format: {{ meme.metadata.meme_type|replace('_', ' ')|title }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Campaign Content Showcase -->
+    <div class="campaign-showcase">
+        <h2 class="h3 mb-4">
+            <i class="fas fa-magic me-2"></i>
+            AI-Generated Campaign Content
+        </h2>
+        <p class="mb-4">Complete campaigns generated for all major social media platforms using tier-based AI models (GPT-5, DALL-E 3, Google VEO 3).</p>
+        
+        <!-- Platform Selector -->
+        <div class="platform-selector mb-4">
+            <button class="platform-tab active" data-platform="facebook">
+                <i class="fab fa-facebook me-1"></i> Facebook
+            </button>
+            <button class="platform-tab" data-platform="instagram">
+                <i class="fab fa-instagram me-1"></i> Instagram
+            </button>
+            <button class="platform-tab" data-platform="x">
+                <i class="fab fa-x-twitter me-1"></i> X (Twitter)
+            </button>
+            <button class="platform-tab" data-platform="tiktok">
+                <i class="fab fa-tiktok me-1"></i> TikTok
+            </button>
+            <button class="platform-tab" data-platform="linkedin">
+                <i class="fab fa-linkedin me-1"></i> LinkedIn
+            </button>
+        </div>
+        
+        <!-- Content Type Selector -->
+        <div class="content-type-selector">
+            <button class="content-type-btn active" data-type="text_only">📝 Text Only</button>
+            <button class="content-type-btn" data-type="image_text">🖼️ Image + Text</button>
+            <button class="content-type-btn" data-type="video_text">🎥 Video + Text</button>
+        </div>
+        
+        <!-- Content Display Area -->
+        <div class="campaign-content-card">
+            <div id="content-display" class="content-display">
+                <!-- Content will be loaded here via JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Derivation Explanation -->
+    <div class="data-derivation-section">
+        <h2 class="h3 mb-4">
+            <i class="fas fa-search-plus me-2"></i>
+            How This Content Was Derived from Data
+        </h2>
+        <p class="mb-4">Complete transparency into our Sell Profile → Viral Tools → AI Campaign methodology.</p>
+        
+        <div class="row">
+            <div class="col-lg-6">
+                <h5 class="text-primary">Data Collection Process</h5>
+                {% for data_point in demo_data.data_derivation.data_sources.website_analysis.data_points_extracted %}
+                <div class="process-step">
+                    <small class="text-success">✓ {{ data_point }}</small>
+                </div>
+                {% endfor %}
+                
+                <h6 class="mt-3">Viral Tools Research</h6>
+                <ul class="list-unstyled">
+                    <li><small><strong>Google Trends Integration:</strong> {{ demo_data.data_derivation.data_sources.viral_tools_research.google_trends_integration }}</small></li>
+                    <li><small><strong>Industry Trends Found:</strong> {{ demo_data.data_derivation.data_sources.viral_tools_research.industry_trends_found }}</small></li>
+                    <li><small><strong>Popular Trends Found:</strong> {{ demo_data.data_derivation.data_sources.viral_tools_research.popular_trends_found }}</small></li>
+                    <li><small><strong>Research Confidence:</strong> {{ "%.0f" | format(demo_data.data_derivation.data_sources.viral_tools_research.research_confidence * 100) }}%</small></li>
+                </ul>
+            </div>
+            <div class="col-lg-6">
+                <h5 class="text-success">AI Generation Pipeline</h5>
+                {% for step_key, step_desc in demo_data.data_derivation.content_derivation_process.items() %}
+                <div class="process-step">
+                    <small><strong>{{ step_key.replace('_', ' ')|title }}:</strong> {{ step_desc }}</small>
+                </div>
+                {% endfor %}
+                
+                <h6 class="mt-3">AI Models Used</h6>
+                <div class="d-flex flex-wrap">
+                    {% for model in demo_data.generation_metadata.ai_models_used %}
+                    <span class="metadata-badge">{{ model }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 p-3 bg-dark rounded">
+            <h6 class="text-warning">Authenticity Verification</h6>
+            <div class="row">
+                {% for verification_key, verification_desc in demo_data.data_derivation.authenticity_verification.items() %}
+                <div class="col-md-6 mb-2">
+                    <small><strong>{{ verification_key.replace('_', ' ')|title }}:</strong> {{ verification_desc }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call to Action -->
+    <div class="text-center mt-5 mb-4">
+        <h3 class="mb-3">Ready to Generate Campaigns for Your Business?</h3>
+        <p class="lead mb-4">Get the same AI-powered campaign generation, viral tools research, and business intelligence for your company.</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary btn-lg">View Plans & Pricing</a>
+            <a href="{{ url_for('faq') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-question-circle me-2"></i>FAQ
+            </a>
+            <a href="{{ url_for('features') }}" class="btn btn-outline-light btn-lg">View All Features</a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Campaign content data
+const campaignData = {{ demo_data.campaign_content | tojson }};
+
+// Current selection
+let currentPlatform = 'facebook';
+let currentContentType = 'text_only';
+
+// Display content function
+function displayContent() {
+    const content = campaignData[currentPlatform][currentContentType];
+    const displayArea = document.getElementById('content-display');
+    
+    let html = '';
+    
+    if (content.type === 'text_only') {
+        html = `
+            <div class="mb-3">
+                <h5 class="text-primary">${currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1)} - Text Only Post</h5>
+                <div class="bg-secondary p-3 rounded">
+                    <pre class="text-light mb-0" style="white-space: pre-wrap; font-family: inherit;">${content.content}</pre>
+                </div>
+            </div>
+            <div class="metadata mt-3">
+                <h6>Content Metadata</h6>
+                <span class="metadata-badge">Characters: ${content.metadata.character_count}</span>
+                <span class="metadata-badge">Tone: ${content.metadata.tone}</span>
+                <span class="metadata-badge">Engagement: ${content.metadata.estimated_engagement}</span>
+                <span class="metadata-badge">Trend: ${content.metadata.trend_inspiration}</span>
+            </div>
+        `;
+    } else if (content.type === 'image_text') {
+        html = `
+            <div class="mb-3">
+                <h5 class="text-primary">${currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1)} - Image + Text Post</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Image Concept</h6>
+                        <div class="bg-dark p-3 rounded mb-3">
+                            <p class="text-light mb-2"><strong>Visual Concept:</strong> ${content.image_concept}</p>
+                            <p class="text-muted small mb-0"><strong>DALL-E 3 Prompt:</strong> ${content.dalle_prompt}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Post Text</h6>
+                        <div class="bg-secondary p-3 rounded">
+                            <pre class="text-light mb-0" style="white-space: pre-wrap; font-family: inherit;">${content.text_content}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="metadata mt-3">
+                <h6>Content Metadata</h6>
+                <span class="metadata-badge">Meme Format: ${content.metadata.meme_format_used}</span>
+                <span class="metadata-badge">Style: ${content.metadata.visual_style}</span>
+                <span class="metadata-badge">Engagement: ${content.metadata.estimated_engagement}</span>
+                <span class="metadata-badge">AI Model: ${content.metadata.ai_image_model}</span>
+            </div>
+        `;
+    } else if (content.type === 'video_text') {
+        html = `
+            <div class="mb-3">
+                <h5 class="text-primary">${currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1)} - Video + Text Post</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Video Concept & Script</h6>
+                        <div class="bg-dark p-3 rounded mb-3">
+                            <p class="text-light mb-2"><strong>Concept:</strong> ${content.video_concept}</p>
+                            <h6 class="text-warning">Video Script:</h6>
+                            <pre class="text-light small mb-0" style="white-space: pre-wrap; font-family: inherit;">${content.video_script}</pre>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Post Text</h6>
+                        <div class="bg-secondary p-3 rounded">
+                            <pre class="text-light mb-0" style="white-space: pre-wrap; font-family: inherit;">${content.text_content}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="metadata mt-3">
+                <h6>Content Metadata</h6>
+                <span class="metadata-badge">Trend: ${content.metadata.trend_inspiration}</span>
+                <span class="metadata-badge">Length: ${content.metadata.video_length}</span>
+                <span class="metadata-badge">Engagement: ${content.metadata.estimated_engagement}</span>
+                <span class="metadata-badge">AI Model: ${content.metadata.ai_video_model}</span>
+                <span class="metadata-badge">Complexity: ${content.metadata.production_complexity}</span>
+            </div>
+        `;
+    }
+    
+    displayArea.innerHTML = html;
+}
+
+// Event listeners for platform tabs
+document.querySelectorAll('.platform-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        // Update active state
+        document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update current platform
+        currentPlatform = this.dataset.platform;
+        
+        // Display content
+        displayContent();
+    });
+});
+
+// Event listeners for content type buttons
+document.querySelectorAll('.content-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update active state
+        document.querySelectorAll('.content-type-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update current content type
+        currentContentType = this.dataset.type;
+        
+        // Display content
+        displayContent();
+    });
+});
+
+// Initialize with default content
+displayContent();
+</script>
+{% endblock %}

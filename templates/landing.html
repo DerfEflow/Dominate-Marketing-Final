@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 col-md-12 mb-4 mb-lg-0">
+                <h1 class="display-4 fw-bold mb-4 text-white">
+                    <span class="text-warning">Dominate Marketing</span><br>
+                    While Others Follow Yesterday's Playbook
+                </h1>
+                <p class="lead mb-4">
+                    Revolutionary AI platform that pulls trends from 6 hours ago, not 20 years ago. 
+                    We analyze, create, and dominate while traditional agencies are still planning meetings.
+                </p>
+                <div class="d-flex gap-3 mb-4">
+                    <a href="{{ url_for('auth.pricing') }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Start Creating
+                    </a>
+                    <a href="{{ url_for('features') }}" class="btn btn-outline-light btn-lg">
+                        See Features
+                    </a>
+                </div>
+                <div class="d-flex align-items-center gap-4 text-white-50">
+                    <div>
+                        <i class="fas fa-check-circle me-1"></i>
+                        No design skills needed
+                    </div>
+                    <div>
+                        <i class="fas fa-check-circle me-1"></i>
+                        Videos in minutes
+                    </div>
+                    <div>
+                        <i class="fas fa-check-circle me-1"></i>
+                        Auto-post to socials
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <div class="position-relative">
+                    <!-- Interactive Demo Animation -->
+                    <div class="demo-animation-container rounded shadow-lg overflow-hidden bg-dark p-4">
+                        <canvas id="demoCanvas" width="600" height="400" class="w-100 rounded"></canvas>
+                        <div class="demo-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                            <a href="{{ url_for('auth.pricing') }}" class="btn btn-warning btn-lg">
+                                <i class="fas fa-rocket me-2"></i>
+                                <span class="d-none d-md-inline">Start Creating Campaigns</span>
+                                <span class="d-inline d-md-none">Get Started</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <p class="text-white-50">
+                            <i class="fas fa-magic me-1"></i>See how AI transforms your business into viral campaigns
+                        </p>
+                        <div class="d-flex justify-content-center gap-3 mt-2">
+                            <a href="{{ url_for('auth.pricing') }}" class="btn btn-sm btn-outline-warning">
+                                View Pricing
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Overview -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Everything You Need to Go Viral</h2>
+            <p class="text-muted">From AI analysis to automated posting, we handle the entire marketing pipeline</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card card h-100 p-4 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Real-Time Intelligence</h5>
+                        <p class="card-text">
+                            Our proprietary AI analyzes market shifts every 20 minutes. 
+                            While agencies use last decade's data, we capitalize on this morning's trends.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card h-100 p-4 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-video fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Automated Video Creation</h5>
+                        <p class="card-text">
+                            Advanced AI creates scripts, generates professional images, and 
+                            produces broadcast-quality videos - all automatically.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card card h-100 p-4 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-share-alt fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">Smart Social Posting</h5>
+                        <p class="card-text">
+                            Connect your social accounts and let AI post your campaigns 
+                            at optimal times with variations to maximize reach.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="py-5 bg-dark">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-white">How It Works</h2>
+            <p class="text-muted">From your business URL to viral video in minutes</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 60px; height: 60px;">
+                        <span class="text-white fw-bold">1</span>
+                    </div>
+                </div>
+                <h5 class="text-white">Enter Your URL</h5>
+                <p class="text-muted">
+                    Just paste your business website. Our AI scrapes and analyzes 
+                    everything about your company.
+                </p>
+            </div>
+            
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 60px; height: 60px;">
+                        <span class="text-white fw-bold">2</span>
+                    </div>
+                </div>
+                <h5 class="text-white">AI Research</h5>
+                <p class="text-muted">
+                    We identify your top 5 competitors, analyze their successful ads, 
+                    and find market gaps.
+                </p>
+            </div>
+            
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 60px; height: 60px;">
+                        <span class="text-white fw-bold">3</span>
+                    </div>
+                </div>
+                <h5 class="text-white">Create Campaign</h5>
+                <p class="text-muted">
+                    AI generates creative themes, writes scripts, creates images, 
+                    and produces videos automatically.
+                </p>
+            </div>
+            
+            <div class="col-md-3 text-center">
+                <div class="mb-3">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 60px; height: 60px;">
+                        <span class="text-white fw-bold">4</span>
+                    </div>
+                </div>
+                <h5 class="text-white">Go Viral</h5>
+                <p class="text-muted">
+                    Download your content or let us automatically post to your 
+                    social media accounts.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Teaser -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="fw-bold mb-4">Choose Your Growth Plan</h2>
+            <p class="text-muted mb-4">From basic ad copy to full automation - we have the perfect plan for your business</p>
+            
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-md-10 col-12">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-4 border rounded">
+                        <div class="text-center text-md-start mb-3 mb-md-0">
+                            <h5 class="mb-1">Ready to transform your marketing?</h5>
+                            <p class="text-muted mb-0">Join businesses creating viral campaigns with AI</p>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('auth.pricing') }}" class="btn btn-primary btn-lg">
+                                View Plans <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="bg-primary py-5">
+    <div class="container text-center text-white">
+        <h2 class="fw-bold mb-3">Start Creating Viral Campaigns Today</h2>
+        <p class="lead mb-4">
+            Transform your marketing with cutting-edge AI technology.
+        </p>
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="{{ url_for('auth.pricing') }}" class="btn btn-light btn-lg">
+                <i class="fas fa-rocket me-2"></i>Get Started Now
+            </a>
+            <a href="{{ url_for('faq') }}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-question-circle me-2"></i>FAQ
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block styles %}
+<style>
+.demo-animation-container {
+    position: relative;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    border: 2px solid rgba(255, 193, 7, 0.3);
+    min-height: 400px;
+}
+
+#demoCanvas {
+    background: transparent;
+}
+
+.demo-overlay {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    transition: opacity 0.3s ease;
+}
+
+.demo-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.demo-play-btn {
+    box-shadow: 0 8px 32px rgba(255, 193, 7, 0.4);
+    transition: all 0.3s ease;
+}
+
+.demo-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255, 193, 7, 0.6);
+}
+
+.hero-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 100px 0;
+    position: relative;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffc107' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    opacity: 0.5;
+}
+
+.hero-section .container {
+    position: relative;
+    z-index: 1;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let canvas, ctx, animationId, isAnimating = false;
+
+function initCanvas() {
+    canvas = document.getElementById('demoCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    const container = canvas.parentElement;
+    canvas.width = 600;
+    canvas.height = 400;
+    
+    // Initial state
+    drawInitialState();
+}
+
+function drawInitialState() {
+    // Clear canvas
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.9)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw "Dominate Marketing" logo
+    ctx.fillStyle = '#ffc107';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('DOMINATE MARKETING', canvas.width / 2, 60);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.fillText('AI-Powered Campaign Creation', canvas.width / 2, 85);
+    
+    // Draw workflow steps (inactive)
+    const steps = [
+        { x: 100, y: 180, text: '1. Analyze\nBusiness', color: '#6c757d' },
+        { x: 250, y: 180, text: '2. Generate\nContent', color: '#6c757d' },
+        { x: 400, y: 180, text: '3. Schedule\nPosts', color: '#6c757d' },
+        { x: 550, y: 180, text: '4. Go\nViral', color: '#6c757d' }
+    ];
+    
+    steps.forEach(step => {
+        // Draw circle
+        ctx.strokeStyle = step.color;
+        ctx.fillStyle = 'transparent';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(step.x, step.y, 25, 0, 2 * Math.PI);
+        ctx.stroke();
+        
+        // Draw text
+        ctx.fillStyle = step.color;
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        const lines = step.text.split('\n');
+        lines.forEach((line, i) => {
+            ctx.fillText(line, step.x, step.y + 50 + (i * 15));
+        });
+    });
+    
+    // Draw connecting lines
+    ctx.strokeStyle = '#6c757d';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    for (let i = 0; i < steps.length - 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(steps[i].x + 25, steps[i].y);
+        ctx.lineTo(steps[i + 1].x - 25, steps[i + 1].y);
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+}
+
+function startDemo() {
+    if (isAnimating) return;
+    
+    isAnimating = true;
+    const overlay = document.querySelector('.demo-overlay');
+    overlay.classList.add('hidden');
+    
+    animateWorkflow();
+}
+
+function animateWorkflow() {
+    let currentStep = 0;
+    let animationPhase = 0;
+    const totalSteps = 4;
+    
+    const steps = [
+        { x: 100, y: 180, text: '1. Analyze\nBusiness', details: ['Scraping website...', 'Analyzing competitors...', 'Finding opportunities...'] },
+        { x: 250, y: 180, text: '2. Generate\nContent', details: ['Creating viral text...', 'Generating images...', 'Writing scripts...'] },
+        { x: 400, y: 180, text: '3. Schedule\nPosts', details: ['Connecting platforms...', 'Optimizing timing...', 'Scheduling posts...'] },
+        { x: 550, y: 180, text: '4. Go\nViral', details: ['Publishing content...', 'Tracking engagement...', 'Measuring results...'] }
+    ];
+    
+    function animate() {
+        // Clear canvas
+        ctx.fillStyle = 'rgba(26, 26, 46, 0.9)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw header
+        ctx.fillStyle = '#ffc107';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('DOMINATE MARKETING', canvas.width / 2, 60);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Arial';
+        ctx.fillText('AI Campaign Creation in Progress...', canvas.width / 2, 85);
+        
+        // Draw all steps
+        steps.forEach((step, index) => {
+            const isActive = index === currentStep;
+            const isCompleted = index < currentStep;
+            
+            // Determine colors
+            let circleColor, fillColor, textColor;
+            if (isCompleted) {
+                circleColor = fillColor = '#28a745'; // Green for completed
+                textColor = '#28a745';
+            } else if (isActive) {
+                circleColor = fillColor = '#ffc107'; // Yellow for active
+                textColor = '#ffc107';
+            } else {
+                circleColor = '#6c757d'; // Gray for inactive
+                fillColor = 'transparent';
+                textColor = '#6c757d';
+            }
+            
+            // Draw circle
+            ctx.strokeStyle = circleColor;
+            ctx.fillStyle = fillColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(step.x, step.y, 25, 0, 2 * Math.PI);
+            if (fillColor !== 'transparent') ctx.fill();
+            ctx.stroke();
+            
+            // Draw checkmark for completed steps
+            if (isCompleted) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(step.x - 8, step.y);
+                ctx.lineTo(step.x - 3, step.y + 5);
+                ctx.lineTo(step.x + 8, step.y - 5);
+                ctx.stroke();
+            } else if (isActive) {
+                // Draw spinning animation for active step
+                const spinAngle = (animationPhase * 0.2) % (2 * Math.PI);
+                ctx.save();
+                ctx.translate(step.x, step.y);
+                ctx.rotate(spinAngle);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 1.5);
+                ctx.stroke();
+                ctx.restore();
+            }
+            
+            // Draw step text
+            ctx.fillStyle = textColor;
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            const lines = step.text.split('\n');
+            lines.forEach((line, i) => {
+                ctx.fillText(line, step.x, step.y + 50 + (i * 15));
+            });
+        });
+        
+        // Draw connecting lines
+        ctx.strokeStyle = '#28a745';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < currentStep; i++) {
+            ctx.beginPath();
+            ctx.moveTo(steps[i].x + 25, steps[i].y);
+            ctx.lineTo(steps[i + 1].x - 25, steps[i + 1].y);
+            ctx.stroke();
+        }
+        
+        // Draw inactive connecting lines
+        ctx.strokeStyle = '#6c757d';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        for (let i = currentStep; i < steps.length - 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(steps[i].x + 25, steps[i].y);
+            ctx.lineTo(steps[i + 1].x - 25, steps[i + 1].y);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        
+        // Show current step details
+        if (currentStep < steps.length) {
+            const currentStepData = steps[currentStep];
+            const detailIndex = Math.floor(animationPhase / 60) % currentStepData.details.length;
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentStepData.details[detailIndex], canvas.width / 2, 320);
+        }
+        
+        // Progress phases
+        animationPhase++;
+        if (animationPhase > 180) { // ~3 seconds per step
+            currentStep++;
+            animationPhase = 0;
+        }
+        
+        if (currentStep < totalSteps) {
+            animationId = requestAnimationFrame(animate);
+        } else {
+            // Animation complete
+            showCompletionState();
+        }
+    }
+    
+    animate();
+}
+
+function showCompletionState() {
+    // Clear canvas
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.9)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Success message
+    ctx.fillStyle = '#28a745';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('CAMPAIGN READY!', canvas.width / 2, 150);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px Arial';
+    ctx.fillText('Your viral marketing campaign has been created', canvas.width / 2, 180);
+    
+    // Results
+    const results = [
+        '🎯 Campaign Generated in 2 Minutes',
+        '📈 5x Higher Engagement Predicted',
+        '🚀 Ready to Post Across 5 Platforms',
+        '💡 Trending Keywords Integrated'
+    ];
+    
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#ffc107';
+    results.forEach((result, index) => {
+        ctx.fillText(result, canvas.width / 2, 220 + (index * 25));
+    });
+    
+    // CTA
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('Start creating viral campaigns today!', canvas.width / 2, 350);
+    
+    // Reset after delay
+    setTimeout(() => {
+        isAnimating = false;
+        const overlay = document.querySelector('.demo-overlay');
+        overlay.classList.remove('hidden');
+        drawInitialState();
+    }, 3000);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initCanvas();
+});
+
+// Auto-start animation every 15 seconds if not manually started
+setInterval(() => {
+    if (!isAnimating) {
+        startDemo();
+    }
+}, 15000);
+</script>
+{% endblock %}

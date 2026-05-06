@@ -12,8 +12,7 @@ from urllib.parse import urlparse
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from main_app import db
-from models import User, SubscriptionTier
+from models import db, User, SubscriptionTier
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
@@ -29,32 +28,7 @@ OAUTH_CALLBACK_URL = os.environ.get(
     f"https://{CUSTOM_DOMAIN}/auth/google_login/callback"
 )
 
-print(f"""
-🔧 GOOGLE OAUTH SETUP REQUIRED:
-
-To make Google authentication work, add this redirect URI to your Google Cloud Console:
-
-📋 EXACT CALLBACK URL TO ADD:
-{OAUTH_CALLBACK_URL}
-
-Steps:
-1. Go to: https://console.cloud.google.com/apis/credentials
-2. Edit your OAuth 2.0 Client ID
-3. Add the EXACT URL above to "Authorized redirect URIs"
-4. Click SAVE
-5. If OAuth app is in "Testing" mode, add your email to "Test users"
-
-Current Domain: {REPLIT_DEV_DOMAIN}
-Current Callback: {OAUTH_CALLBACK_URL}
-
-⚠️ TROUBLESHOOTING:
-- Ensure the URL is EXACTLY as shown above (including https://)
-- Check OAuth consent screen is configured
-- Verify client ID/secret are correct
-- Add your email to test users if in testing mode
-
-For detailed instructions: https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oauth-app--client
-""")
+print(f"[AUTH] OAuth callback URL: {OAUTH_CALLBACK_URL}")
 
 auth = Blueprint('auth', __name__)
 

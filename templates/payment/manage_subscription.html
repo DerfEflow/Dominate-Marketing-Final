@@ -154,13 +154,13 @@
                         <h6 class="fw-bold mb-3">Quick Actions</h6>
                         <div class="d-grid gap-2">
                             {% if current_tier != 'ENTERPRISE' %}
-                            <a href="{{ url_for('payment.upgrade_subscription') }}" class="btn btn-primary">
+                            <a href="{{ url_for('payment_routes.upgrade_subscription') }}" class="btn btn-primary">
                                 <i class="fas fa-arrow-up me-2"></i>
                                 Upgrade Plan
                             </a>
                             {% endif %}
                             
-                            <a href="{{ url_for('payment.add_brand_subscription') }}" class="btn btn-outline-success">
+                            <a href="{{ url_for('payment_routes.add_brand_subscription') }}" class="btn btn-outline-success">
                                 <i class="fas fa-plus me-2"></i>
                                 Add Another Brand (+$19/month)
                             </a>
@@ -211,7 +211,7 @@
                             <p class="text-muted mb-3">
                                 Get more generations, advanced AI models, and premium features
                             </p>
-                            <a href="{{ url_for('payment.upgrade_subscription') }}" class="btn btn-primary">
+                            <a href="{{ url_for('payment_routes.upgrade_subscription') }}" class="btn btn-primary">
                                 View Upgrades
                             </a>
                         </div>
@@ -228,7 +228,7 @@
                             <p class="text-muted mb-3">
                                 Add marketing power for additional brands at just $19/month each
                             </p>
-                            <a href="{{ url_for('payment.add_brand_subscription') }}" class="btn btn-success">
+                            <a href="{{ url_for('payment_routes.add_brand_subscription') }}" class="btn btn-success">
                                 Add Brand
                             </a>
                         </div>

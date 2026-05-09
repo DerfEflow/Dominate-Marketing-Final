@@ -268,7 +268,7 @@
                             <small>
                                 <i class="fas fa-exclamation-triangle me-1"></i>
                                 Almost at your monthly limit. 
-                                <a href="{{ url_for('payment.manage_subscription') }}">Upgrade now</a>
+                                <a href="{{ url_for('payment_routes.manage_subscription') }}">Upgrade now</a>
                             </small>
                         </div>
                         {% endif %}
@@ -346,7 +346,7 @@
                         {% endif %}
                         
                         <div class="mt-2">
-                            <a href="{{ url_for('payment.manage_subscription') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <a href="{{ url_for('payment_routes.manage_subscription') }}" class="btn btn-outline-secondary btn-sm w-100">
                                 View All Tiers
                             </a>
                         </div>

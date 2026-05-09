@@ -29,7 +29,7 @@ def checkout():
     # Validate tier
     if tier not in PaymentTier.TIERS:
         flash('Invalid subscription tier selected.', 'error')
-        return redirect(url_for('payment.pricing'))
+        return redirect(url_for('payment_routes.pricing'))
     
     tier_config = PaymentTier.TIERS[tier]
     
@@ -103,7 +103,7 @@ def payment_success():
 def payment_cancel():
     """Handle cancelled payment"""
     flash('Payment was cancelled. Your subscription was not activated.', 'warning')
-    return redirect(url_for('payment.pricing'))
+    return redirect(url_for('payment_routes.pricing'))
 
 @payment_routes_bp.route('/manage-subscription')
 @login_required
@@ -137,12 +137,12 @@ def cancel_subscription():
         else:
             flash('Failed to cancel subscription: ' + result.get('error', 'Unknown error'), 'error')
         
-        return redirect(url_for('payment.manage_subscription'))
+        return redirect(url_for('payment_routes.manage_subscription'))
         
     except Exception as e:
         logging.error(f"Subscription cancellation failed: {e}")
         flash('Failed to cancel subscription. Please contact support.', 'error')
-        return redirect(url_for('payment.manage_subscription'))
+        return redirect(url_for('payment_routes.manage_subscription'))
 
 @payment_routes_bp.route('/upgrade')
 @login_required

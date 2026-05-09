@@ -369,7 +369,7 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('payment.pricing') }}">Pricing</a>
+                        <a class="nav-link" href="{{ url_for('payment_routes.pricing') }}">Pricing</a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
@@ -423,7 +423,7 @@
                                         <span class="badge bg-warning ms-1">{{ current_user.profile_completion_percentage }}%</span>
                                     {% endif %}
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('payment.manage_subscription') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('payment_routes.manage_subscription') }}">
                                     <i class="fas fa-crown me-2"></i>Subscription
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
@@ -441,7 +441,7 @@
                             <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-primary ms-2" href="{{ url_for('payment.pricing') }}">View Plans</a>
+                            <a class="btn btn-primary ms-2" href="{{ url_for('payment_routes.pricing') }}">View Plans</a>
                         </li>
                     {% endif %}
                 </ul>

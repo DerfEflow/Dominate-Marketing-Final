@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Salespeople &amp; Admins - Dominate Marketing{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-id-badge me-2"></i>
+                        Salespeople &amp; Admins
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Internal accounts only. These users bypass billing and access every feature.
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Admin Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create New Internal Account</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_salesperson') }}" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" name="username" class="form-control" required autocomplete="off"
+                                   pattern="[A-Za-z0-9_.\-]{2,80}"
+                                   title="2-80 chars; letters, numbers, underscore, dot, hyphen">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Email <span class="text-muted small">(optional)</span></label>
+                            <input type="email" name="email" class="form-control" autocomplete="off">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control" required minlength="8"
+                                   autocomplete="new-password">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Role</label>
+                            <select name="role" class="form-select">
+                                <option value="salesperson" selected>Salesperson</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">
+                                New accounts are created with subscription_tier=ENTERPRISE and account_active=True.
+                                Salespeople can sign in with username + password — no Google OAuth or Stripe.
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accounts list -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Internal Accounts ({{ accounts|length }})</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Created by</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in accounts %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ u.username }}</strong>
+                                        {% if u.id == current_user.id %}
+                                            <span class="badge bg-secondary ms-1">you</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted">{{ u.email or '—' }}</td>
+                                    <td>
+                                        {% if u.is_admin %}
+                                            <span class="badge bg-danger">Admin</span>
+                                        {% elif u.is_salesperson %}
+                                            <span class="badge bg-info">Salesperson</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if u.account_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Deactivated</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted small">
+                                        {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '—' }}
+                                    </td>
+                                    <td class="text-muted small">
+                                        {% if u.created_by_admin_id and creators.get(u.created_by_admin_id) %}
+                                            {{ creators[u.created_by_admin_id].username }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {# Role toggle: only show if not the current user demoting themselves #}
+                                            {% if u.id != current_user.id %}
+                                                {% if u.is_admin %}
+                                                    <form method="POST" action="{{ url_for('admin.change_salesperson_role', user_id=u.id) }}" class="d-inline">
+                                                        <input type="hidden" name="role" value="salesperson">
+                                                        <button type="submit" class="btn btn-outline-info"
+                                                                onclick="return confirm('Demote {{ u.username }} from Admin to Salesperson?');">
+                                                            <i class="fas fa-arrow-down me-1"></i>Demote
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    <form method="POST" action="{{ url_for('admin.change_salesperson_role', user_id=u.id) }}" class="d-inline">
+                                                        <input type="hidden" name="role" value="admin">
+                                                        <button type="submit" class="btn btn-outline-danger"
+                                                                onclick="return confirm('Promote {{ u.username }} to Admin?');">
+                                                            <i class="fas fa-arrow-up me-1"></i>Promote
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            {% endif %}
+
+                                            {# Activate / deactivate #}
+                                            {% if u.id != current_user.id %}
+                                                {% if u.account_active %}
+                                                    <form method="POST" action="{{ url_for('admin.deactivate_salesperson', user_id=u.id) }}" class="d-inline">
+                                                        <button type="submit" class="btn btn-outline-warning"
+                                                                onclick="return confirm('Deactivate {{ u.username }}? They will no longer be able to sign in. Their client data is preserved.');">
+                                                            <i class="fas fa-pause me-1"></i>Deactivate
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    <form method="POST" action="{{ url_for('admin.reactivate_salesperson', user_id=u.id) }}" class="d-inline">
+                                                        <button type="submit" class="btn btn-outline-success">
+                                                            <i class="fas fa-play me-1"></i>Reactivate
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No salesperson or admin accounts yet. Create one above.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer note -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <p class="text-muted small mb-0">
+                <i class="fas fa-info-circle me-1"></i>
+                Accounts are <strong>deactivated, never deleted</strong>. The User row and all the salesperson's
+                client data are preserved on deactivation so a reactivation restores everything intact.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

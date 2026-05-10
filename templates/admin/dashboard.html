@@ -17,6 +17,9 @@
                 </div>
                 <div>
                     <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin.salespeople') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-id-badge me-1"></i> Salespeople &amp; Admins
+                        </a>
                         <a href="{{ url_for('admin.reports') }}" class="btn btn-outline-primary">
                             <i class="fas fa-chart-bar me-1"></i> Reports
                         </a>
@@ -24,7 +27,7 @@
                             <i class="fas fa-envelope me-1"></i> Communications
                         </a>
                         <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-users me-1"></i> Users
+                            <i class="fas fa-users me-1"></i> All Users
                         </a>
                     </div>
                 </div>

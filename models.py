@@ -1,3 +1,4 @@
+import os
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, timedelta
@@ -5,6 +6,19 @@ from enum import Enum
 import uuid
 
 db = SQLAlchemy()
+
+
+def billing_disabled():
+    """True when the SaaS billing layer is turned off (internal-tool mode).
+
+    Toggle by setting DISABLE_BILLING=true in Railway env. When this is true,
+    paywalls, tier gates, and Stripe checkout flows are bypassed for everyone
+    so the app behaves like a free internal tool. Stripe code stays registered
+    but the entry points redirect away. Flip back to false (or unset) to
+    re-enable the SaaS path for a future D2C launch.
+    """
+    return os.environ.get('DISABLE_BILLING', '').lower() in ('1', 'true', 'yes', 'on')
+
 
 class SubscriptionTier(Enum):
     BASIC = "basic"          # Text ads only + posting recommendations
@@ -16,9 +30,22 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    # email is now nullable so admin-created salesperson accounts (which sign in
+    # with username + password and never see Google OAuth) can omit it. The
+    # unique index still applies when email is present.
+    email = db.Column(db.String(120), unique=True, nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    
+
+    # ---- Internal-tool roles (added 2026-05-09 with the B2C → internal pivot) ----
+    # METRICS FOOTGUN: any future revenue / MRR / SaaS-funnel reporting query
+    # MUST filter `is_salesperson=False` AND `is_admin=False` to avoid mixing
+    # internal accounts into customer counts before the eventual D2C relaunch.
+    # See admin.py monthly_registrations / tier_distribution for examples that
+    # currently need this filter applied.
+    is_salesperson = db.Column(db.Boolean, default=False, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    created_by_admin_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
+
     # OAuth provider info
     google_id = db.Column(db.String(100), unique=True)
     twitter_id = db.Column(db.String(100), unique=True)
@@ -103,23 +130,36 @@ class User(UserMixin, db.Model):
     competitors = db.relationship('Competitor', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def has_active_subscription(self):
+        # Internal-tool short-circuit: salespeople and admins don't pay; when
+        # billing is globally disabled, treat everyone as subscribed. Keeps the
+        # SaaS code paths intact for the eventual D2C relaunch.
+        if self.is_salesperson or self.is_admin or billing_disabled():
+            return True
+
         # Check for lifetime access first
         if self.lifetime_access:
             return True
-            
+
         # Check for active trial
         if self.trial_expires and datetime.utcnow() < self.trial_expires:
             return True
-            
+
         # Check regular subscription
         if not self.subscription_expires:
             return False
         return datetime.utcnow() < self.subscription_expires
-    
+
     def can_access_tier(self, required_tier):
+        # Internal accounts and billing-disabled mode always pass. This lets
+        # every existing template gate (`{% if can_access_tier('pro') %}`) and
+        # service-side tier check keep working without modification — they just
+        # silently return True for salespeople/admins.
+        if self.is_salesperson or self.is_admin or billing_disabled():
+            return True
+
         if not self.has_active_subscription():
             return required_tier == SubscriptionTier.BASIC
-        
+
         tier_order = [SubscriptionTier.BASIC, SubscriptionTier.PLUS, SubscriptionTier.PRO, SubscriptionTier.ENTERPRISE]
         return tier_order.index(self.subscription_tier) >= tier_order.index(required_tier)
 
@@ -135,7 +175,20 @@ class Brand(db.Model):
     industry = db.Column(db.String(100))
     description = db.Column(db.Text)
     logo_url = db.Column(db.String(500))
-    
+
+    # ---- Client-management fields (added 2026-05-09 with the internal pivot) ----
+    # Brand still represents an entity owning campaigns, but for internal-tool
+    # mode it's relabeled "Client" in the UI. These columns capture the contact
+    # info a salesperson needs to manage their book of business.
+    contact_name = db.Column(db.String(200))
+    contact_email = db.Column(db.String(200))
+    contact_phone = db.Column(db.String(40))
+    billing_notes = db.Column(db.Text)
+    monthly_retainer = db.Column(db.Numeric(10, 2))
+    status = db.Column(db.String(20), default='active', nullable=False)  # active|paused|onboarding|churned
+    onboarded_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+
     # Subscription info (per brand billing)
     subscription_tier = db.Column(db.Enum(SubscriptionTier), default=SubscriptionTier.BASIC)
     subscription_expires = db.Column(db.DateTime)

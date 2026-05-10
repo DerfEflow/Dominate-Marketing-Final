@@ -10,6 +10,7 @@ markupsafe>=3.0.2
 # Database
 psycopg2-binary>=2.9.10
 sqlalchemy>=2.0.42
+Flask-Migrate==4.0.5  # schema migrations — see MIGRATIONS.md
 
 # Auth & OAuth
 oauthlib>=3.3.1

@@ -368,9 +368,11 @@
                         <a class="nav-link" href="{{ url_for('features') }}">Features</a>
                     </li>
 
+                    {% if not hide_billing_ui %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('payment_routes.pricing') }}">Pricing</a>
                     </li>
+                    {% endif %}
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard.brands') }}">
@@ -383,7 +385,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard.social_media_accounts') }}">
+                        <a class="nav-link" href="{{ url_for('dashboard.social_accounts') }}">
                             <i class="fas fa-share-alt me-1"></i>Social Media
                         </a>
                     </li>
@@ -397,11 +399,22 @@
                 
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
+                        {% if not hide_billing_ui %}
                         <li class="nav-item">
                             <span class="tier-badge tier-{{ current_user.subscription_tier.value }}">
                                 {{ current_user.subscription_tier.value.title() }}
                             </span>
                         </li>
+                        {% endif %}
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <span class="badge bg-danger" title="Admin account">Admin</span>
+                        </li>
+                        {% elif current_user.is_salesperson %}
+                        <li class="nav-item">
+                            <span class="badge bg-info" title="Salesperson account">Sales</span>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('dashboard.index') }}">
                                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
@@ -423,13 +436,17 @@
                                         <span class="badge bg-warning ms-1">{{ current_user.profile_completion_percentage }}%</span>
                                     {% endif %}
                                 </a></li>
+                                {% if not hide_billing_ui %}
                                 <li><a class="dropdown-item" href="{{ url_for('payment_routes.manage_subscription') }}">
                                     <i class="fas fa-crown me-2"></i>Subscription
                                 </a></li>
+                                {% endif %}
+                                {% if current_user.is_admin %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">
                                     <i class="fas fa-cog me-2"></i>Admin Dashboard
                                 </a></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
@@ -440,9 +457,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
                         </li>
+                        {% if not hide_billing_ui %}
                         <li class="nav-item">
                             <a class="btn btn-primary ms-2" href="{{ url_for('payment_routes.pricing') }}">View Plans</a>
                         </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
             </div>

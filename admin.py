@@ -14,30 +14,34 @@ from flask_login import login_required, current_user
 from sqlalchemy import func, desc, asc
 from werkzeug.utils import secure_filename
 
-from models import db, User, Brand, Campaign, SocialPost, QualityCheck
+from werkzeug.security import generate_password_hash
+
+from models import db, User, Brand, Campaign, SocialPost, QualityCheck, SubscriptionTier
 from services.admin_notifications import AdminNotificationService
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 def is_admin():
-    """Check if current user has admin privileges"""
+    """Check if current user has admin privileges.
+
+    Primary check is the User.is_admin DB column (set by bootstrap-admin or
+    promoted via the /admin/salespeople UI). The legacy email allowlist is
+    kept as a fallback so the original quality@/admin@dominatemarketing.com
+    accounts and the ADMIN_EMAIL env var still work during the transition.
+    """
     if not current_user.is_authenticated:
         return False
-    
-    # For Google OAuth users, grant admin privileges to specific emails
-    # This provides you with highest membership privileges as requested
+
+    if getattr(current_user, 'is_admin', False):
+        return True
+
     admin_emails = [
         'admin@dominatemarketing.com',
-        'quality@dominatemarketing.com'
+        'quality@dominatemarketing.com',
     ]
-    
-    # Add environment variable for your email
     if os.environ.get('ADMIN_EMAIL'):
         admin_emails.append(os.environ.get('ADMIN_EMAIL'))
-    
-    # Grant admin access to authenticated Google OAuth users by default for demo
-    # In production, this would be restricted to specific emails only
-    return current_user.email in admin_emails  # Grant admin to all authenticated users for demo
+    return current_user.email in admin_emails
 
 def admin_required(f):
     """Decorator to require admin access"""
@@ -162,6 +166,146 @@ def users():
         logging.error(f"Admin users error: {e}")
         return render_template('admin/users.html',
                              error="Failed to load users data")
+
+@admin_bp.route('/salespeople', methods=['GET'])
+@login_required
+@admin_required
+def salespeople():
+    """List every internal account (salesperson + admin) with management controls."""
+    accounts = (
+        User.query
+        .filter((User.is_salesperson == True) | (User.is_admin == True))  # noqa: E712
+        .order_by(User.is_admin.desc(), User.created_at.desc())
+        .all()
+    )
+    # Resolve who created each account (for audit display).
+    creator_ids = {a.created_by_admin_id for a in accounts if a.created_by_admin_id}
+    creators = {u.id: u for u in User.query.filter(User.id.in_(creator_ids)).all()} if creator_ids else {}
+    return render_template('admin/salespeople.html', accounts=accounts, creators=creators)
+
+
+@admin_bp.route('/salespeople/create', methods=['POST'])
+@login_required
+@admin_required
+def create_salesperson():
+    """Create a salesperson or admin account from the management UI."""
+    username = (request.form.get('username') or '').strip()
+    email = (request.form.get('email') or '').strip() or None
+    password = request.form.get('password') or ''
+    role = (request.form.get('role') or 'salesperson').strip()
+
+    from flask import flash
+
+    if not username or not password:
+        flash('Username and password are required.', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    if role not in ('salesperson', 'admin'):
+        flash('Role must be either "salesperson" or "admin".', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    if User.query.filter_by(username=username).first():
+        flash(f'Username "{username}" is already taken.', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    if email and User.query.filter_by(email=email).first():
+        flash(f'Email "{email}" is already in use.', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    new_user = User(
+        username=username,
+        email=email,
+        password_hash=generate_password_hash(password),
+        full_name=username,
+        is_admin=(role == 'admin'),
+        is_salesperson=(role == 'salesperson'),
+        # ENTERPRISE so any service that reads subscription_tier directly gets
+        # the highest level — short-circuit in can_access_tier handles the rest.
+        subscription_tier=SubscriptionTier.ENTERPRISE,
+        account_active=True,
+        profile_completion_percentage=100,
+        onboarding_completed=True,
+        created_by_admin_id=current_user.id,
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    flash(f'Created {role} account "{username}".', 'success')
+    return redirect(url_for('admin.salespeople'))
+
+
+@admin_bp.route('/salespeople/<user_id>/deactivate', methods=['POST'])
+@login_required
+@admin_required
+def deactivate_salesperson(user_id):
+    """Deactivate (soft-disable) an internal account. Never deletes the row.
+
+    Cascade rule: the User → Brand/Campaign/SocialAccount/Competitor cascade
+    is `all, delete-orphan`. A real DELETE on this user would wipe their
+    entire client book. Setting account_active=False preserves all data and
+    just blocks login (account_active is checked at login time).
+    """
+    target = User.query.get_or_404(user_id)
+    from flask import flash
+    if target.id == current_user.id:
+        flash('You cannot deactivate your own account.', 'error')
+        return redirect(url_for('admin.salespeople'))
+    # Last-active-admin guard: refuse if deactivating this user would leave
+    # zero active admins. Same pattern as the role-toggle guard.
+    if target.is_admin and target.account_active:
+        active_admin_count = User.query.filter_by(is_admin=True, account_active=True).count()
+        if active_admin_count <= 1:
+            flash('Cannot deactivate the last remaining active admin.', 'error')
+            return redirect(url_for('admin.salespeople'))
+    target.account_active = False
+    db.session.commit()
+    flash(f'Deactivated "{target.username}". The account row and their client data are preserved.', 'info')
+    return redirect(url_for('admin.salespeople'))
+
+
+@admin_bp.route('/salespeople/<user_id>/reactivate', methods=['POST'])
+@login_required
+@admin_required
+def reactivate_salesperson(user_id):
+    """Re-enable a previously deactivated internal account."""
+    target = User.query.get_or_404(user_id)
+    target.account_active = True
+    db.session.commit()
+    from flask import flash
+    flash(f'Reactivated "{target.username}".', 'success')
+    return redirect(url_for('admin.salespeople'))
+
+
+@admin_bp.route('/salespeople/<user_id>/role', methods=['POST'])
+@login_required
+@admin_required
+def change_salesperson_role(user_id):
+    """Promote a salesperson to admin or demote an admin to salesperson."""
+    target = User.query.get_or_404(user_id)
+    new_role = (request.form.get('role') or '').strip()
+    from flask import flash
+
+    if new_role not in ('salesperson', 'admin'):
+        flash('Role must be either "salesperson" or "admin".', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    if target.id == current_user.id and new_role != 'admin':
+        flash('You cannot demote your own admin account.', 'error')
+        return redirect(url_for('admin.salespeople'))
+
+    # Last-active-admin guard: never let the system end up with zero admins
+    # who can actually sign in. Deactivated admins don't count.
+    if target.is_admin and new_role != 'admin':
+        active_admin_count = User.query.filter_by(is_admin=True, account_active=True).count()
+        if active_admin_count <= 1:
+            flash('Cannot demote the last remaining active admin.', 'error')
+            return redirect(url_for('admin.salespeople'))
+
+    target.is_admin = (new_role == 'admin')
+    target.is_salesperson = (new_role == 'salesperson')
+    db.session.commit()
+    flash(f'Set "{target.username}" role to {new_role}.', 'success')
+    return redirect(url_for('admin.salespeople'))
+
 
 @admin_bp.route('/quality-control')
 @login_required
@@ -397,20 +541,29 @@ def get_quality_metrics():
 
 def get_user_metrics():
     """Get user engagement metrics"""
-    
-    # Subscription tier distribution
+
+    # METRICS FOOTGUN: this query (and monthly_registrations / campaign_activity
+    # below) counts ALL users, including is_salesperson=True and is_admin=True
+    # accounts created during the internal-tool phase. Before the eventual D2C
+    # relaunch, every SaaS-facing report needs `.filter(User.is_salesperson == False, User.is_admin == False)`
+    # added so internal staff don't inflate customer counts or skew tier distribution.
+    # See models.py User.is_salesperson definition for full context.
+    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter.
     tier_distribution = db.session.query(
         User.subscription_tier,
         func.count(User.id)
     ).group_by(User.subscription_tier).all()
-    
+
     # User activity by registration date
+    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter
+    # so internal-tool signups don't pollute the new-customer trend line.
     monthly_registrations = db.session.query(
         func.date_trunc('month', User.created_at).label('month'),
         func.count(User.id)
     ).group_by('month').order_by('month').limit(12).all()
-    
+
     # Campaign activity by user
+    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter.
     campaign_activity = db.session.query(
         User.subscription_tier,
         func.avg(func.count(Campaign.id))

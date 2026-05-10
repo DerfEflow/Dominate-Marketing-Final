@@ -2,8 +2,12 @@ import os
 import logging
 from flask import Flask, render_template, redirect, url_for
 from flask_login import LoginManager
+from flask_migrate import Migrate
 from dotenv import load_dotenv
-from models import db, User
+from models import db, User, SubscriptionTier, billing_disabled
+
+# Single Migrate instance — Flask-Migrate finds it via `flask db ...` CLI.
+migrate = Migrate()
 
 # Load environment variables
 load_dotenv()
@@ -32,6 +36,25 @@ def create_app():
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Expose helpers to all Jinja templates so they can hide billing-related
+    # nav links when the SaaS layer is off (DISABLE_BILLING=true) or when the
+    # viewer is internal staff (is_salesperson or is_admin).
+    @app.context_processor
+    def inject_billing_helpers():
+        from flask_login import current_user
+        is_internal_user = (
+            current_user.is_authenticated
+            and (getattr(current_user, 'is_salesperson', False)
+                 or getattr(current_user, 'is_admin', False))
+        )
+        return {
+            'billing_disabled': billing_disabled(),
+            'is_internal_user': is_internal_user,
+            # Convenience: hide billing UI when EITHER condition fires.
+            'hide_billing_ui': billing_disabled() or is_internal_user,
+        }
 
     # Setup Flask-Login
     login_manager = LoginManager()
@@ -111,6 +134,43 @@ def create_app():
     except ImportError as e:
         logging.warning(f"Could not import admin module: {e}")
 
+    # When the SaaS billing layer is off (DISABLE_BILLING=true) or the viewer
+    # is internal staff (salesperson/admin), redirect away from any billing /
+    # pricing endpoints. Stripe blueprints stay registered so re-enabling the
+    # SaaS path later is just a matter of unsetting DISABLE_BILLING; this guard
+    # is the surface-level mute.
+    BILLING_BLUEPRINTS = {'payment_routes', 'payments'}
+    BILLING_ENDPOINTS = {'auth.pricing', 'auth.email_signup'}
+
+    @app.before_request
+    def _bypass_billing_when_disabled():
+        from flask import request
+        from flask_login import current_user
+
+        endpoint = request.endpoint or ''
+        # Stripe webhooks must always be reachable so providers don't retry
+        # against a redirected URL — skip this guard for any *.stripe_webhook.
+        if endpoint.endswith('stripe_webhook') or endpoint.endswith('webhook'):
+            return None
+
+        blueprint = endpoint.split('.', 1)[0] if '.' in endpoint else ''
+        is_billing_route = (
+            blueprint in BILLING_BLUEPRINTS
+            or endpoint in BILLING_ENDPOINTS
+        )
+        if not is_billing_route:
+            return None
+
+        is_internal_user = (
+            current_user.is_authenticated
+            and (getattr(current_user, 'is_salesperson', False)
+                 or getattr(current_user, 'is_admin', False))
+        )
+        if billing_disabled() or is_internal_user:
+            target = url_for('dashboard.index') if current_user.is_authenticated else url_for('index')
+            return redirect(target)
+        return None
+
     # Main routes
     @app.route('/')
     def index():
@@ -153,12 +213,87 @@ def create_app():
     def internal_error(error):
         return render_template('errors/500.html'), 500
 
-    # Create database tables
-    with app.app_context():
-        db.create_all()
-        logging.info("Database tables created successfully")
+    # Schema is now owned by Flask-Migrate. Run `flask db upgrade` to apply
+    # migrations (Railway does this automatically via the Procfile release
+    # command). For local dev: pip install flask-migrate, then `flask db upgrade`.
+    # See MIGRATIONS.md for details.
+
+    # Register the bootstrap-admin CLI command. Invoked by the Procfile release
+    # step right after `flask db upgrade` so the first admin exists before any
+    # web traffic hits the app.
+    register_bootstrap_admin_cli(app)
 
     return app
+
+
+def register_bootstrap_admin_cli(app):
+    """Add the `flask bootstrap-admin` CLI command to the app.
+
+    Reads BOOTSTRAP_ADMIN_USERNAME / BOOTSTRAP_ADMIN_PASSWORD /
+    BOOTSTRAP_ADMIN_EMAIL from the environment and creates the first admin
+    user only if no user with is_admin=True already exists. Idempotent across
+    restarts: on subsequent boots the admin already exists and the command
+    is a no-op (it does NOT reset the password).
+
+    Logged behavior:
+      - If env vars are missing: warn and exit 0 (don't crash deploy).
+      - If admin already exists: log "skipping" with the existing username.
+      - If creation succeeds: log "created admin <username>".
+    """
+    import click
+    from werkzeug.security import generate_password_hash
+
+    @app.cli.command('bootstrap-admin')
+    def bootstrap_admin():
+        username = os.environ.get('BOOTSTRAP_ADMIN_USERNAME')
+        password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
+        email = os.environ.get('BOOTSTRAP_ADMIN_EMAIL')
+
+        if not username or not password:
+            click.echo(
+                '[bootstrap-admin] BOOTSTRAP_ADMIN_USERNAME or '
+                'BOOTSTRAP_ADMIN_PASSWORD is not set; skipping. Set both env '
+                'vars on Railway and redeploy to create the first admin.'
+            )
+            return
+
+        existing_admin = User.query.filter_by(is_admin=True).first()
+        if existing_admin:
+            click.echo(
+                f'[bootstrap-admin] An admin already exists '
+                f'(username={existing_admin.username}); skipping. The password '
+                f'is NOT being reset by this command.'
+            )
+            return
+
+        # Username collision check (admin doesn't exist, but a non-admin user
+        # might already own that username).
+        if User.query.filter_by(username=username).first():
+            click.echo(
+                f'[bootstrap-admin] ERROR: username "{username}" is already '
+                f'taken by a non-admin user. Pick a different '
+                f'BOOTSTRAP_ADMIN_USERNAME or promote that user manually.'
+            )
+            return
+
+        admin = User(
+            username=username,
+            email=email,  # may be None — column is nullable
+            password_hash=generate_password_hash(password),
+            full_name=username,
+            is_admin=True,
+            is_salesperson=False,
+            # ENTERPRISE so any code path that reads subscription_tier directly
+            # (rather than going through can_access_tier) gets the highest level.
+            subscription_tier=SubscriptionTier.ENTERPRISE,
+            account_active=True,
+            profile_completion_percentage=100,
+            onboarding_completed=True,
+        )
+        db.session.add(admin)
+        db.session.commit()
+        click.echo(f'[bootstrap-admin] Created admin user "{username}".')
+
 
 # Create app instance
 app = create_app()

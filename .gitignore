@@ -73,3 +73,7 @@ replit.md
 
 # Test databases
 test_*.db
+
+# Local Flask-Migrate scratch (used to autogenerate migrations against an
+# isolated sqlite — never points at prod). Safe to delete anytime.
+.flask_migrate_workdir/

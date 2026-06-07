@@ -47,6 +47,25 @@ each section. This is so Fred can review *choices* without reading code.
   a username (email optional), but the login screen only accepted an email — so a
   salesperson literally couldn't sign in. Login now accepts **email or username**.
 
+## Pivot polish (Phase 2 — finishing the internal tool)
+- **Made client management real.** The database already had fields for a
+  client's contact name/email/phone, monthly retainer, status, and notes, but
+  no screen actually collected them. Added an "Add Client" / "Edit Client" form
+  that captures all of it, and the client page now shows a tidy contact card.
+  This is the heart of what a salesperson needs.
+- **Renamed "Brand" to "Client"** in the menu and main screens (the database
+  still calls it "brand" under the hood — that's invisible to you and avoids
+  risky code changes).
+- **Removed the leftover sales/pricing bits** (plan badges, "Upgrade",
+  subscription status) from the staff-facing screens, since this is an internal
+  tool with billing turned off.
+- **One client page, not two.** There were two different client detail pages;
+  I kept the better one and pointed everything at it.
+- **Added a sample client** ("Summit Roofing Co") with a campaign so the app
+  isn't empty when you first open it. You can edit or delete it.
+- **Left the public marketing pages and the unused "licensing" feature alone**
+  for now — they don't affect the salesperson experience (noted in ROADMAP).
+
 ## Secret hygiene
 - The committed `.env.example` contains only placeholders (good). The real local
   `.env` is git-ignored and was never committed.

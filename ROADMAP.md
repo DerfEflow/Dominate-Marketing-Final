@@ -51,22 +51,36 @@ way, in plain English.
 - Repaired the campaign-creation flow end to end.
 - Fixed salesperson login (email-or-username).
 
-### Phase 2 — Finish the internal-tool experience  ◀ NEXT (needs Fred's taste input)
-1. Sweep B2C language out of the internal UI: hide/replace "Upgrade",
-   "Subscription Tier", and pricing CTAs when `hide_billing_ui` is true
-   (the flag already exists in templates' context).
-2. Make the "Brand" → "Client" relabel consistent across all dashboard pages.
-3. Tidy the salesperson dashboard so it reads as "my book of clients" (use the
-   new client fields: contact, retainer, status).
-4. Decide what to do with public marketing pages (landing/features/faq) for an
-   internal-only tool — keep, simplify, or route straight to login.
+### Phase 2 — Finish the internal-tool experience  ✅ DONE
+1. ✅ Stripped B2C/billing UI (tier badges, subscription status, upgrade CTAs)
+   from the internal surfaces via the `hide_billing_ui` flag.
+2. ✅ Relabeled "Brand" → "Client" across nav and the main dashboard pages.
+3. ✅ Real client management: add/edit a client with contact name/email/phone,
+   monthly retainer, status (active/onboarding/paused/churned), and internal
+   notes. The client page now shows a contact card; the list shows status +
+   contact + retainer. (This was previously impossible — the fields existed in
+   the database but no form captured them.)
+4. ◀ STILL OPEN (Fred's taste): what to do with the public marketing pages
+   (landing/features/faq) for an internal-only tool — keep, simplify, or route
+   straight to login. Left as-is for now; harmless.
 
-### Phase 3 — Exercise the real features (still keys-off where possible)
-1. Verify the marketing-strategy website-analysis flow renders and degrades
-   gracefully without AI keys.
-2. Verify gallery/scheduling with seeded sample content.
-3. Admin reports: add the `is_salesperson/is_admin` filters that are TODO'd so
-   internal accounts don't pollute any counts.
+### Phase 3 — Exercise the real features  ✅ MOSTLY DONE
+1. ✅ Marketing-strategy pages (analyze / dashboard / create-campaign) render
+   and degrade gracefully without AI keys.
+2. ✅ Verified every page end-to-end WITH real data (not just empty states):
+   admin + salesperson login, client create/view/edit, campaign creation,
+   data isolation (salespeople see only their own clients), admin gating
+   (salespeople are blocked from /admin).
+3. ◀ STILL OPEN: admin reports still count internal accounts in customer
+   metrics (the `is_salesperson/is_admin` filters are TODO'd in admin.py).
+   Low priority while there are no real customers yet.
+
+### Phase 3b — Known deferrals (not part of the salesperson MVP)
+- The media-**licensing** feature (`/licensing/*`, `/api/license/*`) still
+  errors on bad inputs. It is NOT linked anywhere in the internal UI, so
+  internal users never reach it. Fix or remove if/when licensing is needed.
+- The standalone `brand_detail` page was retired; its URL now redirects to the
+  single canonical client page.
 
 ### Phase 4 — Pre-launch (Fred-owned hard blocks; do NOT do autonomously)
 1. Real `SESSION_SECRET` + real admin credentials (env, never code).

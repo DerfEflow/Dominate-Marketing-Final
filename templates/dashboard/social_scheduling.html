@@ -163,7 +163,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('dashboard.view_campaign', campaign_id=post.campaign_id) }}" class="text-decoration-none">
+                                        <a href="{{ url_for('dashboard.campaign_detail', campaign_id=post.campaign_id) }}" class="text-decoration-none">
                                             {{ post.campaign.title[:30] }}{% if post.campaign.title|length > 30 %}...{% endif %}
                                         </a>
                                     </td>

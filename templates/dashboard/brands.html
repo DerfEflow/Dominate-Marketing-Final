@@ -32,11 +32,10 @@
                                 <i class="fas fa-building text-white"></i>
                             </div>
                         {% endif %}
+                        {% set status_colors = {'active': 'success', 'onboarding': 'info', 'paused': 'warning', 'churned': 'secondary'} %}
                         <div>
                             <h5 class="card-title mb-1">{{ brand.name }}</h5>
-                            <span class="tier-badge tier-{{ brand.subscription_tier.value }}">
-                                {{ brand.subscription_tier.value.title() }}
-                            </span>
+                            <span class="badge bg-{{ status_colors.get(brand.status, 'secondary') }}">{{ (brand.status or 'active')|title }}</span>
                         </div>
                     </div>
                     
@@ -57,11 +56,10 @@
                     
                     <div class="mb-3">
                         <small class="text-muted">
-                            <i class="fas fa-calendar me-1"></i>
-                            {% if brand.has_active_subscription() %}
-                                <span class="text-success">Active until {{ brand.subscription_expires.strftime('%b %d, %Y') }}</span>
-                            {% else %}
-                                <span class="text-warning">No active subscription</span>
+                            <i class="fas fa-user me-1"></i>
+                            {{ brand.contact_name or 'No contact set' }}
+                            {% if brand.monthly_retainer is not none %}
+                                &middot; ${{ "%.0f"|format(brand.monthly_retainer) }}/mo
                             {% endif %}
                         </small>
                     </div>

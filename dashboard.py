@@ -30,10 +30,16 @@ def index():
             Campaign.brand_id == brand.id,
             SocialPost.scheduled_for > datetime.utcnow()
         ).count()
+        # Count generated content pieces across this client's campaigns.
+        total_content = sum(
+            bool(c.ad_text) + bool(c.image_prompt) + bool(c.video_prompt)
+            for c in campaigns
+        )
         brand_stats.append({
             'brand': brand,
             'total_campaigns': len(campaigns),
             'active_campaigns': active_campaigns,
+            'total_content': total_content,
             'scheduled_posts': scheduled_posts,
             'last_campaign': campaigns[0] if campaigns else None,
         })
@@ -46,26 +52,41 @@ def index():
 @dashboard_bp.route('/brand/<brand_id>')
 @login_required
 def brand_detail(brand_id):
-    brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
-    campaigns = Campaign.query.filter_by(brand_id=brand_id).order_by(desc(Campaign.created_at)).all()
-    campaign_data = []
-    for campaign in campaigns:
-        scheduled_posts = SocialPost.query.filter_by(campaign_id=campaign.id).all()
-        content_data = json.loads(campaign.ai_content) if campaign.ai_content else {}
-        campaign_data.append({
-            'campaign': campaign,
-            'content_summary': {
-                'images': len(content_data.get('images', [])),
-                'videos': len(content_data.get('videos', [])),
-                'texts': len(content_data.get('texts', [])),
-            },
-            'scheduling_summary': {
-                'pending': len([p for p in scheduled_posts if p.status == 'scheduled']),
-                'published': len([p for p in scheduled_posts if p.status == 'posted']),
-                'total': len(scheduled_posts),
-            },
-        })
-    return render_template('dashboard/brand_detail.html', brand=brand, campaign_data=campaign_data)
+    # Canonical client page is view_brand; keep this URL working as a redirect.
+    return redirect(url_for('dashboard.view_brand', brand_id=brand_id))
+
+
+def _apply_client_fields(brand):
+    """Read the client (Brand) form fields and apply them to `brand`.
+
+    Shared by create_brand and edit_brand. Returns an error message string if
+    validation fails, else None.
+    """
+    brand_name = request.form.get('brand_name', '').strip()
+    if not brand_name:
+        return 'Client name is required.'
+
+    brand.name = brand_name
+    brand.website_url = request.form.get('website_url', '').strip()
+    brand.industry = request.form.get('industry', '').strip()
+    brand.description = request.form.get('description', '').strip()
+    brand.contact_name = request.form.get('contact_name', '').strip() or None
+    brand.contact_email = request.form.get('contact_email', '').strip() or None
+    brand.contact_phone = request.form.get('contact_phone', '').strip() or None
+    brand.notes = request.form.get('notes', '').strip() or None
+
+    status = request.form.get('status', 'active').strip()
+    brand.status = status if status in ('active', 'onboarding', 'paused', 'churned') else 'active'
+
+    retainer = request.form.get('monthly_retainer', '').strip()
+    if retainer:
+        try:
+            brand.monthly_retainer = float(retainer)
+        except ValueError:
+            brand.monthly_retainer = None
+    else:
+        brand.monthly_retainer = None
+    return None
 
 
 @dashboard_bp.route('/brand/create', methods=['GET', 'POST'])
@@ -74,35 +95,42 @@ def create_brand():
     if request.method == 'GET':
         return render_template('dashboard/create_brand.html')
 
-    brand_name = request.form.get('brand_name', '').strip()
-    website_url = request.form.get('website_url', '').strip()
-    industry = request.form.get('industry', '').strip()
-    description = request.form.get('description', '').strip()
+    # Tier-based client limits only apply to paying SaaS customers. Internal
+    # staff (salespeople/admins) and billing-disabled mode are unlimited.
+    from models import billing_disabled
+    is_internal = current_user.is_salesperson or current_user.is_admin or billing_disabled()
+    if not is_internal:
+        tier_limits = {'basic': 1, 'plus': 3, 'pro': 10, 'enterprise': 50}
+        tier_name = current_user.subscription_tier.value if current_user.subscription_tier else 'basic'
+        limit = tier_limits.get(tier_name, 1)
+        if Brand.query.filter_by(user_id=current_user.id).count() >= limit:
+            flash(f'Client limit reached for your plan ({limit}).', 'error')
+            return redirect(url_for('dashboard.index'))
 
-    if not brand_name:
-        flash('Brand name is required.', 'error')
+    brand = Brand(user_id=current_user.id, name='')
+    error = _apply_client_fields(brand)
+    if error:
+        flash(error, 'error')
         return redirect(url_for('dashboard.create_brand'))
-
-    # Enforce tier limits
-    tier_limits = {'basic': 1, 'plus': 3, 'pro': 10, 'enterprise': 50}
-    tier_name = current_user.subscription_tier.value if current_user.subscription_tier else 'basic'
-    limit = tier_limits.get(tier_name, 1)
-    current_count = Brand.query.filter_by(user_id=current_user.id).count()
-    if current_count >= limit:
-        flash(f'Brand limit reached for your plan ({limit}). Upgrade to add more brands.', 'error')
-        return redirect(url_for('dashboard.index'))
-
-    brand = Brand(
-        user_id=current_user.id,
-        name=brand_name,
-        website_url=website_url,
-        industry=industry,
-        description=description,
-    )
     db.session.add(brand)
     db.session.commit()
-    flash(f'Brand "{brand_name}" created!', 'success')
-    return redirect(url_for('dashboard.index'))
+    flash(f'Client "{brand.name}" added!', 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
+@dashboard_bp.route('/brand/<brand_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_brand(brand_id):
+    brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
+    if request.method == 'GET':
+        return render_template('dashboard/create_brand.html', brand=brand)
+    error = _apply_client_fields(brand)
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('dashboard.edit_brand', brand_id=brand.id))
+    db.session.commit()
+    flash(f'Client "{brand.name}" updated!', 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
 
 
 @dashboard_bp.route('/brand/<brand_id>/view')

@@ -32,8 +32,9 @@
                         <h5 class="card-title mb-0 text-white">
                             <i class="fas fa-building me-2"></i>{{ stat.brand.name }}
                         </h5>
-                        <span class="badge bg-{{ 'success' if stat.brand.has_active_subscription() else 'secondary' }}">
-                            {{ stat.brand.subscription_tier.value.title() if stat.brand.subscription_tier else 'Free' }}
+                        {% set status_colors = {'active': 'success', 'onboarding': 'info', 'paused': 'warning', 'churned': 'secondary'} %}
+                        <span class="badge bg-{{ status_colors.get(stat.brand.status, 'secondary') }}">
+                            {{ (stat.brand.status or 'active')|title }}
                         </span>
                     </div>
                     
@@ -87,7 +88,7 @@
                     <div class="card-footer bg-transparent">
                         <div class="row">
                             <div class="col-6">
-                                <a href="{{ url_for('dashboard.brand_detail', brand_id=stat.brand.id) }}" 
+                                <a href="{{ url_for('dashboard.view_brand', brand_id=stat.brand.id) }}"
                                    class="btn btn-outline-primary btn-sm w-100">
                                     <i class="fas fa-eye me-1"></i>View Details
                                 </a>

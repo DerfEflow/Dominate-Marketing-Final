@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Create Brand - Dashboard{% endblock %}
+{% set editing = brand is defined and brand %}
+{% block title %}{{ 'Edit Client' if editing else 'Add Client' }} - Dashboard{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -10,171 +11,126 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Create Brand</li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('dashboard.brands') }}">Clients</a></li>
+                        <li class="breadcrumb-item active">{{ 'Edit' if editing else 'Add' }}</li>
                     </ol>
                 </nav>
-                
+
                 <h1 class="h3 text-white mb-2">
-                    <i class="fas fa-plus-circle me-2"></i>Create New Brand
+                    <i class="fas fa-plus-circle me-2"></i>{{ 'Edit Client' if editing else 'Add New Client' }}
                 </h1>
-                <p class="text-muted">Set up your business brand for AI-powered marketing campaigns.</p>
+                <p class="text-muted">Track a client account you're running marketing campaigns for.</p>
             </div>
 
-            <!-- Create Brand Form -->
+            <!-- Client Form -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0 text-white">
-                        <i class="fas fa-building me-2"></i>Brand Information
+                        <i class="fas fa-building me-2"></i>Client Information
                     </h5>
                 </div>
-                
+
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('dashboard.create_brand') }}">
+                    <form method="POST" action="{{ url_for('dashboard.edit_brand', brand_id=brand.id) if editing else url_for('dashboard.create_brand') }}">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="brand_name" class="form-label text-white">
-                                        Brand Name <span class="text-danger">*</span>
+                                        Client / Business Name <span class="text-danger">*</span>
                                     </label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="brand_name" 
-                                           name="brand_name" 
-                                           placeholder="Enter your brand name"
-                                           required
-                                           maxlength="200">
-                                    <small class="form-text text-muted">
-                                        The name of your business or brand
-                                    </small>
+                                    <input type="text" class="form-control" id="brand_name" name="brand_name"
+                                           placeholder="Enter the client's business name" required maxlength="200"
+                                           value="{{ brand.name if editing else '' }}">
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="industry" class="form-label text-white">Industry</label>
                                     <select class="form-select" id="industry" name="industry">
+                                        {% set industries = ['Technology','Healthcare','Finance','Education','E-commerce','Real Estate','Food & Beverage','Travel','Fashion','Fitness','Entertainment','Professional Services','Manufacturing','Non-profit','Other'] %}
                                         <option value="">Select industry</option>
-                                        <option value="Technology">Technology</option>
-                                        <option value="Healthcare">Healthcare</option>
-                                        <option value="Finance">Finance</option>
-                                        <option value="Education">Education</option>
-                                        <option value="E-commerce">E-commerce</option>
-                                        <option value="Real Estate">Real Estate</option>
-                                        <option value="Food & Beverage">Food & Beverage</option>
-                                        <option value="Travel">Travel</option>
-                                        <option value="Fashion">Fashion</option>
-                                        <option value="Fitness">Fitness</option>
-                                        <option value="Entertainment">Entertainment</option>
-                                        <option value="Professional Services">Professional Services</option>
-                                        <option value="Manufacturing">Manufacturing</option>
-                                        <option value="Non-profit">Non-profit</option>
-                                        <option value="Other">Other</option>
+                                        {% for ind in industries %}
+                                        <option value="{{ ind }}" {% if editing and brand.industry == ind %}selected{% endif %}>{{ ind }}</option>
+                                        {% endfor %}
                                     </select>
-                                    <small class="form-text text-muted">
-                                        Helps AI generate industry-specific content
-                                    </small>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="website_url" class="form-label text-white">Website URL</label>
-                            <input type="url" 
-                                   class="form-control" 
-                                   id="website_url" 
-                                   name="website_url" 
-                                   placeholder="https://example.com"
-                                   maxlength="500">
-                            <small class="form-text text-muted">
-                                Your main website URL for content analysis
-                            </small>
+                            <input type="url" class="form-control" id="website_url" name="website_url"
+                                   placeholder="https://example.com" maxlength="500"
+                                   value="{{ brand.website_url if editing else '' }}">
                         </div>
-                        
+
                         <div class="mb-4">
-                            <label for="description" class="form-label text-white">Brand Description</label>
-                            <textarea class="form-control" 
-                                      id="description" 
-                                      name="description" 
-                                      rows="4" 
-                                      placeholder="Describe your brand, products, and what makes you unique..."
-                                      maxlength="1000"></textarea>
-                            <small class="form-text text-muted">
-                                Detailed description helps AI create better targeted content
-                            </small>
+                            <label for="description" class="form-label text-white">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                      placeholder="What the client does, products, what makes them unique..."
+                                      maxlength="1000">{{ brand.description if editing else '' }}</textarea>
                         </div>
-                        
-                        <!-- Subscription Info -->
-                        <div class="alert alert-info">
-                            <h6 class="alert-heading">
-                                <i class="fas fa-info-circle me-2"></i>Brand Limits
-                            </h6>
-                            <p class="mb-2">Your current plan allows:</p>
-                            <ul class="mb-0">
-                                <li><strong>Free:</strong> 1 brand</li>
-                                <li><strong>Basic:</strong> 3 brands</li>
-                                <li><strong>Pro:</strong> 10 brands</li>
-                                <li><strong>Enterprise:</strong> 50 brands</li>
-                            </ul>
+
+                        <!-- Client management fields -->
+                        <h6 class="text-white mb-3"><i class="fas fa-address-card me-2"></i>Contact &amp; Account</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_name" class="form-label text-white">Primary Contact</label>
+                                    <input type="text" class="form-control" id="contact_name" name="contact_name"
+                                           maxlength="200" value="{{ brand.contact_name if editing and brand.contact_name else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_email" class="form-label text-white">Contact Email</label>
+                                    <input type="email" class="form-control" id="contact_email" name="contact_email"
+                                           maxlength="200" value="{{ brand.contact_email if editing and brand.contact_email else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_phone" class="form-label text-white">Contact Phone</label>
+                                    <input type="text" class="form-control" id="contact_phone" name="contact_phone"
+                                           maxlength="40" value="{{ brand.contact_phone if editing and brand.contact_phone else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="monthly_retainer" class="form-label text-white">Monthly Retainer ($)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control" id="monthly_retainer" name="monthly_retainer"
+                                           value="{{ brand.monthly_retainer if editing and brand.monthly_retainer is not none else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label text-white">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        {% set statuses = ['active','onboarding','paused','churned'] %}
+                                        {% for st in statuses %}
+                                        <option value="{{ st }}" {% if editing and brand.status == st %}selected{% elif not editing and st == 'active' %}selected{% endif %}>{{ st.title() }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        
+
+                        <div class="mb-4">
+                            <label for="notes" class="form-label text-white">Internal Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2"
+                                      placeholder="Private notes about this client (not shown to the client)">{{ brand.notes if editing and brand.notes else '' }}</textarea>
+                        </div>
+
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            <a href="{{ url_for('dashboard.brands') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Clients
                             </a>
-                            
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-rocket me-2"></i>Create Brand
+                                <i class="fas fa-save me-2"></i>{{ 'Save Changes' if editing else 'Add Client' }}
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-            
-            <!-- Tips Card -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h6 class="card-title mb-0 text-white">
-                        <i class="fas fa-lightbulb me-2"></i>Pro Tips for Better Results
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-info">Brand Name</h6>
-                                <p class="text-muted small mb-0">
-                                    Use your actual business name for authentic content generation
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-info">Website URL</h6>
-                                <p class="text-muted small mb-0">
-                                    Ensure your website is accessible for AI content analysis
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-info">Industry Selection</h6>
-                                <p class="text-muted small mb-0">
-                                    Choose the most relevant industry for targeted content
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h6 class="text-info">Description</h6>
-                                <p class="text-muted small mb-0">
-                                    Include key differentiators and target audience details
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

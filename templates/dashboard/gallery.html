@@ -83,7 +83,7 @@
                                 
                                 <div class="card-footer bg-transparent">
                                     <div class="btn-group w-100" role="group">
-                                        <a href="{{ url_for('dashboard.view_campaign', campaign_id=campaign.id) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ url_for('dashboard.campaign_detail', campaign_id=campaign.id) }}" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye"></i> View
                                         </a>
                                         <button class="btn btn-outline-secondary btn-sm" onclick="editContent('{{ campaign.id }}')">

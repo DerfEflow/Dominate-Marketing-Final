@@ -163,6 +163,63 @@ class User(UserMixin, db.Model):
         tier_order = [SubscriptionTier.BASIC, SubscriptionTier.PLUS, SubscriptionTier.PRO, SubscriptionTier.ENTERPRISE]
         return tier_order.index(self.subscription_tier) >= tier_order.index(required_tier)
 
+    @property
+    def generations_used(self):
+        """Back-compat alias used by some templates/code paths."""
+        return self.generations_used_this_month or 0
+
+    def get_tier_config(self):
+        """Return the feature/limit config for this user's tier.
+
+        Internal users (salespeople/admins) and billing-disabled mode get
+        effectively unlimited generations so tier gates never block them.
+        """
+        cfg = dict(TIER_CONFIGS.get(self.subscription_tier, TIER_CONFIGS[SubscriptionTier.BASIC]))
+        if self.is_salesperson or self.is_admin or billing_disabled():
+            cfg = dict(cfg)
+            cfg['generations_per_month'] = UNLIMITED
+            cfg['generations_per_day'] = UNLIMITED
+        return _TierConfig(cfg)
+
+
+UNLIMITED = 999999
+
+
+class _TierConfig:
+    """Lightweight attribute view over a tier-config dict (templates use dots)."""
+    def __init__(self, data):
+        self._data = data
+    def __getattr__(self, name):
+        try:
+            return self._data[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+
+TIER_CONFIGS = {
+    SubscriptionTier.BASIC: {
+        'name': 'Basic', 'price_monthly': 29, 'generations_per_month': 30,
+        'generations_per_day': 3, 'ai_models': 'GPT-4o',
+        'features': ['Text ads', 'Posting recommendations'],
+    },
+    SubscriptionTier.PLUS: {
+        'name': 'Plus', 'price_monthly': 59, 'generations_per_month': 100,
+        'generations_per_day': 10, 'ai_models': 'GPT-4o + image generation',
+        'features': ['Everything in Basic', 'Image generation & download'],
+    },
+    SubscriptionTier.PRO: {
+        'name': 'Pro', 'price_monthly': 99, 'generations_per_month': 300,
+        'generations_per_day': 30, 'ai_models': 'GPT-4o + Claude + video',
+        'features': ['Everything in Plus', 'Video/audio', 'Competitor analysis'],
+    },
+    SubscriptionTier.ENTERPRISE: {
+        'name': 'Enterprise', 'price_monthly': 199, 'generations_per_month': UNLIMITED,
+        'generations_per_day': UNLIMITED, 'ai_models': 'All models',
+        'features': ['Everything in Pro', 'Automated social posting'],
+    },
+}
+
+
 class Brand(db.Model):
     __tablename__ = 'brands'
     

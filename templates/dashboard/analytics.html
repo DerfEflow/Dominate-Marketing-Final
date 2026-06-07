@@ -265,7 +265,7 @@
                                 {% for campaign in campaigns[:10] %}
                                 <tr>
                                     <td>
-                                        <a href="{{ url_for('dashboard.campaign_view', campaign_id=campaign.id) }}" class="text-decoration-none">
+                                        <a href="{{ url_for('dashboard.campaign_detail', campaign_id=campaign.id) }}" class="text-decoration-none">
                                             <strong>{{ campaign.title }}</strong>
                                         </a>
                                         <br><small class="text-muted">{{ campaign.business_url[:40] }}...</small>

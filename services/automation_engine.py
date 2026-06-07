@@ -68,20 +68,73 @@ def refresh_source_data(brand):
     return snapshot
 
 
+def text_model():
+    """The OpenAI model used for autopilot text. Configurable via env."""
+    return os.environ.get('OPENAI_TEXT_MODEL', 'gpt-4o-mini')
+
+
+def _openai_chat(system, prompt, max_tokens=600, temperature=None):
+    """Lean OpenAI chat call. Reads OPENAI_API_KEY + OPENAI_TEXT_MODEL from env.
+
+    Uses `max_completion_tokens` (required by GPT-5.x; also accepted by GPT-4.x)
+    and omits temperature by default (GPT-5.x only allows the default), so the
+    same call works across model generations. Returns the message text.
+    """
+    from openai import OpenAI
+    client = OpenAI()  # reads OPENAI_API_KEY from env
+    kwargs = {
+        'model': text_model(),
+        'messages': [{'role': 'system', 'content': system},
+                     {'role': 'user', 'content': prompt}],
+        'max_completion_tokens': max_tokens,
+    }
+    if temperature is not None:
+        kwargs['temperature'] = temperature
+    resp = client.chat.completions.create(**kwargs)
+    return (resp.choices[0].message.content or '').strip()
+
+
+def _parse_list(text):
+    """Parse a model reply into a list of strings (JSON array or numbered lines)."""
+    text = text.strip()
+    # strip code fences
+    if text.startswith('```'):
+        text = text.strip('`')
+        text = text[text.find('\n') + 1:] if '\n' in text else text
+    try:
+        data = json.loads(text)
+        if isinstance(data, list):
+            return [str(x).strip() for x in data if str(x).strip()]
+    except Exception:
+        pass
+    lines = []
+    for ln in text.splitlines():
+        ln = ln.strip().lstrip('-*0123456789. ').strip().strip('"')
+        if ln:
+            lines.append(ln)
+    return lines
+
+
 def _real_research(brand):
-    from services.sell_profile_analyzer import SellProfileAnalyzer
-    from services.viral_tools_researcher import ViralToolsResearcher
-    analyzer = SellProfileAnalyzer()
-    profile = analyzer.export_profile(analyzer.analyze_website(brand.website_url))
-    researcher = ViralToolsResearcher()
-    viral = researcher.export_research(researcher.research_viral_tools(profile))
+    """Live research via a lean OpenAI call — current content angles for the
+    client's industry. Robust and cheap (no scraping/Trends chain required)."""
+    industry = brand.industry or 'general business'
+    site = f" (website: {brand.website_url})" if brand.website_url else ''
+    text = _openai_chat(
+        system="You are a social media marketing strategist. Reply ONLY with a JSON array of strings.",
+        prompt=(f"List 6 timely, specific social media content angles for '{brand.name}', "
+                f"a {industry} business{site}. Each angle is a short phrase (3-7 words) a "
+                f"marketer could turn into a post this month."),
+        max_tokens=300,
+    )
+    angles = _parse_list(text)[:6] or ['behind the scenes', 'customer spotlight', 'seasonal tips']
     return {
-        'profile': profile,
-        'trends': viral.get('trending_topics') or viral.get('viral_tools') or [],
-        'keywords': profile.get('keywords', []),
-        'summary': f"Live research for {brand.name}: "
-                   f"{len(profile.get('keywords', []))} keywords, "
-                   f"{len(viral.get('viral_tools', []))} viral angles.",
+        'profile': {'business_name': brand.name, 'industry': industry,
+                    'about': brand.description or ''},
+        'trends': [{'topic': a, 'momentum': 'AI-suggested'} for a in angles],
+        'keywords': angles,
+        'summary': f"Live AI research for {brand.name} ({industry}): "
+                   f"{len(angles)} current content angles.",
     }
 
 
@@ -130,14 +183,23 @@ def generate_posts(brand, count=4):
 
 
 def _real_posts(brand, snapshot, count):
-    from services.content_generator import ContentGenerator
-    gen = ContentGenerator()
-    viral = {'viral_tools': snapshot.get('trends', [])}
-    content = gen.generate_campaign_content(snapshot.get('profile', {}), viral, tier='pro')
-    posts = []
-    for item in (content.get('texts') or content.get('content') or [])[:count]:
-        text = item.get('content') if isinstance(item, dict) else str(item)
-        posts.append({'content': text, 'simulated': False})
+    """Live AI social posts via a lean OpenAI call, grounded in the research
+    angles + the client's brand voice."""
+    industry = brand.industry or 'business'
+    voice = 'professional'
+    angles = [t['topic'] if isinstance(t, dict) else str(t) for t in snapshot.get('trends', [])]
+    angle_text = '; '.join(angles[:6]) if angles else 'general promotion'
+    text = _openai_chat(
+        system="You are an expert social media copywriter. Reply ONLY with a JSON array of "
+               "ready-to-post captions (strings). No commentary.",
+        prompt=(f"Write {count} short, engaging social media posts for '{brand.name}', a "
+                f"{industry} business. Brand voice: {voice}. Vary them. Use these content "
+                f"angles where helpful: {angle_text}. Each post under 280 characters, may "
+                f"include 1-3 relevant hashtags and an emoji or two."),
+        max_tokens=700,
+    )
+    captions = _parse_list(text)[:count]
+    posts = [{'content': c, 'simulated': False} for c in captions if c]
     return posts or _templated_posts(brand, snapshot, count)
 
 

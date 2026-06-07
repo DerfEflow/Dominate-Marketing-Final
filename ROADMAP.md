@@ -82,6 +82,23 @@ way, in plain English.
 - The standalone `brand_detail` page was retired; its URL now redirects to the
   single canonical client page.
 
+### Phase 3c — Automation Engine  ✅ BUILT (simulation-ready)
+The product's core value loop, per client: **research → generate → schedule →
+auto-post → continually refresh.** See `docs/automation_engine.md`.
+- ✅ `services/automation_engine.py` orchestrates the full cycle and the
+  continual-refresh driver.
+- ✅ Runs end-to-end with NO keys/connectors (simulation): placeholder research,
+  templated content, "connect (simulated)" accounts, SIMULATED posting. Same
+  code uses real APIs/OAuth the moment Fred adds them.
+- ✅ Client-scoped (accounts/research/posts/settings live on the Brand/client).
+- ✅ Scheduler worker fixed (`process_due_posts`) + research-refresh pass; runs
+  in-process locally and as the Railway `worker` in prod.
+- ✅ "Marketing Autopilot" panel on each client page (toggle, cadence, run-now,
+  freshness, connected accounts, upcoming posts).
+- ✅ Verified hands-off in the live server: scheduled posts auto-publish on time.
+- NEEDS FRED (Phase 4): real AI keys; real social OAuth apps (FACEBOOK/TWITTER/
+  LINKEDIN/TIKTOK client id+secret); the Railway worker process running 24/7.
+
 ### Phase 4 — Pre-launch (Fred-owned hard blocks; do NOT do autonomously)
 1. Real `SESSION_SECRET` + real admin credentials (env, never code).
 2. Real API keys for the AI features Fred wants live.

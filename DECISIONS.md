@@ -66,6 +66,29 @@ each section. This is so Fred can review *choices* without reading code.
 - **Left the public marketing pages and the unused "licensing" feature alone**
   for now — they don't affect the salesperson experience (noted in ROADMAP).
 
+## The Automation Engine (the autopilot)
+- **Built the core "set it and forget it" loop**: for each client the system
+  refreshes market research, generates fresh on-trend posts, schedules them,
+  and auto-posts to the client's connected social accounts — then keeps
+  refreshing on a cadence so content never goes stale.
+- **It all runs and is reviewable right now WITHOUT any keys or social logins**,
+  in "simulation" mode: research uses sensible placeholder data, content is
+  generated from templates, accounts can be "connected (simulated)," and posts
+  are marked posted with a SIMULATED tag instead of going to a real network. The
+  instant you add real keys and connect real accounts, the exact same buttons do
+  the real thing — no rebuild.
+- **Decided accounts/automation live on the *client*, not the salesperson**,
+  because each client has their own pages and audience. You connect a client's
+  accounts and flip on autopilot from that client's screen.
+- **Reused the existing code** (the real Facebook/Instagram/X/LinkedIn posting
+  code and OAuth flow already existed but were disconnected and unused) — I wired
+  them together and added the missing "keep refreshing" loop and the on/off UI.
+- **Why simulation matters for you**: you can see the whole engine work and judge
+  whether it's what you want *before* spending on AI usage or setting up social
+  apps. Reduces risk and makes it demoable to your salespeople immediately.
+- To see it: open a client → "Marketing Autopilot" panel → connect a platform or
+  two (simulated) → "Run now" → watch posts get scheduled, then auto-posted.
+
 ## Secret hygiene
 - The committed `.env.example` contains only placeholders (good). The real local
   `.env` is git-ignored and was never committed.

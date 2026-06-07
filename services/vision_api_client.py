@@ -7,7 +7,15 @@ import os
 import logging
 import base64
 from typing import Dict, List, Any, Optional
-from google.cloud import vision
+# google-cloud-vision is an OPTIONAL dependency (not in requirements.txt).
+# Guard the import so this module — and anything that imports it — still loads
+# when the package is absent. The client stays None and features no-op.
+try:
+    from google.cloud import vision
+    VISION_API_AVAILABLE = True
+except ImportError:
+    vision = None
+    VISION_API_AVAILABLE = False
 
 class VisionAPIClient:
     """
@@ -19,10 +27,13 @@ class VisionAPIClient:
         # Service account credentials via environment variable
         self.credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
         
-        if self.credentials_path:
+        if self.credentials_path and VISION_API_AVAILABLE:
             self.client = vision.ImageAnnotatorClient()
         else:
-            logging.warning("Google Vision API credentials not found")
+            if not VISION_API_AVAILABLE:
+                logging.warning("google-cloud-vision not installed — Vision features disabled")
+            else:
+                logging.warning("Google Vision API credentials not found")
             self.client = None
     
     def validate_credentials(self) -> bool:

@@ -13,19 +13,36 @@ from typing import Dict, List, Optional, Tuple, Any
 from urllib.parse import urlparse, urljoin, parse_qs
 from bs4 import BeautifulSoup
 import trafilatura
+# Selenium is an OPTIONAL scraping tier. The only caller (_scrape_with_selenium)
+# is currently disabled, and the package isn't in requirements.txt, so guard the
+# whole import block — the module (and its blueprint) must load without it.
 try:
     from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    SELENIUM_AVAILABLE = True
 except ImportError:
     webdriver = None
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import pytesseract
+    Options = None
+    By = None
+    WebDriverWait = None
+    EC = None
+    SELENIUM_AVAILABLE = False
+try:
+    import pytesseract
+except ImportError:
+    pytesseract = None
 from PIL import Image
 import io
 import re
-from pytrends.request import TrendReq
+try:
+    from pytrends.request import TrendReq
+    PYTRENDS_AVAILABLE = True
+except ImportError:
+    TrendReq = None
+    PYTRENDS_AVAILABLE = False
 
 from models import db, Campaign, Brand
 
@@ -46,8 +63,24 @@ class MarketingStrategyAgent:
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
         })
-        self.trends_client = TrendReq(hl='en-US', tz=360)
-        
+        # Trends client is created lazily on first use so importing this module
+        # (and registering the marketing_strategy blueprint at app boot) never
+        # makes a network call. See the `trends_client` property below.
+        self._trends_client = None
+        self._trends_client_initialized = False
+
+    @property
+    def trends_client(self):
+        if not self._trends_client_initialized:
+            self._trends_client_initialized = True
+            if PYTRENDS_AVAILABLE:
+                try:
+                    self._trends_client = TrendReq(hl='en-US', tz=360)
+                except Exception as e:
+                    logging.warning(f"Google Trends client unavailable: {e}")
+                    self._trends_client = None
+        return self._trends_client
+
     def analyze_website(self, url: str, brand_id: str, geo_location: str = "US") -> Dict[str, Any]:
         """
         Main entry point for comprehensive website analysis
@@ -400,7 +433,11 @@ class MarketingStrategyAgent:
     def _scrape_with_selenium(self, url: str) -> Dict[str, Any]:
         """Scrape website using Selenium for JavaScript-heavy sites"""
         result = {'success': False, 'data': {}}
-        
+
+        if not SELENIUM_AVAILABLE:
+            logging.info("Selenium not installed — skipping Selenium scraping tier.")
+            return result
+
         try:
             chrome_options = Options()
             chrome_options.add_argument('--headless')

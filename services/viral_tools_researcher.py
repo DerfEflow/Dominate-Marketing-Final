@@ -48,12 +48,12 @@ class ViralToolsResearcher:
     """Researches viral trends and memes for campaign creation"""
     
     def __init__(self):
-        # Initialize trend analysis
-        if PYTRENDS_AVAILABLE:
-            self.pytrends = TrendReq(hl='en-US', tz=360)
-        else:
-            self.pytrends = None
-        
+        # Trends client is created lazily (see the `pytrends` property) so that
+        # constructing this researcher — which happens at module import time in
+        # sell_profile_api_endpoints — never makes a network call at app boot.
+        self._pytrends = None
+        self._pytrends_initialized = False
+
         # Platform API configurations 
         self.region = os.getenv('REGION', 'US')
         self.country = os.getenv('COUNTRY', 'US')
@@ -74,7 +74,8 @@ class ViralToolsResearcher:
             'fitness': ['fitness trends', 'home workouts', 'wellness technology', 'nutrition trends', 'mental wellness'],
             'education': ['edtech trends', 'online learning', 'educational innovation', 'skill development', 'learning technology']
         }
-        
+
+
         # Current viral trend categories
         self.viral_trend_categories = [
             'social media challenges',
@@ -102,7 +103,25 @@ class ViralToolsResearcher:
             {'type': 'woman_yelling_cat', 'description': 'Woman yelling at cat meme format', 'platforms': ['facebook', 'instagram', 'twitter']},
             {'type': 'expanding_brain', 'description': 'Expanding brain intelligence levels', 'platforms': ['twitter', 'instagram', 'facebook']}
         ]
-    
+
+    @property
+    def pytrends(self):
+        """Lazily create the Google Trends client on first use.
+
+        Creating TrendReq makes a network call, so we defer it out of __init__
+        to keep app boot offline-safe. Returns None if pytrends is unavailable
+        or the client can't be created.
+        """
+        if not self._pytrends_initialized:
+            self._pytrends_initialized = True
+            if PYTRENDS_AVAILABLE:
+                try:
+                    self._pytrends = TrendReq(hl='en-US', tz=360)
+                except Exception as e:
+                    logging.warning(f"Google Trends client unavailable: {e}")
+                    self._pytrends = None
+        return self._pytrends
+
     def research_viral_tools(self, sell_profile: Dict[str, Any]) -> ViralToolsResearch:
         """Research all viral tools for a business sell profile"""
         logger.info(f"Starting viral tools research for {sell_profile.get('business_name')}")

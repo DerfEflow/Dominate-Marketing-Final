@@ -6,7 +6,15 @@ Analyzes review sentiment and extracts business-relevant aspects
 import os
 import logging
 from typing import Dict, List, Any, Optional
-from google.cloud import language_v1
+# google-cloud-language is an OPTIONAL dependency (not in requirements.txt).
+# Guard the import so this module — and anything that imports it — still loads
+# when the package is absent. The client stays None and features no-op.
+try:
+    from google.cloud import language_v1
+    LANGUAGE_API_AVAILABLE = True
+except ImportError:
+    language_v1 = None
+    LANGUAGE_API_AVAILABLE = False
 
 class NaturalLanguageClient:
     """
@@ -18,10 +26,13 @@ class NaturalLanguageClient:
         # Service account credentials via environment variable
         self.credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
         
-        if self.credentials_path:
+        if self.credentials_path and LANGUAGE_API_AVAILABLE:
             self.client = language_v1.LanguageServiceClient()
         else:
-            logging.warning("Google Natural Language API credentials not found")
+            if not LANGUAGE_API_AVAILABLE:
+                logging.warning("google-cloud-language not installed — Natural Language features disabled")
+            else:
+                logging.warning("Google Natural Language API credentials not found")
             self.client = None
     
     def validate_credentials(self) -> bool:

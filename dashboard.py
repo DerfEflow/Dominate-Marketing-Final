@@ -300,6 +300,36 @@ def connect_zapier(brand_id):
     return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
 
 
+@dashboard_bp.route('/social/<account_id>/test', methods=['POST'])
+@login_required
+def test_social(account_id):
+    """Send a sample payload to a Zapier-connected account's webhook.
+
+    Lets the user verify the connection (and lets Zapier capture the field names
+    when building the Zap) without waiting for the scheduler.
+    """
+    from models import SocialAccount
+    import requests
+    acct = SocialAccount.query.filter_by(id=account_id, user_id=current_user.id).first_or_404()
+    if not acct.webhook_url:
+        flash('Test is only available for Zapier-connected accounts.', 'error')
+        return redirect(url_for('dashboard.view_brand', brand_id=acct.brand_id))
+    payload = {
+        'platform': acct.platform,
+        'content': 'Test post from Dominate Marketing 🎉 If you can see this in Zapier, the connection works!',
+        'image_url': '', 'video_url': '', 'scheduled_for': '', 'account': acct.username or '',
+    }
+    try:
+        r = requests.post(acct.webhook_url, json=payload, timeout=20)
+        if 200 <= r.status_code < 300:
+            flash('Test sent! Go to your Zap in Zapier and click "Test trigger" to see it.', 'success')
+        else:
+            flash(f'Webhook returned {r.status_code}. Double-check the URL.', 'error')
+    except Exception as e:
+        flash(f'Could not reach the webhook: {e}', 'error')
+    return redirect(url_for('dashboard.view_brand', brand_id=acct.brand_id))
+
+
 @dashboard_bp.route('/social/<account_id>/disconnect', methods=['POST'])
 @login_required
 def disconnect_social(account_id):

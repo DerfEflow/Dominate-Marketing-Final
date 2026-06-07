@@ -181,9 +181,16 @@
                                 {% if a.webhook_url %}<span class="badge bg-success ms-1">via Zapier</span>
                                 {% elif a.is_simulated %}<span class="badge bg-info ms-1">simulated</span>{% endif %}
                             </div>
-                            <form method="POST" action="{{ url_for('dashboard.disconnect_social', account_id=a.id) }}">
-                                <button class="btn btn-sm btn-outline-danger" title="Disconnect"><i class="fas fa-times"></i></button>
-                            </form>
+                            <div class="d-flex gap-1">
+                                {% if a.webhook_url %}
+                                <form method="POST" action="{{ url_for('dashboard.test_social', account_id=a.id) }}">
+                                    <button class="btn btn-sm btn-outline-success" title="Send a test post">Test</button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('dashboard.disconnect_social', account_id=a.id) }}">
+                                    <button class="btn btn-sm btn-outline-danger" title="Disconnect"><i class="fas fa-times"></i></button>
+                                </form>
+                            </div>
                         </div>
                         {% endfor %}
                         <hr>

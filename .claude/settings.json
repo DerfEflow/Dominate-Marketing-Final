@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.venv/**)",
+      "Read(venv/**)",
+      "Read(**/__pycache__/**)",
+      "Read(**/*.pyc)",
+      "Read(.env)",
+      "Read(*.db)",
+      "Read(*.sqlite*)",
+      "Read(instance/**)",
+      "Read(outputs/**)",
+      "Read(static/uploads/**)",
+      "Read(attached_assets/**)"
+    ]
+  }
+}

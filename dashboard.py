@@ -265,6 +265,41 @@ def social_callback(platform):
     return redirect(url_for('dashboard.view_brand', brand_id=brand_id) if brand_id else url_for('dashboard.brands'))
 
 
+@dashboard_bp.route('/brand/<brand_id>/social/connect-zapier', methods=['POST'])
+@login_required
+def connect_zapier(brand_id):
+    """Connect a client's platform via a Zapier Catch Hook webhook URL.
+
+    Real posting with no platform developer app: the user pastes the webhook URL
+    from their Zap; we store it on the (client, platform) account and send posts
+    there. Upserts by (brand, platform) so it replaces any prior connection.
+    """
+    brand = _owned_brand_or_404(brand_id)
+    from models import SocialAccount
+    platform = (request.form.get('platform') or '').strip().lower()
+    webhook_url = (request.form.get('webhook_url') or '').strip()
+
+    if platform not in ('facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'):
+        flash('Please choose a platform.', 'error')
+        return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+    if not (webhook_url.startswith('https://') and 'hooks.zapier.com' in webhook_url):
+        flash('That doesn\'t look like a Zapier webhook URL (it should start with '
+              'https://hooks.zapier.com/...).', 'error')
+        return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+    acct = SocialAccount.query.filter_by(brand_id=brand.id, platform=platform).first()
+    if not acct:
+        acct = SocialAccount(user_id=current_user.id, brand_id=brand.id, platform=platform)
+        db.session.add(acct)
+    acct.webhook_url = webhook_url
+    acct.is_simulated = False
+    acct.is_active = True
+    acct.username = acct.username or f"{brand.name} {platform} (via Zapier)"
+    db.session.commit()
+    flash(f'{platform.title()} connected via Zapier for {brand.name}. Posts will publish for real.', 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
 @dashboard_bp.route('/social/<account_id>/disconnect', methods=['POST'])
 @login_required
 def disconnect_social(account_id):

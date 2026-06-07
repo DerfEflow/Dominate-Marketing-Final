@@ -295,6 +295,10 @@ class SocialAccount(db.Model):
     # Simulated connection (demo / no real OAuth app yet). Posts to a simulated
     # account are marked posted with a SIMULATED marker instead of a real API call.
     is_simulated = db.Column(db.Boolean, default=False, nullable=False)
+    # Zapier (or any) webhook URL. When set, posts are sent here (a Zapier
+    # "Catch Hook") which posts to the client's real account — no platform
+    # developer app needed. Takes precedence over direct-API / simulated posting.
+    webhook_url = db.Column(db.Text)
     token_expires = db.Column(db.DateTime)
     
     # Auto-posting settings

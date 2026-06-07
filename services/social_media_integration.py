@@ -62,18 +62,38 @@ class SocialMediaService:
     def post_to_platform(self, social_post: SocialPost) -> Dict[str, Any]:
         """Post content to a specific platform"""
         
-        # Get user's account for this platform
-        account = SocialAccount.query.filter_by(
-            user_id=social_post.user_id,
-            platform=social_post.platform,
-            is_active=True
-        ).first()
-        
+        # Resolve the account for THIS POST'S CLIENT (brand) + platform. A
+        # salesperson runs many clients that each have, say, a Facebook account,
+        # so we must not just match user_id+platform (that would post to the
+        # wrong client). Fall back to the user's account only if the post isn't
+        # tied to a client.
+        brand_id = None
+        if social_post.campaign_id:
+            from models import Campaign
+            camp = Campaign.query.get(social_post.campaign_id)
+            brand_id = camp.brand_id if camp else None
+
+        account = None
+        if brand_id:
+            account = SocialAccount.query.filter_by(
+                brand_id=brand_id, platform=social_post.platform, is_active=True
+            ).first()
+        if not account:
+            account = SocialAccount.query.filter_by(
+                user_id=social_post.user_id, platform=social_post.platform, is_active=True
+            ).first()
+
         if not account:
             return {
                 'success': False,
                 'error': f'No connected {social_post.platform} account found'
             }
+
+        # Zapier (webhook) connector: if this account posts via a webhook URL,
+        # send the post there. Zapier then publishes to the client's real
+        # account — no platform developer app required. This is REAL posting.
+        if getattr(account, 'webhook_url', None):
+            return self._post_via_webhook(account, social_post)
 
         # Simulation mode: when the account is a simulated/demo connection (or no
         # real OAuth app is configured for this platform), don't call a live API —
@@ -134,6 +154,40 @@ class SocialMediaService:
                 'error': str(e)
             }
     
+    def _post_via_webhook(self, account: SocialAccount, post: SocialPost) -> Dict[str, Any]:
+        """Send the post to a Zapier (or any) Catch Hook webhook.
+
+        The receiving Zap is configured to post to the client's real social
+        account. We send a simple JSON payload Zapier can map onto the post
+        action's fields.
+        """
+        from models import db
+        payload = {
+            'platform': post.platform,
+            'content': post.content,
+            'image_url': post.image_url or '',
+            'video_url': post.video_url or '',
+            'scheduled_for': post.scheduled_for.isoformat() if post.scheduled_for else '',
+            'account': account.username or '',
+        }
+        try:
+            response = requests.post(account.webhook_url, json=payload, timeout=20)
+            ok = 200 <= response.status_code < 300
+            post.status = 'posted' if ok else 'failed'
+            if ok:
+                post.posted_at = datetime.utcnow()
+                post.platform_post_id = f"ZAPIER-{post.platform}-{int(datetime.utcnow().timestamp())}"
+            else:
+                post.error_message = f"Zapier webhook returned {response.status_code}: {response.text[:200]}"
+            db.session.commit()
+            return {'success': ok, 'post_id': post.platform_post_id,
+                    'via': 'zapier', 'error': None if ok else post.error_message}
+        except Exception as e:
+            post.status = 'failed'
+            post.error_message = f"Zapier webhook error: {e}"
+            db.session.commit()
+            return {'success': False, 'error': post.error_message}
+
     def _post_to_facebook(self, account: SocialAccount, post: SocialPost) -> Dict[str, Any]:
         """Post to Facebook"""
         

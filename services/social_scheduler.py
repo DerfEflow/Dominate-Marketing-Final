@@ -98,13 +98,23 @@ class SocialScheduler:
             
             for post in ready_posts:
                 try:
-                    # Check if user's account is still connected
-                    account = SocialAccount.query.filter_by(
-                        user_id=post.user_id,
-                        platform=post.platform,
-                        is_active=True
-                    ).first()
-                    
+                    # Check the post's CLIENT (brand) has this platform connected,
+                    # falling back to the user's account. (Matches the resolution
+                    # in SocialMediaService.post_to_platform.)
+                    brand_id = None
+                    if post.campaign_id:
+                        camp = Campaign.query.get(post.campaign_id)
+                        brand_id = camp.brand_id if camp else None
+                    account = None
+                    if brand_id:
+                        account = SocialAccount.query.filter_by(
+                            brand_id=brand_id, platform=post.platform, is_active=True
+                        ).first()
+                    if not account:
+                        account = SocialAccount.query.filter_by(
+                            user_id=post.user_id, platform=post.platform, is_active=True
+                        ).first()
+
                     if not account:
                         post.status = 'failed'
                         post.error_message = f'No connected {post.platform} account'

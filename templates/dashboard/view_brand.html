@@ -178,7 +178,8 @@
                             <div>
                                 <i class="fab fa-{{ a.platform }} me-2"></i>{{ a.platform|title }}
                                 <small class="text-muted">{{ a.username }}</small>
-                                {% if a.is_simulated %}<span class="badge bg-info ms-1">simulated</span>{% endif %}
+                                {% if a.webhook_url %}<span class="badge bg-success ms-1">via Zapier</span>
+                                {% elif a.is_simulated %}<span class="badge bg-info ms-1">simulated</span>{% endif %}
                             </div>
                             <form method="POST" action="{{ url_for('dashboard.disconnect_social', account_id=a.id) }}">
                                 <button class="btn btn-sm btn-outline-danger" title="Disconnect"><i class="fas fa-times"></i></button>
@@ -189,7 +190,22 @@
                     {% else %}
                         <p class="text-muted small">No accounts connected yet. Connect at least one to schedule posts.</p>
                     {% endif %}
-                    <div class="small text-muted mb-1">Connect a platform</div>
+                    <div class="small text-muted mb-1">Connect via Zapier (posts for real)</div>
+                    <form method="POST" action="{{ url_for('dashboard.connect_zapier', brand_id=brand.id) }}" class="row g-1 mb-3">
+                        <div class="col-4">
+                            <select name="platform" class="form-select form-select-sm">
+                                {% for p in all_platforms %}<option value="{{ p }}">{{ p|title }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input type="url" name="webhook_url" class="form-control form-control-sm" placeholder="https://hooks.zapier.com/...">
+                        </div>
+                        <div class="col-2">
+                            <button class="btn btn-sm btn-success w-100" title="Connect">Add</button>
+                        </div>
+                    </form>
+
+                    <div class="small text-muted mb-1">Or try it without setup (simulated)</div>
                     {% for p in all_platforms %}
                         {% if p not in connected_platforms %}
                         <a href="{{ url_for('dashboard.connect_social', brand_id=brand.id, platform=p) }}" class="btn btn-sm btn-outline-secondary mb-1">

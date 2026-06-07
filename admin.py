@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from io import StringIO, BytesIO
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, make_response, session
 from flask_login import login_required, current_user
-from sqlalchemy import func, desc, asc
+from sqlalchemy import func, desc, asc, case
 from werkzeug.utils import secure_filename
 
 from werkzeug.security import generate_password_hash
@@ -554,30 +554,42 @@ def get_user_metrics():
         func.count(User.id)
     ).group_by(User.subscription_tier).all()
 
-    # User activity by registration date
-    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter
-    # so internal-tool signups don't pollute the new-customer trend line.
-    monthly_registrations = db.session.query(
-        func.date_trunc('month', User.created_at).label('month'),
-        func.count(User.id)
-    ).group_by('month').order_by('month').limit(12).all()
+    # User activity by registration date.
+    # Computed in Python rather than with SQL date_trunc() so it works on both
+    # SQLite (local dev) and Postgres (prod) — date_trunc is Postgres-only.
+    # TODO(d2c-relaunch): exclude is_salesperson/is_admin so internal-tool
+    # signups don't pollute the new-customer trend line.
+    monthly_counts = {}
+    for (created_at,) in db.session.query(User.created_at).all():
+        if not created_at:
+            continue
+        key = created_at.strftime('%Y-%m')
+        monthly_counts[key] = monthly_counts.get(key, 0) + 1
+    monthly_registrations = sorted(monthly_counts.items())[-12:]
 
-    # Campaign activity by user
-    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter.
-    campaign_activity = db.session.query(
-        User.subscription_tier,
-        func.avg(func.count(Campaign.id))
-    ).join(Campaign).group_by(User.subscription_tier).all()
-    
+    # Average campaigns per tier. Done as two simple queries + Python division
+    # because func.avg(func.count(...)) is an invalid nested aggregate in SQL.
+    # TODO(d2c-relaunch): exclude is_salesperson/is_admin accounts.
+    users_per_tier = dict(
+        db.session.query(User.subscription_tier, func.count(User.id))
+        .group_by(User.subscription_tier).all()
+    )
+    campaigns_per_tier = dict(
+        db.session.query(User.subscription_tier, func.count(Campaign.id))
+        .join(Campaign).group_by(User.subscription_tier).all()
+    )
+    campaign_activity = {
+        tier: round(campaigns_per_tier.get(tier, 0) / users_per_tier[tier], 2)
+        for tier in users_per_tier if users_per_tier[tier]
+    }
+
     return {
         "tier_distribution": dict(tier_distribution),
         "monthly_registrations": [
-            {
-                "month": month.strftime('%Y-%m'),
-                "count": count
-            } for month, count in monthly_registrations
+            {"month": month, "count": count}
+            for month, count in monthly_registrations
         ],
-        "campaign_activity": dict(campaign_activity)
+        "campaign_activity": campaign_activity
     }
 
 def generate_custom_report(report_type, date_range, filters):
@@ -891,21 +903,25 @@ def get_quality_trends():
     daily_quality = db.session.query(
         func.date(QualityCheck.created_at).label('date'),
         func.count(QualityCheck.id).label('total'),
-        func.sum(func.case([(QualityCheck.passed == True, 1)], else_=0)).label('passed')
+        # SQLAlchemy 2.x case(): positional when-clauses, not a list + func.case.
+        func.sum(case((QualityCheck.passed == True, 1), else_=0)).label('passed')
     ).filter(
         QualityCheck.created_at >= thirty_days_ago
     ).group_by(
         func.date(QualityCheck.created_at)
     ).order_by('date').all()
-    
+
     trends = []
     for date, total, passed in daily_quality:
+        passed = passed or 0
         pass_rate = (passed / total * 100) if total > 0 else 0
+        # func.date() returns a str on SQLite and a date on Postgres — handle both.
+        date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
         trends.append({
-            "date": date.strftime('%Y-%m-%d'),
+            "date": date_str,
             "total_checks": total,
             "passed_checks": passed,
             "pass_rate": round(pass_rate, 1)
         })
-    
+
     return trends

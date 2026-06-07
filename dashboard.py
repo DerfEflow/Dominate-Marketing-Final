@@ -136,20 +136,30 @@ def campaign_detail(campaign_id):
                            scheduled_posts=scheduled_posts)
 
 
-@dashboard_bp.route('/brand/<brand_id>/new_campaign', methods=['GET', 'POST'])
-@login_required
-def new_campaign_form(brand_id):
-    brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
-    if request.method == 'GET':
-        return render_template('dashboard/new_campaign.html', brand=brand)
+def _create_campaign_from_form(brand_id=None):
+    """Create a Campaign from the submitted form and kick off generation.
 
-    # POST — create and kick off generation
-    campaign_title = request.form.get('campaign_name', '').strip() or f"Campaign {datetime.utcnow().strftime('%b %d')}"
-    target_url = request.form.get('target_url', '').strip()
-    target_audience = request.form.get('target_audience', '').strip()
-    campaign_goal = request.form.get('campaign_goal', 'engagement').strip()
-    brand_voice = request.form.get('brand_voice', 'professional').strip()
-    content_types = request.form.getlist('content_types') or ['text', 'image']
+    Shared by the brand-scoped flow (new_campaign_form) and the standalone
+    flow (create_campaign_post). The two templates use slightly different field
+    names, so we accept either. brand_id is optional — Campaign.brand_id is
+    nullable, so a campaign can be created without a client attached.
+    """
+    form = request.form
+    # Accept either form's field names.
+    campaign_title = (form.get('campaign_name') or form.get('title') or '').strip() \
+        or f"Campaign {datetime.utcnow().strftime('%b %d')}"
+    target_url = (form.get('target_url') or form.get('business_url') or '').strip()
+    target_audience = form.get('target_audience', '').strip()
+    campaign_goal = form.get('campaign_goal', 'engagement').strip()
+    brand_voice = form.get('brand_voice', 'professional').strip()
+    content_types = form.getlist('content_types') or ['text', 'image']
+
+    # Resolve/validate the brand if one was supplied (from the URL or the form).
+    brand_id = brand_id or form.get('brand_id') or None
+    if brand_id:
+        brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first()
+        if not brand:
+            brand_id = None  # ignore a brand that isn't this user's
 
     campaign = Campaign(
         id=str(uuid.uuid4()),
@@ -162,12 +172,17 @@ def new_campaign_form(brand_id):
         campaign_goal=campaign_goal,
         brand_voice=brand_voice,
         status='pending',
-        content_preferences=json.dumps({'content_types': content_types}),
+        # Record the tier in effect when the campaign was created.
+        tier_used=getattr(current_user.subscription_tier, 'value', 'basic'),
+        # Persist content-type selection on an existing column (there is no
+        # dedicated content_preferences column on the model).
+        services_used=json.dumps({'content_types': content_types}),
     )
     db.session.add(campaign)
     db.session.commit()
 
-    # Kick off async generation
+    # Kick off async generation. Guarded so a missing AI key / processor never
+    # 500s the request — the campaign is still created and can be regenerated.
     try:
         from services.async_campaign_processor import AsyncCampaignProcessor
         processor = AsyncCampaignProcessor()
@@ -181,9 +196,33 @@ def new_campaign_form(brand_id):
         flash(f'Campaign "{campaign_title}" created! Content is generating in the background.', 'success')
     except Exception as e:
         logger.error(f"Failed to queue campaign generation: {e}")
-        flash(f'Campaign created but generation could not start automatically. Error: {e}', 'warning')
+        flash('Campaign created. AI generation is not configured yet, so no content was generated.', 'warning')
 
     return redirect(url_for('dashboard.campaign_status', campaign_id=campaign.id))
+
+
+@dashboard_bp.route('/brand/<brand_id>/new_campaign', methods=['GET', 'POST'])
+@login_required
+def new_campaign_form(brand_id):
+    brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
+    if request.method == 'GET':
+        return render_template('dashboard/new_campaign.html', brand=brand)
+    return _create_campaign_from_form(brand_id=brand_id)
+
+
+@dashboard_bp.route('/campaign/create', methods=['GET'])
+@login_required
+def create_campaign():
+    """Standalone campaign creation form (client/brand optional)."""
+    brands = Brand.query.filter_by(user_id=current_user.id, is_active=True).all()
+    return render_template('dashboard/create_campaign.html', brands=brands)
+
+
+@dashboard_bp.route('/campaign/create', methods=['POST'])
+@login_required
+def create_campaign_post():
+    """Handle the standalone campaign creation form submission."""
+    return _create_campaign_from_form()
 
 
 @dashboard_bp.route('/campaign/<campaign_id>/status')
@@ -193,7 +232,16 @@ def campaign_status(campaign_id):
     if campaign.user_id != current_user.id:
         flash('Access denied', 'error')
         return redirect(url_for('dashboard.index'))
-    return render_template('dashboard/campaign_status.html', campaign=campaign)
+    # Map the campaign's status onto the shape the template expects. The
+    # template treats 'queued'/'processing' as in-progress states.
+    status_map = {'pending': 'queued', 'draft': 'queued'}
+    job_status = {
+        'status': status_map.get(campaign.status, campaign.status),
+        'created_at': campaign.created_at,
+    }
+    return render_template('dashboard/campaign_status.html',
+                           campaign=campaign,
+                           job_status=job_status)
 
 
 @dashboard_bp.route('/api/campaign/<campaign_id>/status')
@@ -316,7 +364,22 @@ def social_scheduling():
     posts = SocialPost.query.join(Campaign).filter(
         Campaign.user_id == current_user.id
     ).order_by(SocialPost.scheduled_for).all()
-    return render_template('dashboard/social_scheduling.html', posts=posts)
+    from models import SocialAccount
+    # Template looks up connected accounts by platform name.
+    social_accounts = {
+        a.platform: a
+        for a in SocialAccount.query.filter_by(user_id=current_user.id).all()
+    }
+    stats = {
+        'scheduled': sum(1 for p in posts if p.status == 'scheduled'),
+        'posted': sum(1 for p in posts if p.status == 'posted'),
+        'failed': sum(1 for p in posts if p.status == 'failed'),
+        'recurring': sum(1 for p in posts if getattr(p, 'is_recurring', False)),
+    }
+    return render_template('dashboard/social_scheduling.html',
+                           posts=posts,
+                           social_accounts=social_accounts,
+                           stats=stats)
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +389,38 @@ def social_scheduling():
 @login_required
 def analytics():
     campaigns = Campaign.query.filter_by(user_id=current_user.id).order_by(desc(Campaign.created_at)).all()
-    return render_template('dashboard/analytics.html', campaigns=campaigns)
+
+    # Summary counts the template renders as headline stats.
+    total_campaigns = len(campaigns)
+    completed_campaigns = sum(1 for c in campaigns if c.status == 'completed')
+    processing_campaigns = sum(1 for c in campaigns if c.status == 'processing')
+
+    # Breakdown of campaigns by goal (drives the "Campaign Goals" chart).
+    goals_breakdown = {}
+    for c in campaigns:
+        goal = (c.campaign_goal or 'general')
+        goals_breakdown[goal] = goals_breakdown.get(goal, 0) + 1
+
+    # Static comparison figures used by the "vs. traditional agency" callout.
+    industry_stats = {
+        'avg_agency_time_weeks': 6,
+        'dominate_time_minutes': 10,
+        'avg_agency_cost_monthly': 5000,
+        'dominate_cost_monthly': 99,
+        'traditional_data_age_years': 2,
+        'trend_data_age_hours': 24,
+        'update_frequency_minutes': 60,
+    }
+
+    return render_template(
+        'dashboard/analytics.html',
+        campaigns=campaigns,
+        total_campaigns=total_campaigns,
+        completed_campaigns=completed_campaigns,
+        processing_campaigns=processing_campaigns,
+        goals_breakdown=goals_breakdown,
+        industry_stats=industry_stats,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -372,4 +466,59 @@ def ai_services_status():
         status['google_ai'] = 'configured' if os.environ.get('GOOGLE_API_KEY') else 'missing key'
     except ImportError:
         status['google_ai'] = 'not installed'
-    return render_template('dashboard/ai_services_status.html', status=status)
+    # Which model each AI service uses for the current user's tier. Shown on the
+    # status page; these are display strings, not wired to live calls.
+    tier_models = {
+        'openai': 'gpt-4o',
+        'anthropic': 'claude-3-5-sonnet',
+        'google_ai': 'gemini-1.5-pro',
+    }
+    tier = getattr(current_user.subscription_tier, 'value', 'basic')
+    tier_color = {
+        'basic': 'secondary',
+        'plus': 'info',
+        'pro': 'primary',
+        'enterprise': 'success',
+    }.get(tier, 'secondary')
+    # Feature capabilities for the current tier (drives the feature matrix and
+    # the video-generation sections in the template).
+    from models import SubscriptionTier
+    capabilities = {
+        'text_generation': True,
+        'image_generation': current_user.can_access_tier(SubscriptionTier.PLUS),
+        'competitor_analysis': current_user.can_access_tier(SubscriptionTier.PRO),
+        'video_generation': current_user.can_access_tier(SubscriptionTier.PRO),
+        'image_to_video': current_user.can_access_tier(SubscriptionTier.PRO),
+        'auto_posting': current_user.can_access_tier(SubscriptionTier.ENTERPRISE),
+    }
+    # Per-service "is it configured?" booleans the template checks individually.
+    service_status = {
+        'openai': bool(os.environ.get('OPENAI_API_KEY')),
+        'anthropic': bool(os.environ.get('ANTHROPIC_API_KEY')),
+        'google': bool(os.environ.get('GOOGLE_API_KEY')),
+        'pika_labs': bool(os.environ.get('PIKA_LABS_API_KEY')),
+    }
+    # Rough time estimate breakdown shown on the status page.
+    processing_estimate = {
+        'estimated_minutes': 5,
+        'breakdown': {
+            'Website analysis': '~1 min',
+            'Strategy generation': '~1 min',
+            'Content creation': '~2 min',
+            'Quality review': '~1 min',
+        },
+    }
+    return render_template('dashboard/ai_services_status.html',
+                           status=status,
+                           tier_models=tier_models,
+                           tier_color=tier_color,
+                           capabilities=capabilities,
+                           service_status=service_status,
+                           processing_estimate=processing_estimate)
+
+
+@dashboard_bp.route('/tone-examples')
+@login_required
+def tone_examples():
+    """Static page of brand-voice / tone examples."""
+    return render_template('dashboard/tone_examples.html')

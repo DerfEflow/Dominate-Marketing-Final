@@ -44,19 +44,26 @@ def login():
 
 @auth.route('/login', methods=['POST'])
 def login_post():
-    """Handle email/password login"""
-    email = request.form.get('email')
+    """Handle login by email OR username + password.
+
+    The form field is historically named "email", but admin-provisioned
+    salespeople sign in with a username (email is optional for them). So we
+    accept the value as either an email or a username.
+    """
+    identifier = (request.form.get('email') or '').strip()
     password = request.form.get('password')
     remember = request.form.get('remember')
-    
-    if not email or not password:
-        flash('Please enter both email and password.', 'error')
+
+    if not identifier or not password:
+        flash('Please enter both your email/username and password.', 'error')
         return render_template('auth/login.html')
-    
-    user = User.query.filter_by(email=email).first()
-    
-    if not user or not check_password_hash(user.password_hash, password):
-        flash('Invalid email or password.', 'error')
+
+    # Match on email first, then fall back to username.
+    user = User.query.filter_by(email=identifier).first() \
+        or User.query.filter_by(username=identifier).first()
+
+    if not user or not user.password_hash or not check_password_hash(user.password_hash, password):
+        flash('Invalid email/username or password.', 'error')
         return render_template('auth/login.html')
     
     login_user(user, remember=bool(remember))

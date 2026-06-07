@@ -305,7 +305,7 @@ def create_campaign():
         tier_config = current_user.get_tier_config()
         if (current_user.generations_used or 0) >= tier_config.generations_per_month:
             flash('Monthly generation limit reached. Please upgrade your subscription.', 'error')
-            return redirect(url_for('payment.manage_subscription'))
+            return redirect(url_for('payment_routes.manage_subscription'))
         
         # Get form data
         brand_id = request.form.get('brand_id', '').strip()

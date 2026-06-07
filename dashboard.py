@@ -518,8 +518,14 @@ def brands():
 @login_required
 def social_accounts():
     from models import SocialAccount
-    accounts = SocialAccount.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard/social_accounts.html', accounts=accounts)
+    # Social accounts are managed per client. Show an overview of each client and
+    # the platforms they have connected, linking to the client page to manage.
+    brands = Brand.query.filter_by(user_id=current_user.id).all()
+    overview = []
+    for b in brands:
+        accts = SocialAccount.query.filter_by(brand_id=b.id, is_active=True).all()
+        overview.append({'brand': b, 'platforms': [a.platform for a in accts]})
+    return render_template('dashboard/social_accounts.html', overview=overview)
 
 
 @dashboard_bp.route('/scheduling')

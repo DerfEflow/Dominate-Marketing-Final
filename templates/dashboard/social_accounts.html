@@ -1,330 +1,55 @@
 {% extends "base.html" %}
 
-{% block title %}Social Media Accounts - {{ super() }}{% endblock %}
+{% block title %}Social Accounts - Dominate Marketing{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Social Media Accounts</h1>
-                <a href="{{ url_for('dashboard.gallery') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-images"></i> View Gallery
-                </a>
-            </div>
+            <h1 class="h3 mb-1"><i class="fas fa-share-nodes me-2"></i>Social Accounts</h1>
+            <p class="text-muted mb-0">
+                Social accounts are connected per client. Open a client to connect their
+                Facebook, Instagram, X, LinkedIn or TikTok and turn on the marketing autopilot.
+            </p>
+        </div>
+    </div>
 
-            <p class="text-muted mb-4">Connect your social media accounts to automatically post your campaigns.</p>
-
-            <!-- Platform Connection Cards -->
-            <div class="row">
-                <!-- Facebook -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <i class="fab fa-facebook fa-3x text-primary mb-3"></i>
-                            <h5>Facebook</h5>
-                            <p class="text-muted small">Post images, videos, and text content to your Facebook page.</p>
-                            {% if facebook_connected %}
-                            <div class="alert alert-success py-2">
-                                <i class="fas fa-check"></i> Connected as {{ facebook_username }}
-                            </div>
-                            <button class="btn btn-outline-danger btn-sm" onclick="disconnectAccount('facebook')">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
-                            {% else %}
-                            <button class="btn btn-primary" onclick="connectAccount('facebook')">
-                                <i class="fas fa-link"></i> Connect Facebook
-                            </button>
-                            {% endif %}
-                        </div>
+    {% if overview %}
+    <div class="row g-3">
+        {% for row in overview %}
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ row.brand.name }}</h5>
+                        {% if row.platforms %}
+                            {% for p in row.platforms %}
+                                <span class="badge bg-secondary me-1"><i class="fab fa-{{ p }} me-1"></i>{{ p|title }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted small">No accounts connected yet</span>
+                        {% endif %}
+                        {% if row.brand.automation_enabled %}
+                            <span class="badge bg-success ms-1">Autopilot on</span>
+                        {% endif %}
                     </div>
-                </div>
-
-                <!-- Instagram -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <i class="fab fa-instagram fa-3x text-danger mb-3"></i>
-                            <h5>Instagram</h5>
-                            <p class="text-muted small">Share visual content and stories to your Instagram account.</p>
-                            {% if instagram_connected %}
-                            <div class="alert alert-success py-2">
-                                <i class="fas fa-check"></i> Connected as {{ instagram_username }}
-                            </div>
-                            <button class="btn btn-outline-danger btn-sm" onclick="disconnectAccount('instagram')">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
-                            {% else %}
-                            <button class="btn btn-danger" onclick="connectAccount('instagram')">
-                                <i class="fas fa-link"></i> Connect Instagram
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- X (Twitter) -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <i class="fab fa-twitter fa-3x text-info mb-3"></i>
-                            <h5>X (Twitter)</h5>
-                            <p class="text-muted small">Tweet your content and engage with your audience.</p>
-                            {% if twitter_connected %}
-                            <div class="alert alert-success py-2">
-                                <i class="fas fa-check"></i> Connected as {{ twitter_username }}
-                            </div>
-                            <button class="btn btn-outline-danger btn-sm" onclick="disconnectAccount('twitter')">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
-                            {% else %}
-                            <button class="btn btn-info" onclick="connectAccount('twitter')">
-                                <i class="fas fa-link"></i> Connect X
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TikTok -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <i class="fab fa-tiktok fa-3x text-dark mb-3"></i>
-                            <h5>TikTok</h5>
-                            <p class="text-muted small">Share short-form videos to reach younger audiences.</p>
-                            {% if tiktok_connected %}
-                            <div class="alert alert-success py-2">
-                                <i class="fas fa-check"></i> Connected as {{ tiktok_username }}
-                            </div>
-                            <button class="btn btn-outline-danger btn-sm" onclick="disconnectAccount('tiktok')">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
-                            {% else %}
-                            <button class="btn btn-dark" onclick="connectAccount('tiktok')">
-                                <i class="fas fa-link"></i> Connect TikTok
-                            </button>
-                            <div class="mt-2">
-                                <small class="text-warning">
-                                    <i class="fas fa-info-circle"></i> Requires video content
-                                </small>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LinkedIn -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body text-center">
-                            <i class="fab fa-linkedin fa-3x text-primary mb-3"></i>
-                            <h5>LinkedIn</h5>
-                            <p class="text-muted small">Share professional content and engage B2B audiences.</p>
-                            {% if linkedin_connected %}
-                            <div class="alert alert-success py-2">
-                                <i class="fas fa-check"></i> Connected as {{ linkedin_username }}
-                            </div>
-                            <button class="btn btn-outline-danger btn-sm" onclick="disconnectAccount('linkedin')">
-                                <i class="fas fa-unlink"></i> Disconnect
-                            </button>
-                            {% else %}
-                            <button class="btn btn-primary" onclick="connectAccount('linkedin')">
-                                <i class="fas fa-link"></i> Connect LinkedIn
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Auto-Posting Settings Card -->
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100 border-success">
-                        <div class="card-body text-center">
-                            <i class="fas fa-robot fa-3x text-success mb-3"></i>
-                            <h5>Auto-Posting</h5>
-                            <p class="text-muted small">Configure automatic posting schedules and frequency.</p>
-                            <button class="btn btn-success" onclick="configureAutoPosting()">
-                                <i class="fas fa-cogs"></i> Configure
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Connected Accounts Summary -->
-            {% if connected_accounts %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Connected Accounts ({{ connected_accounts|length }})</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for account in connected_accounts %}
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fab fa-{{ account.platform }} fa-2x me-3 
-                                   {% if account.platform == 'facebook' %}text-primary
-                                   {% elif account.platform == 'instagram' %}text-danger
-                                   {% elif account.platform == 'twitter' %}text-info
-                                   {% elif account.platform == 'linkedin' %}text-primary
-                                   {% else %}text-dark{% endif %}"></i>
-                                <div>
-                                    <h6 class="mb-0">{{ account.platform | title }}</h6>
-                                    <small class="text-muted">{{ account.username }}</small>
-                                    {% if account.auto_post_enabled %}
-                                    <br><small class="text-success">
-                                        <i class="fas fa-check"></i> Auto-posting enabled
-                                    </small>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Setup Instructions -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Setup Instructions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Getting Started:</h6>
-                            <ol class="small">
-                                <li>Connect your social media accounts above</li>
-                                <li>Create campaigns in the dashboard</li>
-                                <li>Schedule posts from the gallery</li>
-                                <li>Monitor performance and engagement</li>
-                            </ol>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Requirements:</h6>
-                            <ul class="small">
-                                <li><strong>Instagram/TikTok:</strong> Requires images or videos</li>
-                                <li><strong>Business Accounts:</strong> Some features need business/creator accounts</li>
-                                <li><strong>Permissions:</strong> Grant posting permissions during connection</li>
-                                <li><strong>Content Policies:</strong> All content must comply with platform guidelines</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <a href="{{ url_for('dashboard.view_brand', brand_id=row.brand.id) }}" class="btn btn-outline-primary btn-sm">
+                        Manage
+                    </a>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-</div>
-
-<!-- Auto-Posting Configuration Modal -->
-<div class="modal fade" id="autoPostingModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Auto-Posting Configuration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="autoPostingForm">
-                    <div class="mb-3">
-                        <label class="form-label">Select Platforms for Auto-Posting</label>
-                        {% for account in connected_accounts %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="auto_{{ account.platform }}" 
-                                   value="{{ account.platform }}" {% if account.auto_post_enabled %}checked{% endif %}>
-                            <label class="form-check-label" for="auto_{{ account.platform }}">
-                                <i class="fab fa-{{ account.platform }}"></i> {{ account.platform | title }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="postFrequency" class="form-label">Default Posting Frequency</label>
-                        <select class="form-select" id="postFrequency">
-                            <option value="manual">Manual Only</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="varyContent">
-                            <label class="form-check-label" for="varyContent">
-                                Generate variations for each platform
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="saveAutoPostingSettings()">Save Settings</button>
-            </div>
-        </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-share-nodes fa-3x text-muted mb-3"></i>
+        <h5>No clients yet</h5>
+        <p class="text-muted mb-4">Add a client first, then connect their social accounts.</p>
+        <a href="{{ url_for('dashboard.create_brand') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Client
+        </a>
     </div>
+    {% endif %}
 </div>
-
-<script>
-function connectAccount(platform) {
-    // Redirect to OAuth flow
-    window.open(`/auth/connect/${platform}`, 'oauth', 'width=600,height=600');
-}
-
-function disconnectAccount(platform) {
-    if (confirm(`Disconnect your ${platform} account?`)) {
-        fetch(`/auth/disconnect/${platform}`, {method: 'POST'})
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error disconnecting account: ' + data.error);
-                }
-            });
-    }
-}
-
-function configureAutoPosting() {
-    new bootstrap.Modal(document.getElementById('autoPostingModal')).show();
-}
-
-function saveAutoPostingSettings() {
-    const platforms = [];
-    document.querySelectorAll('#autoPostingForm input[type="checkbox"]:checked').forEach(cb => {
-        if (cb.id.startsWith('auto_')) {
-            platforms.push(cb.value);
-        }
-    });
-    
-    const formData = new FormData();
-    formData.append('platforms', JSON.stringify(platforms));
-    formData.append('frequency', document.getElementById('postFrequency').value);
-    formData.append('vary_content', document.getElementById('varyContent').checked);
-    
-    fetch('/dashboard/configure-auto-posting', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error saving settings: ' + data.error);
-        }
-    });
-}
-
-// Listen for OAuth completion
-window.addEventListener('message', function(event) {
-    if (event.data.type === 'oauth_complete') {
-        location.reload();
-    }
-});
-</script>
 {% endblock %}

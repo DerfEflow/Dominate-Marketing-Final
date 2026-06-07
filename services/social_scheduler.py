@@ -46,7 +46,8 @@ class SocialScheduler:
             try:
                 self._process_scheduled_posts()
                 self._cleanup_old_posts()
-                
+                self.process_research_refresh()
+
                 # Sleep for check interval
                 time.sleep(self.check_interval)
                 
@@ -54,6 +55,32 @@ class SocialScheduler:
                 logger.error(f"Scheduler error: {e}")
                 time.sleep(60)  # Wait longer on error
     
+    def process_due_posts(self):
+        """Public entry point used by the worker process and manual triggers.
+
+        Publishes any posts whose scheduled time has arrived, then cleans up old
+        ones. (The worker __main__ and the admin "run now" action call this.)
+        """
+        self._process_scheduled_posts()
+        self._cleanup_old_posts()
+
+    def process_research_refresh(self):
+        """Re-run the automation cycle for clients whose source data is stale.
+
+        This is the 'continual fresh source data' driver: automation-enabled
+        clients get their research refreshed + new posts generated and scheduled
+        on their cadence.
+        """
+        try:
+            from services.automation_engine import run_due_clients
+            ran = run_due_clients()
+            if ran:
+                logger.info(f"Automation: refreshed {len(ran)} client(s)")
+            return ran
+        except Exception as e:
+            logger.error(f"Automation refresh error: {e}")
+            return []
+
     def _process_scheduled_posts(self):
         """Process posts scheduled for now or earlier"""
         
@@ -251,6 +278,7 @@ if __name__ == '__main__':
         while True:
             try:
                 scheduler.process_due_posts()
+                scheduler.process_research_refresh()
             except Exception as e:
                 logging.error(f"Scheduler error: {e}")
             time.sleep(60)

@@ -74,7 +74,26 @@ class SocialMediaService:
                 'success': False,
                 'error': f'No connected {social_post.platform} account found'
             }
-        
+
+        # Simulation mode: when the account is a simulated/demo connection (or no
+        # real OAuth app is configured for this platform), don't call a live API —
+        # mark the post as posted with a SIMULATED marker. This lets the whole
+        # schedule→post pipeline run end to end with no real connectors. When
+        # Fred adds real OAuth apps + connects real accounts, this branch is
+        # skipped and the real platform code below runs.
+        from services.automation_engine import social_configured
+        if getattr(account, 'is_simulated', False) or not social_configured(social_post.platform):
+            from models import db
+            social_post.status = 'posted'
+            social_post.posted_at = datetime.utcnow()
+            social_post.platform_post_id = f"SIMULATED-{social_post.platform}-{int(datetime.utcnow().timestamp())}"
+            db.session.commit()
+            return {
+                'success': True,
+                'post_id': social_post.platform_post_id,
+                'simulated': True,
+            }
+
         # Check token expiry
         if account.token_expires and datetime.utcnow() > account.token_expires:
             refresh_result = self._refresh_token(account)

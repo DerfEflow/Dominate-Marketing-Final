@@ -246,6 +246,14 @@ class Brand(db.Model):
     onboarded_at = db.Column(db.DateTime)
     notes = db.Column(db.Text)
 
+    # ---- Automation engine (added 2026-06-07) ----
+    # Per-client autopilot: when enabled, the scheduler periodically refreshes
+    # this client's research, generates fresh content, and schedules posts.
+    automation_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    posting_frequency_days = db.Column(db.Integer, default=3, nullable=False)
+    last_research_at = db.Column(db.DateTime)        # freshness of source data
+    research_snapshot = db.Column(db.Text)           # latest research as JSON
+
     # Subscription info (per brand billing)
     subscription_tier = db.Column(db.Enum(SubscriptionTier), default=SubscriptionTier.BASIC)
     subscription_expires = db.Column(db.DateTime)
@@ -284,6 +292,9 @@ class SocialAccount(db.Model):
     username = db.Column(db.String(100))
     access_token = db.Column(db.Text)
     refresh_token = db.Column(db.Text)
+    # Simulated connection (demo / no real OAuth app yet). Posts to a simulated
+    # account are marked posted with a SIMULATED marker instead of a real API call.
+    is_simulated = db.Column(db.Boolean, default=False, nullable=False)
     token_expires = db.Column(db.DateTime)
     
     # Auto-posting settings

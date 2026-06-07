@@ -138,7 +138,143 @@ def edit_brand(brand_id):
 def view_brand(brand_id):
     brand = Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
     campaigns = Campaign.query.filter_by(brand_id=brand.id).order_by(desc(Campaign.created_at)).all()
-    return render_template('dashboard/view_brand.html', brand=brand, campaigns=campaigns)
+
+    # Automation panel data
+    from models import SocialAccount
+    social_accounts = SocialAccount.query.filter_by(brand_id=brand.id, is_active=True).all()
+    upcoming_posts = SocialPost.query.join(Campaign).filter(
+        Campaign.brand_id == brand.id,
+        SocialPost.status == 'scheduled'
+    ).order_by(SocialPost.scheduled_for).limit(20).all()
+    research = json.loads(brand.research_snapshot) if brand.research_snapshot else None
+    all_platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok']
+    connected_platforms = {a.platform for a in social_accounts}
+
+    return render_template('dashboard/view_brand.html', brand=brand, campaigns=campaigns,
+                           social_accounts=social_accounts, upcoming_posts=upcoming_posts,
+                           research=research, all_platforms=all_platforms,
+                           connected_platforms=connected_platforms)
+
+
+# ---------------------------------------------------------------------------
+# Automation engine + social connections (per client)
+# ---------------------------------------------------------------------------
+def _owned_brand_or_404(brand_id):
+    return Brand.query.filter_by(id=brand_id, user_id=current_user.id).first_or_404()
+
+
+@dashboard_bp.route('/brand/<brand_id>/automation', methods=['POST'])
+@login_required
+def update_automation(brand_id):
+    """Toggle automation on/off and set the posting cadence for a client."""
+    brand = _owned_brand_or_404(brand_id)
+    brand.automation_enabled = request.form.get('automation_enabled') == 'on'
+    try:
+        cadence = int(request.form.get('posting_frequency_days', 3))
+        brand.posting_frequency_days = max(1, min(cadence, 30))
+    except (ValueError, TypeError):
+        brand.posting_frequency_days = 3
+    db.session.commit()
+    state = 'enabled' if brand.automation_enabled else 'paused'
+    flash(f'Automation {state} for {brand.name}.', 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
+@dashboard_bp.route('/brand/<brand_id>/run-automation', methods=['POST'])
+@login_required
+def run_automation(brand_id):
+    """Run one automation cycle now (research → generate → schedule)."""
+    brand = _owned_brand_or_404(brand_id)
+    from services.automation_engine import run_cycle
+    try:
+        summary = run_cycle(brand)
+        if summary.get('posts_scheduled'):
+            flash(f"Automation ran: refreshed research and scheduled "
+                  f"{summary['posts_scheduled']} post(s). ({summary['mode']} mode)", 'success')
+        else:
+            flash(f"Automation refreshed research, but no posts were scheduled "
+                  f"({summary.get('note') or 'connect a social account first'}).", 'warning')
+    except Exception as e:
+        logger.error(f"run_automation error: {e}")
+        flash(f'Automation could not complete: {e}', 'error')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
+@dashboard_bp.route('/brand/<brand_id>/social/connect/<platform>')
+@login_required
+def connect_social(brand_id, platform):
+    """Connect a client's social account.
+
+    If a real OAuth app is configured for this platform, redirect into the OAuth
+    flow. Otherwise create a SIMULATED connection so the pipeline is reviewable
+    end to end without real connectors.
+    """
+    brand = _owned_brand_or_404(brand_id)
+    from models import SocialAccount
+    from services.automation_engine import social_configured
+
+    if platform not in ('facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'):
+        flash('Unknown platform.', 'error')
+        return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+    if social_configured(platform):
+        # Real OAuth flow — encode brand in state so the callback can scope it.
+        from services.social_auth_service import social_auth_service
+        redirect_uri = url_for('dashboard.social_callback', platform=platform, _external=True)
+        # Reuse the service's URL builder but carry brand_id in state.
+        url = social_auth_service.get_auth_url(platform, f"{current_user.id}|{brand.id}", redirect_uri)
+        if url:
+            return redirect(url)
+        flash(f'{platform.title()} is not fully configured; created a simulated connection instead.', 'info')
+
+    # Simulated connection
+    existing = SocialAccount.query.filter_by(brand_id=brand.id, platform=platform).first()
+    if existing:
+        existing.is_active = True
+        existing.is_simulated = True
+        existing.username = f"@{brand.name.lower().replace(' ', '')}_{platform}"
+    else:
+        acct = SocialAccount(
+            user_id=current_user.id, brand_id=brand.id, platform=platform,
+            username=f"@{brand.name.lower().replace(' ', '')}_{platform}",
+            is_active=True, is_simulated=True,
+        )
+        db.session.add(acct)
+    db.session.commit()
+    flash(f'{platform.title()} connected (simulated) for {brand.name}.', 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
+@dashboard_bp.route('/social/callback/<platform>')
+@login_required
+def social_callback(platform):
+    """Real OAuth callback — exchanges the code and stores the client's account."""
+    from services.social_auth_service import social_auth_service
+    code = request.args.get('code')
+    state = request.args.get('state', '')
+    redirect_uri = url_for('dashboard.social_callback', platform=platform, _external=True)
+    result = social_auth_service.handle_oauth_callback(platform, code, state.replace('|', ':'), redirect_uri)
+    # Scope the new account to the client carried in state (user_id|brand_id).
+    brand_id = state.split('|')[-1] if '|' in state else None
+    if result.get('success') and brand_id and result.get('account'):
+        result['account'].brand_id = brand_id
+        db.session.commit()
+        flash(f'{platform.title()} account connected.', 'success')
+    else:
+        flash(f'Could not connect {platform}: {result.get("error", "unknown error")}', 'error')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand_id) if brand_id else url_for('dashboard.brands'))
+
+
+@dashboard_bp.route('/social/<account_id>/disconnect', methods=['POST'])
+@login_required
+def disconnect_social(account_id):
+    from models import SocialAccount
+    acct = SocialAccount.query.filter_by(id=account_id, user_id=current_user.id).first_or_404()
+    brand_id = acct.brand_id
+    acct.is_active = False
+    db.session.commit()
+    flash(f'{acct.platform.title()} disconnected.', 'info')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand_id) if brand_id else url_for('dashboard.brands'))
 
 
 # ---------------------------------------------------------------------------

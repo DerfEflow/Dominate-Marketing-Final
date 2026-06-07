@@ -101,6 +101,133 @@
         </div>
     </div>
 
+    <!-- Automation Engine -->
+    <div class="row mb-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Marketing Autopilot</h5>
+                    {% if brand.automation_enabled %}
+                        <span class="badge bg-success">On</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Paused</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        When on, the system periodically refreshes this client's market
+                        research, generates fresh on-trend posts, and schedules them to the
+                        connected accounts below.
+                    </p>
+                    <form method="POST" action="{{ url_for('dashboard.update_automation', brand_id=brand.id) }}" class="row g-2 align-items-end mb-3">
+                        <div class="col-auto form-check ms-2">
+                            <input class="form-check-input" type="checkbox" id="automation_enabled" name="automation_enabled" {% if brand.automation_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="automation_enabled">Enable autopilot</label>
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label small mb-0">Post every</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" min="1" max="30" class="form-control" name="posting_frequency_days" value="{{ brand.posting_frequency_days or 3 }}" style="max-width:80px">
+                                <span class="input-group-text">days</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                        </div>
+                    </form>
+
+                    <div class="d-flex align-items-center justify-content-between border-top pt-3">
+                        <div>
+                            <div class="small text-muted">Source data freshness</div>
+                            {% if brand.last_research_at %}
+                                <strong>Updated {{ brand.last_research_at.strftime('%b %d, %Y %H:%M') }} UTC</strong>
+                                {% if research and research.mode == 'simulated' %}<span class="badge bg-info ms-1">simulated</span>{% endif %}
+                            {% else %}
+                                <strong class="text-warning">No research yet</strong>
+                            {% endif %}
+                            {% if research and research.summary %}
+                            <div class="small text-muted mt-1">{{ research.summary }}</div>
+                            {% endif %}
+                        </div>
+                        <form method="POST" action="{{ url_for('dashboard.run_automation', brand_id=brand.id) }}">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-bolt me-1"></i>Run now
+                            </button>
+                        </form>
+                    </div>
+
+                    {% if research and research.trends %}
+                    <div class="mt-3">
+                        <div class="small text-muted mb-1">Current content angles</div>
+                        {% for t in research.trends[:6] %}
+                            <span class="badge bg-light text-dark border me-1 mb-1">{{ t.topic if t.topic is defined else t }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-share-nodes me-2"></i>Connected Accounts</h5></div>
+                <div class="card-body">
+                    {% if social_accounts %}
+                        {% for a in social_accounts %}
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                <i class="fab fa-{{ a.platform }} me-2"></i>{{ a.platform|title }}
+                                <small class="text-muted">{{ a.username }}</small>
+                                {% if a.is_simulated %}<span class="badge bg-info ms-1">simulated</span>{% endif %}
+                            </div>
+                            <form method="POST" action="{{ url_for('dashboard.disconnect_social', account_id=a.id) }}">
+                                <button class="btn btn-sm btn-outline-danger" title="Disconnect"><i class="fas fa-times"></i></button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                        <hr>
+                    {% else %}
+                        <p class="text-muted small">No accounts connected yet. Connect at least one to schedule posts.</p>
+                    {% endif %}
+                    <div class="small text-muted mb-1">Connect a platform</div>
+                    {% for p in all_platforms %}
+                        {% if p not in connected_platforms %}
+                        <a href="{{ url_for('dashboard.connect_social', brand_id=brand.id, platform=p) }}" class="btn btn-sm btn-outline-secondary mb-1">
+                            <i class="fab fa-{{ p }} me-1"></i>{{ p|title }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if upcoming_posts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-clock me-2"></i>Upcoming Scheduled Posts</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead><tr><th>When (UTC)</th><th>Platform</th><th>Content</th></tr></thead>
+                            <tbody>
+                                {% for p in upcoming_posts %}
+                                <tr>
+                                    <td class="text-nowrap"><small>{{ p.scheduled_for.strftime('%b %d, %H:%M') }}</small></td>
+                                    <td><i class="fab fa-{{ p.platform }} me-1"></i>{{ p.platform|title }}</td>
+                                    <td><small>{{ p.content[:90] }}{% if p.content|length > 90 %}…{% endif %}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Campaigns -->
     <div class="row">
         <div class="col-12">

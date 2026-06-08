@@ -188,12 +188,46 @@ def fetch_competitor_intel(competitor_urls):
     return out
 
 
+def fetch_news(keywords, geo='US', max_items=5):
+    """Fresh headlines via Google News RSS (real, no key). Returns signals.
+
+    Grounds content in what's actually in the news for the client's topics —
+    part of the Culture & Trends / Client-News awareness.
+    """
+    out = []
+    seeds = [k for k in (keywords or [])[:2] if k]
+    if not seeds:
+        return out
+    try:
+        import requests
+        import xml.etree.ElementTree as ET
+        from urllib.parse import quote_plus
+        for seed in seeds:
+            url = (f"https://news.google.com/rss/search?q={quote_plus(seed)}"
+                   f"&hl=en-{geo}&gl={geo}&ceid={geo}:en")
+            r = requests.get(url, headers={'User-Agent': _UA}, timeout=12)
+            if r.status_code != 200:
+                continue
+            root = ET.fromstring(r.content)
+            for item in list(root.iterfind('.//item'))[:3]:
+                title = (item.findtext('title') or '').strip()
+                pub = (item.findtext('pubDate') or '').strip()
+                src_el = item.find('{*}source')
+                src = (src_el.text if src_el is not None else 'Google News')
+                if title:
+                    out.append(_signal('news', title, f"headline for '{seed}' — {pub}", src))
+    except Exception as e:
+        logger.info(f"fetch_news unavailable: {e}")
+    return out
+
+
 # Dormant feeds (need keys/connectors) — documented so the architecture is clear.
 def fetch_reviews(*args, **kwargs):
-    """Yelp / Google Maps reviews — needs API keys. Dormant."""
+    """Yelp / Google Maps reviews — needs API keys (Yelp Fusion / Google Places). Dormant."""
     return []
 
 
-def fetch_news(*args, **kwargs):
-    """News / market / sports / entertainment APIs — needs keys. Dormant."""
+def fetch_local_events(*args, **kwargs):
+    """Local sports / concerts / movies / conventions — needs event APIs
+    (Ticketmaster, TMDB, etc.). Dormant until keys are configured."""
     return []

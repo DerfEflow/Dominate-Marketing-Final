@@ -68,14 +68,18 @@ work. So "aware of everything" is the north star; the architecture is built so
 feeds plug in over time, starting with the highest-signal, most-attainable ones.
 
 ## What's live now vs. needs keys/connectors
-**Live with no keys** (real data): client **website scrape** → Profile;
-**events/holiday calendar**; **Google Trends** (best-effort); **competitor
-website scrape** when a competitor URL is on file. AI synthesis runs on GPT‑5.5.
+**Live now** (real data; AI on GPT‑5.5 with the OpenAI key):
+- Client Profile from a **headless-browser render** of the site (also bypasses
+  many scrape blocks) + **GPT‑5.5 vision** reading a screenshot.
+- Radar feeds: **events/holiday calendar**, **Google Trends** (best-effort),
+  **Google News headlines** (keyless RSS), **competitor website** when a URL is on file.
+- **AI image generation** in posts (Plus tier+, OpenAI image API).
 
 **Needs keys/connectors later** (pluggable, dormant until added): Yelp / Google
-Maps reviews, news & sports/movie/concert APIs, deeper market data, image
-generation (OpenAI image API — Plus), video (Pro/Enterprise), real social
-posting (Zapier per client).
+Maps **reviews**, **local events** (sports/movies/concerts via Ticketmaster/TMDB
+etc.), deeper market data, **video** generation (Pro — Veo/Pika/Sora key), real
+social **posting** (Zapier per client), and a **scraping API** for guaranteed
+coverage of sites that block rendering.
 
 ## Build sequence
 1. **Grounded pipeline** — replace "AI brainstorm" with Profile → Radar

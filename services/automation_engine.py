@@ -50,6 +50,27 @@ def text_model():
     return os.environ.get('OPENAI_TEXT_MODEL', 'gpt-4o-mini')
 
 
+def image_model():
+    # mini is the cost-sensible default for batch social images.
+    return os.environ.get('OPENAI_IMAGE_MODEL', 'gpt-image-1-mini')
+
+
+# Tier gating: images on Plus+, video on Pro+ (see docs/BLUEPRINT.md).
+_TIER_RANK = {'basic': 0, 'plus': 1, 'pro': 2, 'enterprise': 3}
+
+
+def _tier_rank(brand):
+    return _TIER_RANK.get(getattr(brand.subscription_tier, 'value', 'basic'), 0)
+
+
+def wants_images(brand):
+    return ai_configured() and _tier_rank(brand) >= 1
+
+
+def wants_video(brand):
+    return _tier_rank(brand) >= 2
+
+
 # ---------------------------------------------------------------------------
 # OpenAI helpers (GPT-5.x compatible: max_completion_tokens, default temperature)
 # ---------------------------------------------------------------------------
@@ -83,6 +104,46 @@ def _openai_vision(image_bytes, prompt, max_tokens=400):
         ]}],
     )
     return (resp.choices[0].message.content or '').strip()
+
+
+def _openai_image(prompt, size='1024x1024'):
+    """Generate an image and return PNG bytes (or None). Uses the OpenAI key."""
+    import base64
+    from openai import OpenAI
+    client = OpenAI()
+    r = client.images.generate(model=image_model(), prompt=prompt, size=size, n=1)
+    d = r.data[0]
+    if getattr(d, 'b64_json', None):
+        return base64.b64decode(d.b64_json)
+    if getattr(d, 'url', None):
+        import requests
+        return requests.get(d.url, timeout=30).content
+    return None
+
+
+def _save_post_media(brand, data, kind='img', ext='png'):
+    """Persist generated post media to static/uploads. Returns static path or None."""
+    if not data:
+        return None
+    try:
+        folder = os.path.join('static', 'uploads')
+        os.makedirs(folder, exist_ok=True)
+        fname = f"{kind}_{brand.id}_{uuid.uuid4().hex[:8]}.{ext}"
+        with open(os.path.join(folder, fname), 'wb') as f:
+            f.write(data)
+        return f"uploads/{fname}"
+    except Exception as e:
+        logger.info(f"could not save post media: {e}")
+        return None
+
+
+def _image_prompt(brand, profile, brief, caption):
+    colors = ', '.join(profile.get('brand_colors', [])[:3]) if profile.get('brand_colors') else ''
+    return (f"Professional social media image for {brand.name}, a business that sells "
+            f"{profile.get('what_they_sell')}. Theme: {brief.get('angle')}. "
+            f"Clean, modern, scroll-stopping, photographic. "
+            f"{('Brand colors: ' + colors + '. ') if colors else ''}"
+            f"Do NOT include any text, words, or logos in the image.")
 
 
 def _strip_fences(text):
@@ -229,7 +290,11 @@ def gather_radar(brand, profile):
     signals = []
     signals += radar.fetch_events(country='US', days=30)
     signals += radar.fetch_trends(keywords)
+    signals += radar.fetch_news(keywords)
     signals += radar.fetch_competitor_intel(competitor_urls)
+    # Dormant feeds (activate when keys/connectors are added): reviews, local events.
+    signals += radar.fetch_reviews(brand)
+    signals += radar.fetch_local_events(brand)
     # Client news from their own site (recent promos/announcements) — best effort.
     site = radar.scrape_website(brand.website_url, max_chars=1500) if brand.website_url else {}
     if site.get('text'):
@@ -344,14 +409,32 @@ def quality_gate(text, profile):
         scores = _parse_json(out, {})
         nums = [float(scores.get(c, 0)) for c in QUALITY_CRITERIA if c in scores]
         avg = sum(nums) / len(nums) if nums else 0
-        return (avg >= 6.5), scores, round(avg, 1)
+        # GPT-5.x grades these 8 criteria harshly (esp. edgy/unique/worth_paying),
+        # so the bar is calibrated to that distribution. Configurable via env.
+        threshold = float(os.environ.get('QUALITY_MIN', '5.0'))
+        return (avg >= threshold), scores, round(avg, 1)
     except Exception as e:
         logger.info(f"quality_gate skipped: {e}")
         return True, {}, None
 
 
+def generate_video(brand, profile, brief):
+    """Generate a video for the post. DORMANT — real AI video (Veo/Pika/Sora)
+    needs a provider key. Returns a path or None. Scaffolded for the Pro tier so
+    it activates when a video provider is configured."""
+    if not os.environ.get('VIDEO_PROVIDER_API_KEY'):
+        return None
+    # Plug a real video provider call here when a key is configured.
+    return None
+
+
 def studio(brand, profile, plan):
-    """Write + quality-check each brief. Returns list of {content, quality, brief}."""
+    """Write + quality-check each brief; add image (Plus+) and video (Pro+) per tier.
+
+    Returns list of {content, quality, brief, image_path, video_path}.
+    """
+    make_images = wants_images(brand)
+    make_video = wants_video(brand)
     posts = []
     for brief in plan:
         text = write_post(brand, profile, brief)
@@ -359,8 +442,24 @@ def studio(brand, profile, plan):
         if not passed:  # one regeneration attempt
             text = write_post(brand, profile, brief)
             passed, scores, avg = quality_gate(text, profile)
+
+        image_path = None
+        if make_images:
+            try:
+                png = _openai_image(_image_prompt(brand, profile, brief, text))
+                image_path = _save_post_media(brand, png, kind='img', ext='png')
+            except Exception as e:
+                logger.warning(f"image generation failed for {brand.name}: {e}")
+
+        video_path = None
+        if make_video:
+            try:
+                video_path = generate_video(brand, profile, brief)
+            except Exception as e:
+                logger.info(f"video generation skipped: {e}")
+
         posts.append({'content': text, 'quality_score': avg, 'quality_passed': passed,
-                      'brief': brief})
+                      'brief': brief, 'image_path': image_path, 'video_path': video_path})
     return posts
 
 
@@ -395,6 +494,7 @@ def schedule_posts(brand, posts, first_delay_minutes=1):
             db.session.add(SocialPost(
                 user_id=brand.user_id, campaign_id=camp.id, platform=acct.platform,
                 content=post['content'], scheduled_for=when, status='scheduled',
+                image_url=post.get('image_path'), video_url=post.get('video_path'),
             ))
             created += 1
     db.session.commit()

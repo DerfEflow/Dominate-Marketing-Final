@@ -282,12 +282,18 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm mb-0 align-middle">
-                            <thead><tr><th>When (UTC)</th><th>Platform</th><th>Content</th></tr></thead>
+                            <thead><tr><th>When (UTC)</th><th>Platform</th><th>Image</th><th>Content</th></tr></thead>
                             <tbody>
                                 {% for p in upcoming_posts %}
                                 <tr>
                                     <td class="text-nowrap"><small>{{ p.scheduled_for.strftime('%b %d, %H:%M') }}</small></td>
                                     <td><i class="fab fa-{{ p.platform }} me-1"></i>{{ p.platform|title }}</td>
+                                    <td>
+                                        {% if p.image_url %}
+                                        <img src="{{ url_for('static', filename=p.image_url) }}" alt="post image" class="rounded" style="height:48px;width:48px;object-fit:cover">
+                                        {% if p.video_url %}<i class="fas fa-video ms-1 text-muted"></i>{% endif %}
+                                        {% else %}<span class="text-muted small">—</span>{% endif %}
+                                    </td>
                                     <td><small>{{ p.content[:90] }}{% if p.content|length > 90 %}…{% endif %}</small></td>
                                 </tr>
                                 {% endfor %}

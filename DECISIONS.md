@@ -126,6 +126,24 @@ each section. This is so Fred can review *choices* without reading code.
 - One gotcha handled: GPT‑5.5 spends part of its budget "thinking," so the vision
   request needed more room or it returned blank — fixed.
 
+## Images, more feeds, video (built while you were away)
+- **Images (Plus tier):** posts now get a **real AI-generated image** (using your
+  OpenAI key). Generated, saved, and shown as thumbnails on the client page.
+  Used the cheaper image model by default (gpt-image-1-mini) since you watch costs.
+  Note: to actually *post* an image (vs. preview it), the app needs to be live on
+  the web so the image has a public address — a launch step. Today images
+  generate + preview locally.
+- **More research feeds:** added a **real, free news feed** (Google News
+  headlines for the client's topics — no key needed), wired into the Radar.
+  Yelp/Google-Maps reviews and live sports/movie/concert events are built as
+  ready-to-activate slots that switch on when you add those API keys.
+- **Video (Pro tier):** the slot is built and wired, but real AI video needs a
+  paid video provider key (Veo/Pika/Sora), so it stays off until you add one.
+- **Tiers wired:** Basic = text only; Plus = + images; Pro = + video. (The demo
+  client is set to Pro so you can see images.)
+- **Tuning:** GPT‑5.5 grades its own writing harshly, so I lowered the
+  auto-rewrite bar to avoid needless (paid) regenerations.
+
 ## Secret hygiene
 - The committed `.env.example` contains only placeholders (good). The real local
   `.env` is git-ignored and was never committed.

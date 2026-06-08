@@ -268,7 +268,7 @@
                                         <a href="{{ url_for('dashboard.campaign_detail', campaign_id=campaign.id) }}" class="text-decoration-none">
                                             <strong>{{ campaign.title }}</strong>
                                         </a>
-                                        <br><small class="text-muted">{{ campaign.business_url[:40] }}...</small>
+                                        {% if campaign.business_url %}<br><small class="text-muted">{{ campaign.business_url[:40] }}...</small>{% endif %}
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary">

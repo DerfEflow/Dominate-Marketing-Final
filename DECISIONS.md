@@ -89,6 +89,30 @@ each section. This is so Fred can review *choices* without reading code.
 - To see it: open a client → "Marketing Autopilot" panel → connect a platform or
   two (simulated) → "Run now" → watch posts get scheduled, then auto-posted.
 
+## The rebuild: grounded engine ("The Radar")
+- **Rethought the whole content engine around your vision** (see docs/BLUEPRINT.md):
+  the AI is no longer allowed to invent posts. It may only turn **real, fresh
+  research into content** — so a small business out-markets the big competitor.
+- **What it now does each cycle:** (1) builds a **Client Profile** by scraping the
+  client's real website; (2) gathers **real signals** — upcoming holidays/events
+  (real calendar), rising Google Trends, the client's own site news, and
+  competitor sites if listed; (3) writes a **plan grounded only in those real
+  signals**; (4) writes each post and runs it through an 8-point quality check;
+  (5) schedules + posts. Everything is time-stamped so it's never built on stale data.
+- **Honest limit I hit:** reliably scraping *any* website is hard — many big sites
+  block automated reading. I improved our scraper (real browser identity + it now
+  rejects blocked/error pages instead of writing junk), but truly robust scraping
+  at scale will need a paid scraping service later (noted as a future connector).
+  When a site can't be read, it still works — grounded in the real calendar +
+  trends + the info you provided.
+- **Demo client** switched to "Bright Ideas Lighting" using a real, readable
+  lighting-store website, so you can see genuine grounding (it pulled the store's
+  actual Spring sale and real rising lighting trends). Add a roofing client
+  anytime; if its site blocks reading, it falls back gracefully.
+- **Still on the roadmap (your vision, next):** images (Plus tier) and video
+  (Pro), and more Radar feeds (Yelp/Maps reviews, news/sports/movies) — each
+  needs an API key/connector, so they're built to plug in.
+
 ## Secret hygiene
 - The committed `.env.example` contains only placeholders (good). The real local
   `.env` is git-ignored and was never committed.

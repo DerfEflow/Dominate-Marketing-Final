@@ -252,7 +252,12 @@ class Brand(db.Model):
     automation_enabled = db.Column(db.Boolean, default=False, nullable=False)
     posting_frequency_days = db.Column(db.Integer, default=3, nullable=False)
     last_research_at = db.Column(db.DateTime)        # freshness of source data
-    research_snapshot = db.Column(db.Text)           # latest research as JSON
+    research_snapshot = db.Column(db.Text)           # latest Radar signals + plan as JSON
+    # Foundational Client Profile (the "DNA"): structured facts about the
+    # business, built by scraping their website + online presence. Everything
+    # downstream is grounded in this. See docs/BLUEPRINT.md.
+    client_profile = db.Column(db.Text)              # profile as JSON
+    profile_built_at = db.Column(db.DateTime)
 
     # Subscription info (per brand billing)
     subscription_tier = db.Column(db.Enum(SubscriptionTier), default=SubscriptionTier.BASIC)

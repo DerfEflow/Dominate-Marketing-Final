@@ -156,11 +156,20 @@
                         </form>
                     </div>
 
-                    {% if research and research.trends %}
+                    {% if research and research.by_feed %}
                     <div class="mt-3">
-                        <div class="small text-muted mb-1">Current content angles</div>
-                        {% for t in research.trends[:6] %}
-                            <span class="badge bg-light text-dark border me-1 mb-1">{{ t.topic if t.topic is defined else t }}</span>
+                        <div class="small text-muted mb-1">Live intelligence (The Radar) — real signals this cycle</div>
+                        {% set feed_labels = {'events':'Events & Calendar','culture_trends':'Culture & Trends','competitor':'Competitor Intel','client_news':'Client News'} %}
+                        {% for feed, n in research.by_feed.items() %}
+                            <span class="badge bg-dark me-1 mb-1">{{ feed_labels.get(feed, feed) }}: {{ n }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if research and research.signals %}
+                    <div class="mt-2">
+                        <div class="small text-muted mb-1">Recent signals feeding the content</div>
+                        {% for s in research.signals[:6] %}
+                            <div class="small"><span class="text-muted">[{{ s.feed }}]</span> {{ s.title }} <span class="text-muted">— {{ s.detail[:60] }}</span></div>
                         {% endfor %}
                     </div>
                     {% endif %}

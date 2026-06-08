@@ -9,6 +9,11 @@ by another local app — see DECISIONS.md).
 PLATFORM IS LOCKED: Railway (hosting) + Supabase Postgres (database). Do not change the platform.
 On Windows, gunicorn does not run — use `python main.py` locally; gunicorn is prod-only.
 
+The product's differentiated vision is in docs/BLUEPRINT.md — the engine creates
+content ONLY from real, fresh research (The Radar), never AI invention.
+
+@docs/BLUEPRINT.md
+@docs/automation_engine.md
 @docs/architecture.md
 @docs/data_model.md
 @docs/env_template.md

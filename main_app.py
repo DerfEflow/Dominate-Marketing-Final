@@ -12,8 +12,11 @@ migrate = Migrate()
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging. App logs at INFO; quiet the very chatty HTTP/AI client
+# libraries so the console stays readable (they log every request at DEBUG).
+logging.basicConfig(level=logging.INFO)
+for _noisy in ('openai', 'httpx', 'httpcore', 'urllib3', 'trafilatura', 'pytrends'):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 def create_app():
     app = Flask(__name__)

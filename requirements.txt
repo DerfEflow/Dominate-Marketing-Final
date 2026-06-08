@@ -37,6 +37,7 @@ pillow>=11.3.0
 
 # Trend research
 pytrends>=4.9.2
+holidays>=0.50  # real holiday/observance calendar for the Events feed (no key)
 scikit-learn>=1.7.1
 nltk>=3.9.1
 

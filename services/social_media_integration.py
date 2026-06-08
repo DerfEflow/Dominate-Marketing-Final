@@ -12,6 +12,27 @@ from models import SocialAccount, SocialPost, SubscriptionTier
 
 logger = logging.getLogger(__name__)
 
+import os
+
+
+def _public_media_url(path):
+    """Turn a stored media path into a publicly fetchable URL for posting.
+
+    Generated images are saved under static/uploads (a relative path). For a
+    platform/Zapier to fetch them they must be absolute public URLs, so we
+    prepend PUBLIC_BASE_URL (set to the deployed site address). Already-absolute
+    URLs pass through unchanged. Returns '' when there's nothing to send.
+    """
+    if not path:
+        return ''
+    if path.startswith(('http://', 'https://')):
+        return path
+    base = os.environ.get('PUBLIC_BASE_URL', '').rstrip('/')
+    if not base:
+        return ''  # no public host yet (e.g. local) — omit rather than send an unreachable path
+    return f"{base}/static/{path.lstrip('/')}"
+
+
 class SocialMediaService:
     """Service for social media platform integrations"""
     
@@ -165,8 +186,8 @@ class SocialMediaService:
         payload = {
             'platform': post.platform,
             'content': post.content,
-            'image_url': post.image_url or '',
-            'video_url': post.video_url or '',
+            'image_url': _public_media_url(post.image_url),
+            'video_url': _public_media_url(post.video_url),
             'scheduled_for': post.scheduled_for.isoformat() if post.scheduled_for else '',
             'account': account.username or '',
         }

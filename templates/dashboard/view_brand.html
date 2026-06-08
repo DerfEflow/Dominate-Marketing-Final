@@ -101,6 +101,46 @@
         </div>
     </div>
 
+    <!-- Foundational Client Profile (what the AI learned) -->
+    {% if profile %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-brain me-2"></i>What our AI learned about this client</h5>
+                    {% if profile.vision_used %}<span class="badge bg-primary">Read text + saw the website</span>
+                    {% elif profile.scraped %}<span class="badge bg-secondary">Read website text</span>
+                    {% else %}<span class="badge bg-light text-dark border">From info on file</span>{% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if profile.screenshot_path %}
+                        <div class="col-md-4 mb-3">
+                            <img src="{{ url_for('static', filename=profile.screenshot_path) }}"
+                                 alt="website screenshot" class="img-fluid rounded border" style="max-height:240px">
+                            <div class="small text-muted mt-1">What our AI saw</div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-{{ '8' if profile.screenshot_path else '12' }}">
+                            <p class="mb-2"><strong>Sells:</strong> {{ profile.what_they_sell }}</p>
+                            {% if profile.differentiators %}
+                            <p class="mb-2"><strong>What sets them apart:</strong>
+                                {% for d in profile.differentiators[:4] %}<span class="badge bg-light text-dark border me-1">{{ d }}</span>{% endfor %}
+                            </p>
+                            {% endif %}
+                            <p class="mb-2"><strong>Voice:</strong> {{ profile.voice }}</p>
+                            {% if profile.target_audience %}<p class="mb-2"><strong>Audience:</strong> {{ profile.target_audience }}</p>{% endif %}
+                            {% if profile.brand_colors %}
+                            <p class="mb-0"><strong>Brand colors:</strong> {{ profile.brand_colors | join(', ') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Automation Engine -->
     <div class="row mb-4">
         <div class="col-lg-7">

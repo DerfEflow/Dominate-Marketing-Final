@@ -65,6 +65,26 @@ def _openai_chat(system, prompt, max_tokens=800):
     return (resp.choices[0].message.content or '').strip()
 
 
+def _openai_vision(image_bytes, prompt, max_tokens=400):
+    """Send an image to the (vision-capable) model for interpretation.
+
+    GPT-5.x / GPT-4o accept images. Returns text, or '' on failure.
+    """
+    import base64
+    from openai import OpenAI
+    client = OpenAI()
+    data_url = 'data:image/png;base64,' + base64.b64encode(image_bytes).decode()
+    resp = client.chat.completions.create(
+        model=text_model(),
+        max_completion_tokens=max_tokens,
+        messages=[{'role': 'user', 'content': [
+            {'type': 'text', 'text': prompt},
+            {'type': 'image_url', 'image_url': {'url': data_url}},
+        ]}],
+    )
+    return (resp.choices[0].message.content or '').strip()
+
+
 def _strip_fences(text):
     text = text.strip()
     if text.startswith('```'):
@@ -102,39 +122,81 @@ def _profile_stale(brand):
 
 
 def ensure_profile(brand, force=False):
-    """Build the client profile from a real website scrape (+ AI structuring) if
-    missing or stale. Returns the profile dict."""
+    """Build the client profile if missing/stale. Returns the profile dict.
+
+    Renders the client's website in a headless browser to get both readable text
+    AND a screenshot, then has GPT-5.5 vision interpret the screenshot — so the
+    profile understands their design/products/vibe, not just words. Falls back to
+    plain scraping, then to the info on file, so it always produces a profile.
+    """
     if not force and not _profile_stale(brand):
         return json.loads(brand.client_profile)
 
-    scraped = radar.scrape_website(brand.website_url) if brand.website_url else {}
-    profile = _build_profile(brand, scraped)
+    rendered = radar.render_page(brand.website_url) if brand.website_url else {}
+    screenshot = rendered.get('screenshot')
+    text = rendered.get('text', '')
+    if not text and brand.website_url:  # rendering failed — try plain scrape
+        text = radar.scrape_website(brand.website_url).get('text', '')
+
+    profile = _build_profile(brand, text, screenshot)
     profile['built_at'] = datetime.utcnow().isoformat()
-    profile['scraped'] = bool(scraped.get('text'))
+    profile['scraped'] = bool(text)
+    profile['screenshot_path'] = _save_screenshot(brand, screenshot)
     brand.client_profile = json.dumps(profile)
     brand.profile_built_at = datetime.utcnow()
     db.session.commit()
     return profile
 
 
-def _build_profile(brand, scraped):
+def _save_screenshot(brand, png):
+    """Persist the profile screenshot for preview in the UI. Returns static path or None."""
+    if not png:
+        return None
+    try:
+        folder = os.path.join('static', 'uploads')
+        os.makedirs(folder, exist_ok=True)
+        fname = f"profile_{brand.id}.png"
+        with open(os.path.join(folder, fname), 'wb') as f:
+            f.write(png)
+        return f"uploads/{fname}"
+    except Exception as e:
+        logger.info(f"could not save screenshot: {e}")
+        return None
+
+
+def _build_profile(brand, text, screenshot=None):
     base = {
         'business_name': brand.name,
         'industry': brand.industry or 'general',
         'website': brand.website_url or '',
         'description': brand.description or '',
     }
-    text = scraped.get('text', '')
-    if ai_configured() and text:
+
+    # Vision: let the model SEE the website and describe design/products/vibe.
+    vision_notes = ''
+    if ai_configured() and screenshot:
+        try:
+            vision_notes = _openai_vision(
+                screenshot,
+                "This is a screenshot of a business's website. Describe in detail: what the "
+                "business sells, their design vibe / brand feel, featured products or services, "
+                "dominant brand colors, and the overall quality of their online presence.",
+                max_tokens=900,  # GPT-5.x spends some budget on reasoning — leave headroom
+            )
+        except Exception as e:
+            logger.warning(f"vision profile failed for {brand.name}: {e}")
+
+    if ai_configured() and (text or vision_notes):
         try:
             out = _openai_chat(
-                system="You extract a structured business profile from website text. "
-                       "Reply ONLY with JSON having keys: what_they_sell (string), "
-                       "offers (array of strings), voice (string, e.g. 'friendly local expert'), "
-                       "proof_points (array), service_area (string), target_audience (string), "
-                       "differentiators (array), keywords (array of 5-8 short search terms).",
+                system="You extract a structured business profile. Reply ONLY with JSON having "
+                       "keys: what_they_sell (string), offers (array), voice (string, e.g. "
+                       "'friendly local expert'), proof_points (array), service_area (string), "
+                       "target_audience (string), differentiators (array), brand_colors (array), "
+                       "keywords (array of 5-8 short search terms).",
                 prompt=f"Business: {brand.name} (industry: {brand.industry or 'unknown'}).\n"
-                       f"Website text:\n{text[:4000]}",
+                       f"Website text:\n{text[:3500]}\n\n"
+                       f"Visual analysis of their website (from a screenshot):\n{vision_notes}",
                 max_tokens=700,
             )
             data = _parse_json(out, {})
@@ -142,6 +204,9 @@ def _build_profile(brand, scraped):
                 base.update(data)
         except Exception as e:
             logger.warning(f"profile AI structuring failed for {brand.name}: {e}")
+
+    base['vision_used'] = bool(vision_notes)
+    base['vision_notes'] = vision_notes
     base.setdefault('voice', 'professional and approachable')
     base.setdefault('keywords', _fallback_keywords(brand))
     base.setdefault('what_they_sell', brand.description or f"{brand.industry or 'services'}")

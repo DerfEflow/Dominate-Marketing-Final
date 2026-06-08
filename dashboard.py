@@ -147,12 +147,13 @@ def view_brand(brand_id):
         SocialPost.status == 'scheduled'
     ).order_by(SocialPost.scheduled_for).limit(20).all()
     research = json.loads(brand.research_snapshot) if brand.research_snapshot else None
+    profile = json.loads(brand.client_profile) if brand.client_profile else None
     all_platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok']
     connected_platforms = {a.platform for a in social_accounts}
 
     return render_template('dashboard/view_brand.html', brand=brand, campaigns=campaigns,
                            social_accounts=social_accounts, upcoming_posts=upcoming_posts,
-                           research=research, all_platforms=all_platforms,
+                           research=research, profile=profile, all_platforms=all_platforms,
                            connected_platforms=connected_platforms)
 
 

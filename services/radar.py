@@ -87,6 +87,46 @@ def scrape_website(url, max_chars=6000):
         return {}
 
 
+def render_page(url, full_page=False):
+    """Render a page in a headless browser and return rendered text + a screenshot.
+
+    Rendering (vs plain HTTP) both (a) reads JS-heavy pages and (b) gets past many
+    sites that block simple scraping, and (c) gives us a screenshot for GPT-5.5
+    vision. Returns {} on failure. Heavier than scrape_website — use for the
+    Client Profile (built infrequently), not every per-cycle fetch.
+    """
+    if not url:
+        return {}
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    png = html = title = None
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            try:
+                page = browser.new_page(viewport={'width': 1280, 'height': 900}, user_agent=_UA)
+                page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                page.wait_for_timeout(2500)
+                png = page.screenshot(full_page=full_page)
+                html = page.content()
+                title = page.title()
+            finally:
+                browser.close()
+    except Exception as e:
+        logger.info(f"render_page failed for {url}: {e}")
+        return {}
+    text = ''
+    try:
+        import trafilatura
+        text = (trafilatura.extract(html, include_comments=False, include_tables=False) or '').strip()
+    except Exception:
+        pass
+    if _looks_like_junk(text):
+        text = ''
+    return {'url': url, 'title': (title or '').strip(), 'text': text[:6000], 'screenshot': png}
+
+
 # ---------------------------------------------------------------------------
 # Culture & Trends (Google Trends — best effort, no key)
 # ---------------------------------------------------------------------------

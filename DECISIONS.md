@@ -113,6 +113,19 @@ each section. This is so Fred can review *choices* without reading code.
   (Pro), and more Radar feeds (Yelp/Maps reviews, news/sports/movies) — each
   needs an API key/connector, so they're built to plug in.
 
+## Screenshots + AI vision (your Google Vision question)
+- You asked about Google Vision; I recommended and built a better fit: the system
+  now **opens each client's website in a real browser, takes a screenshot, and has
+  GPT‑5.5 *look at it*** — using the OpenAI key you already have (no Google Cloud
+  account needed). It understands design, products, vibe and brand colors, not just
+  text. Bonus: rendering the page in a browser also **gets past many sites that
+  block plain reading**, so the profile is richer and works on more sites.
+- The client page now shows a **"What our AI learned"** card with the screenshot
+  and the facts it extracted. (Google Vision stays a possible later add-on for
+  exact logo/colors when we build image generation.)
+- One gotcha handled: GPT‑5.5 spends part of its budget "thinking," so the vision
+  request needed more room or it returned blank — fixed.
+
 ## Secret hygiene
 - The committed `.env.example` contains only placeholders (good). The real local
   `.env` is git-ignored and was never committed.

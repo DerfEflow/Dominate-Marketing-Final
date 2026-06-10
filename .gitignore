@@ -84,3 +84,7 @@ attached_assets/
 # Loose secret note (Flask session key) — never commit
 DOMINATE-MArketing session secret.txt
 *session secret*.txt
+
+# Railway API token (local only — NEVER commit)
+railway_token.txt
+*_token.txt

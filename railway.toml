@@ -1,6 +1,11 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt && python -m playwright install chromium --with-deps"
+# Install deps, then the screenshot browser. The browser install is made
+# non-fatal (|| true): if Railway blocks the system-package part, the build
+# still succeeds and screenshots simply degrade gracefully at runtime (the
+# Client Profile falls back to plain text scraping). We can perfect Playwright
+# on Railway after the app is live.
+buildCommand = "pip install -r requirements.txt && (python -m playwright install --with-deps chromium || python -m playwright install chromium || true)"
 
 [deploy]
 # Runs before each deploy goes live: build/upgrade the DB schema from the

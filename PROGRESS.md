@@ -51,7 +51,39 @@ appeared in a session — ignore it).
 - Docs: `docs/BLUEPRINT.md`, `docs/automation_engine.md`, `docs/DEPLOY_RUNBOOK.md`,
   `ROADMAP.md`, `DECISIONS.md`, `docs/architecture|data_model|env_template.md`.
 
-## WHERE WE ARE RIGHT NOW — Railway deploy (in progress, BLOCKED)
+## ✅ DEPLOYED & LIVE (2026-06-10)
+The app is **live on Railway, connected to Supabase**, admin login verified.
+- Live URL: **https://web-production-9c290.up.railway.app** (login → dashboard OK)
+- Project: **`just-commitment`** (`7c36d08d-…`), env `production`. Both services
+  **Online**: `web` (gunicorn) + `worker` (social_scheduler.py).
+- Supabase (Dominate's own account, ref `mkdyppaheqedefikiwqq`, pooler URL):
+  9 tables created, Alembic at head `c3d4e5f6a7b8`, admin `fredwolfe2000`
+  (fredwolfe@gmail.com, admin=True) bootstrapped.
+- All env vars set on BOTH services via the Railway CLI + a **project-scoped
+  token** (read at runtime from git-ignored `railway-token.txt`): SESSION_SECRET,
+  DATABASE_URL (password URL-encoded — it contained `@`), DISABLE_BILLING,
+  FLASK_ENV, OPENAI_API_KEY (current key — ROTATE recommended), OPENAI models,
+  BOOTSTRAP_ADMIN_*, ADMIN_EMAIL, PUBLIC_BASE_URL.
+- How the agent worked Railway with NO direct API write access: the project
+  token is **read-only over GraphQL (mutations 403)**, but the **Railway CLI**
+  (`RAILWAY_TOKEN=<project token>`) performs writes fine. `variable set --stdin
+  --skip-deploys` then `redeploy --from-source`.
+
+### STILL TO DO (Fred-only — agent's project token can't do these)
+1. **Volume** at `/app/static/uploads` on `web` — CLI panics + API 403s with the
+   project token. Add it via dashboard (Service `web` → Settings → Volumes), OR
+   skip (app runs fine; generated images just regenerate after redeploys).
+2. **Delete the failing `lavish-joy` duplicate** (`12b07053-…`) so it stops
+   failing on every push: https://railway.com/project/12b07053-6acc-4624-9620-8a9f1da5c7ec
+   → Settings → Delete project. (Agent's token is scoped to just-commitment only.)
+3. **Rotate the OpenAI key** (it passed through chat). New key → update via
+   Railway, or tell the agent to set it.
+4. Optionally delete local `deploy-secrets.txt` (DB+admin passwords in plaintext;
+   git-ignored, but no longer needed).
+
+---
+
+## (historical) Railway deploy DIAGNOSIS — 2026-06-10
 - Goal: deploy to Railway so images post and the autopilot runs 24/7.
 - Code is pushed to GitHub `main`. Deploy config hardened:
   `railway.toml` has `preDeployCommand` (`flask db upgrade` + `flask
@@ -59,11 +91,39 @@ appeared in a session — ignore it).
 - Supabase for THIS app is a **fresh, EMPTY** project in a **different Supabase
   account** than the one connected to the Supabase MCP here (so no `flask db
   stamp` needed — empty DB builds itself).
-- Railway service: **"Dominate-Marketing-Final"** in project
-  **"determined-inspiration"**, ~11 variables set, changes staged ("Apply 14
-  changes"). **Deploy is failing: "There was an error deploying from source"**,
-  with no build logs surfaced yet. NEXT: get the actual Build/Deploy log to
-  diagnose (suspects: GitHub source access, branch/root‑dir setting, or build).
+
+### ROOT CAUSE FOUND (via GitHub deployment records — no Railway access needed)
+There are **TWO Railway projects both connected to this one GitHub repo**, and
+they behave OPPOSITELY on the *identical commit*:
+- **`just-commitment`** — project `7c36d08d-8fc0-412e-a784-3b92f93be5ef`
+  (created 2026-06-10) → **DEPLOYS SUCCESSFULLY.** Full ~3.5 min build, goes
+  live, passes the `/` healthcheck (so the app boots → it HAS working
+  SESSION_SECRET + a reachable DB). **THIS IS THE GOOD ONE — keep it.**
+  Dashboard: https://railway.com/project/7c36d08d-8fc0-412e-a784-3b92f93be5ef
+- **`lavish-joy`** — project `12b07053-6acc-4624-9620-8a9f1da5c7ec`
+  (the ORIGINAL, since 2026-05-09) → **FAILS EVERY TIME**, in ~100s (too fast to
+  finish a real build → broken at Railway *project-settings* level, NOT code).
+  This is the duplicate Fred was staring at. **Delete it (with Fred's OK).**
+  Dashboard: https://railway.com/project/12b07053-6acc-4624-9620-8a9f1da5c7ec
+- The old PROGRESS note ("error deploying from source / no logs") was the
+  `lavish-joy` symptom. Source access was never the problem — `railway-app[bot]`
+  clones the repo fine (it reports exact commit SHAs to GitHub).
+
+### Code fix shipped 2026-06-10 (commit 9443f39)
+Removed leftover `pyproject.toml` + `uv.lock` (Replit `uv` files). `pyproject`
+was missing Flask-Migrate/playwright/holidays, so any build via the uv path
+would crash at `flask db upgrade`. Now `requirements.txt` is the only source of
+truth. (Did NOT fix lavish-joy → confirms lavish-joy is a project-config issue.)
+
+### NEXT (all Railway-dashboard clicks — Fred-only, agent has no Railway access)
+1. In Railway, confirm which project name maps to `just-commitment`
+   (`7c36d08d…`) and verify it has DATABASE_URL = the fresh Supabase URI +
+   SESSION_SECRET + the OpenAI vars. Get its public URL → agent verifies it live.
+2. Set `PUBLIC_BASE_URL` on just-commitment = its Railway URL; redeploy.
+3. Turn on the **worker** process on just-commitment (Procfile `worker` line).
+4. Add a **volume** at `/app/static/uploads` on just-commitment.
+5. DELETE the failing `lavish-joy` duplicate (`12b07053…`) so it stops
+   auto-deploying on every push.
 
 ## ⚠️ SAFETY SITUATION (important)
 Fred is running **4 Claude Code instances in parallel** on 4 apps, and may have

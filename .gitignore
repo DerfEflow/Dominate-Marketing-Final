@@ -93,3 +93,6 @@ railway_token.txt
 railway-token.txt
 *-token.txt
 *token*.txt
+
+# Deploy secrets drop (local only — NEVER commit)
+deploy-secrets.txt

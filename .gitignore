@@ -80,3 +80,7 @@ test_*.db
 
 # Local reference material exported from Replit (logo, pasted prompts, screenshots)
 attached_assets/
+
+# Loose secret note (Flask session key) — never commit
+DOMINATE-MArketing session secret.txt
+*session secret*.txt

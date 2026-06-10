@@ -88,3 +88,8 @@ DOMINATE-MArketing session secret.txt
 # Railway API token (local only — NEVER commit)
 railway_token.txt
 *_token.txt
+
+# hyphen variant too
+railway-token.txt
+*-token.txt
+*token*.txt

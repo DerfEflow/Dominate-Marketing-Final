@@ -3,6 +3,10 @@ builder = "nixpacks"
 buildCommand = "pip install -r requirements.txt && python -m playwright install chromium --with-deps"
 
 [deploy]
+# Runs before each deploy goes live: build/upgrade the DB schema from the
+# migration files, then create the first admin (idempotent). FLASK_APP is set
+# inline so the flask CLI targets the right app regardless of env.
+preDeployCommand = "FLASK_APP=main_app:app flask db upgrade && FLASK_APP=main_app:app flask bootstrap-admin"
 startCommand = "gunicorn main_app:app --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 30

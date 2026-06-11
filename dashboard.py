@@ -114,6 +114,13 @@ def create_brand():
         return redirect(url_for('dashboard.create_brand'))
     db.session.add(brand)
     db.session.commit()
+    # Mirror the new client into TruAgent (the hub). Fire-and-forget AFTER the
+    # commit: a hub outage must never break client creation.
+    try:
+        from services.hub_push import push_lead_to_hub
+        push_lead_to_hub(brand, event='created')
+    except Exception as e:
+        logger.warning(f'hub push after create failed (non-fatal): {e}')
     flash(f'Client "{brand.name}" added!', 'success')
     return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
 
@@ -129,6 +136,12 @@ def edit_brand(brand_id):
         flash(error, 'error')
         return redirect(url_for('dashboard.edit_brand', brand_id=brand.id))
     db.session.commit()
+    # Keep the hub's copy fresh after edits (same non-fatal rule as create).
+    try:
+        from services.hub_push import push_lead_to_hub
+        push_lead_to_hub(brand, event='updated')
+    except Exception as e:
+        logger.warning(f'hub push after edit failed (non-fatal): {e}')
     flash(f'Client "{brand.name}" updated!', 'success')
     return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
 

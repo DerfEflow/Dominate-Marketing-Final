@@ -226,6 +226,10 @@ def create_app():
     # web traffic hits the app.
     register_bootstrap_admin_cli(app)
 
+    # Register the hub-backfill CLI command (one-time push of all existing
+    # clients into TruAgent — see services/hub_push.py).
+    register_hub_backfill_cli(app)
+
     return app
 
 
@@ -296,6 +300,53 @@ def register_bootstrap_admin_cli(app):
         db.session.add(admin)
         db.session.commit()
         click.echo(f'[bootstrap-admin] Created admin user "{username}".')
+
+
+def register_hub_backfill_cli(app):
+    """Add the `flask hub-backfill` CLI command.
+
+    Pushes ALL existing Brands (clients) to TruAgent's lead door once, printing
+    one ok/skip/fail line per client plus a summary. Safe to re-run: the hub
+    dedupes by name+address when an address exists, and every payload carries
+    data.dominate_brand_id. Requires TRUAGENT_URL + LEADS_SECRET env vars;
+    prints a clear message and exits cleanly if they're unset. Never prints
+    secret values.
+    """
+    import click
+
+    @app.cli.command('hub-backfill')
+    def hub_backfill():
+        from models import Brand
+        from services.hub_push import hub_configured, push_lead_to_hub
+
+        if not hub_configured():
+            click.echo(
+                '[hub-backfill] TRUAGENT_URL or LEADS_SECRET is not set — '
+                'hub push is dormant. Set both env vars and re-run.'
+            )
+            return
+
+        brands = Brand.query.order_by(Brand.created_at).all()
+        if not brands:
+            click.echo('[hub-backfill] No clients found; nothing to push.')
+            return
+
+        counts = {'ok': 0, 'skipped': 0, 'failed': 0}
+        for brand in brands:
+            status, detail = push_lead_to_hub(brand, event='backfill')
+            counts[status] = counts.get(status, 0) + 1
+            suffix = ''
+            if status == 'ok' and detail is not None:
+                suffix = f' opportunity_id={detail}'
+            elif status != 'ok' and detail:
+                suffix = f' ({detail})'
+            click.echo(f'[hub-backfill] {status:<7} {brand.name}{suffix}')
+
+        click.echo(
+            f'[hub-backfill] Done: {counts["ok"]} ok, '
+            f'{counts["skipped"]} skipped, {counts["failed"]} failed '
+            f'of {len(brands)} client(s).'
+        )
 
 
 # Create app instance

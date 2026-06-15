@@ -96,3 +96,7 @@ railway-token.txt
 
 # Deploy secrets drop (local only — NEVER commit)
 deploy-secrets.txt
+
+# Zapier MCP server URL (contains a secret token — NEVER commit)
+zapier-mcp-url.txt
+*-mcp-url.txt

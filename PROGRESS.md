@@ -84,6 +84,10 @@ The app is **live on Railway, connected to Supabase**, admin login verified.
 Fred's directive: **automate the build to minimize his manual setup / mental-switch
 energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the
 per-client approval-flow feature** — prioritize automating client onboarding/posting.
+**Run in AUTONOMOUS BUILD MODE:** keep building to completion without stopping to ask;
+make reasonable calls on soft questions and note them; only stop for HARD blocks
+(money, going live, his keys, another app's account); **report once at the very end**
+(essentials + numbered choices). This is Fred's standing build preference.
 - **In progress:** connecting **Zapier MCP** so the agent can automate posting setup.
   Fred is creating a server at mcp.zapier.com and will save its (secret) URL to
   git-ignored `zapier-mcp-url.txt`. Next session registers it:

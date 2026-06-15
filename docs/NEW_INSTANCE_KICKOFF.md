@@ -72,11 +72,22 @@ shared-account actions. Secrets on disk are all git-ignored
   your MCP tools. The MCP is for automating *setup/testing*, not the app's runtime.
 
 ## 5. HOW FRED WORKS (important)
-Non-coder. You run all commands yourself with full paths. Be **autonomous** — make
-sensible calls, don't stop for soft questions; only stop for **hard blocks** (spending
-money, going live, his keys/credentials, another app's shared account). Report in
-plain English: essentials + **numbered choices with a recommendation**; he replies
-with a number.
+Non-coder. You run all commands yourself with full paths.
+
+**>> AUTONOMOUS BUILD MODE (Fred's standing preference — this is the default for
+builds) <<**
+- **Run the whole build to completion without stopping to ask.** Use best judgment on
+  soft/ambiguous questions — make the reasonable call, note it, and keep going. Do NOT
+  stop-and-ask at each step. This overrides any "one step at a time" instinct.
+- **Only stop for HARD blocks:** spending money, going live to real users, needing
+  Fred's keys/credentials/decisions only he can make, or anything touching another
+  app's shared account.
+- **Report ONCE at the very end** (or when you hit a hard block) — not a play-by-play.
+  Format: plain English, essentials only, then **numbered choices with a
+  recommendation**; he replies with a number.
+- Commit (and push, since he's asked for deploys) as you complete chunks; don't wait
+  for permission to commit working changes.
+
 - **Direction Fred set 2026-06-13:** automate the build to minimize his manual setup
   and mental-switch energy. He **does NOT want the per-client approval-flow feature** —
   prioritize **automating client onboarding/posting**.

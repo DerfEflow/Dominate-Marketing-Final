@@ -69,17 +69,32 @@ The app is **live on Railway, connected to Supabase**, admin login verified.
   (`RAILWAY_TOKEN=<project token>`) performs writes fine. `variable set --stdin
   --skip-deploys` then `redeploy --from-source`.
 
-### STILL TO DO (Fred-only — agent's project token can't do these)
-1. **Volume** at `/app/static/uploads` on `web` — CLI panics + API 403s with the
-   project token. Add it via dashboard (Service `web` → Settings → Volumes), OR
-   skip (app runs fine; generated images just regenerate after redeploys).
-2. **Delete the failing `lavish-joy` duplicate** (`12b07053-…`) so it stops
-   failing on every push: https://railway.com/project/12b07053-6acc-4624-9620-8a9f1da5c7ec
-   → Settings → Delete project. (Agent's token is scoped to just-commitment only.)
-3. **Rotate the OpenAI key** (it passed through chat). New key → update via
-   Railway, or tell the agent to set it.
-4. Optionally delete local `deploy-secrets.txt` (DB+admin passwords in plaintext;
-   git-ignored, but no longer needed).
+### Post-launch status (updated 2026-06-13)
+- ✅ `lavish-joy` duplicate **DELETED by Fred** (no more failing deploys).
+- ✅ `deploy-secrets.txt` **deleted** (DB+admin passwords no longer on disk).
+- ⏳ **Rotate the OpenAI key** — still pending (it passed through chat). New key →
+  set via Railway CLI (`railway variable set OPENAI_API_KEY --stdin ...`).
+- ⏭️ **Volume** at `/app/static/uploads` — SKIPPED (project token can't create one;
+  CLI panics/API 403; an orphaned empty `web-volume` may exist). App runs fine
+  without it. Long-term fix for image persistence = Supabase Storage / S3, not a
+  volume (see FEATURE_ROADMAP Phase 0.2).
+- 📄 **`docs/FEATURE_ROADMAP.md`** written — full phased post-launch plan.
+
+## 🔁 HANDOFF (2026-06-13) — Zapier MCP in progress; restart needed
+Fred's directive: **automate the build to minimize his manual setup / mental-switch
+energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the
+per-client approval-flow feature** — prioritize automating client onboarding/posting.
+- **In progress:** connecting **Zapier MCP** so the agent can automate posting setup.
+  Fred is creating a server at mcp.zapier.com and will save its (secret) URL to
+  git-ignored `zapier-mcp-url.txt`. Next session registers it:
+  `claude mcp add zapier "<url-from-file>" --transport http --scope local`
+  then **restart the session** so the Zapier tools load.
+- **Architecture caveat:** the Zapier MCP connects Zapier to the **agent (builder)**,
+  NOT to the deployed app. The app's 24/7 autopilot posts via per-client **webhook
+  URLs** (`_post_via_webhook` in `services/social_media_integration.py`) or native
+  OAuth — keep that runtime path separate from the agent's MCP tools.
+- **Open Q (unanswered):** which platforms to target first (FB Pages / IG / LinkedIn / X)?
+- Paste-ready kickoff for the fresh session: **`docs/NEW_INSTANCE_KICKOFF.md`**.
 
 ---
 

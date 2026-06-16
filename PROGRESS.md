@@ -102,6 +102,33 @@ live Facebook Page post (real post id returned).
   SocialAccounts + page targeting per client); Instagram/LinkedIn/X actions;
   pull-back metrics. See `docs/FEATURE_ROADMAP.md`.
 
+## ✅ First real GROUNDED post (with image) — Truline (2026-06-13)
+End-to-end product proof: researched **trulineroofing.com** → grounded caption →
+generated image → published to the FB Page. What shipped alongside it:
+- **Durable image hosting (Supabase Storage)** — `services/storage.py`; generated
+  images upload to the public `post-media` bucket (Dominate's own Supabase,
+  ref `mkdyppaheqedefikiwqq`) and the engine stores the permanent public URL.
+  Env: `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` on web+worker (+ local .env);
+  service key in git-ignored `supabase-key.txt`. This is roadmap Phase 0.2 — DONE.
+- **Caption-quality fix** — `write_post` had `max_tokens=200`; GPT-5.x reasoning
+  ate it and posts fell back to the raw strategist *angle* template. Bumped to 700
+  → real captions now generate. (Watch other 200-token AI calls for the same trap.)
+- **Image rule (Fred, IMPORTANT):** never render a person **applying ROOF COATING**
+  (AI gets the coating tools/technique wrong). Traditional roofing work IS fine.
+  Baked into `_image_prompt`. The Truline image was also vision-verified person-free.
+
+### ⛳ FOUNDATIONAL TODO Fred flagged (do next — high priority)
+The app must generate ALL client answers itself — "it's supposed to have a
+comprehensive profile and marketing plan for each client." Today the profile is
+shallow (it MISSED Truline's **service area** → the post said "Central Ohio" from a
+news headline, possibly wrong) and there's **no persistent per-client marketing
+plan** (plans are regenerated ephemerally each cycle). Build:
+1. **Deep client profile** — capture service area/geography, offers, audience,
+   proof, differentiators, tone, banned topics, etc.; persisted + editable.
+2. **Persistent marketing plan per client** — a stored living plan the Strategist
+   maintains, not throwaway per-cycle ideas.
+So the salesperson never hand-answers what the app should already know.
+
 ## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch
 energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the

@@ -110,10 +110,13 @@ class SocialMediaService:
                 'error': f'No connected {social_post.platform} account found'
             }
 
-        # Zapier (webhook) connector: if this account posts via a webhook URL,
-        # send the post there. Zapier then publishes to the client's real
-        # account — no platform developer app required. This is REAL posting.
-        if getattr(account, 'webhook_url', None):
+        # Connector routing (real posting, no platform dev app required):
+        #   webhook_url == 'zapier-mcp[...]'  -> Zapier MCP endpoint (execute action)
+        #   webhook_url == any other URL      -> Zapier Catch Hook webhook
+        wh = getattr(account, 'webhook_url', None)
+        if wh and wh.startswith('zapier-mcp'):
+            return self._post_via_zapier_mcp(account, social_post)
+        if wh:
             return self._post_via_webhook(account, social_post)
 
         # Simulation mode: when the account is a simulated/demo connection (or no
@@ -208,6 +211,41 @@ class SocialMediaService:
             post.error_message = f"Zapier webhook error: {e}"
             db.session.commit()
             return {'success': False, 'error': post.error_message}
+
+    def _post_via_zapier_mcp(self, account: SocialAccount, post: SocialPost) -> Dict[str, Any]:
+        """Publish via Fred's Zapier MCP endpoint (execute_zapier_write_action).
+
+        The account is marked for this path by webhook_url == 'zapier-mcp'. The
+        target page/handle is read from the account (platform_user_id or username).
+        No per-client Catch Hook Zap needed — Zapier already has the app action
+        enabled. Falls back to a clear failure (not a crash) if MCP is unconfigured.
+        """
+        from models import db
+        from services import zapier_mcp
+
+        target = account.platform_user_id or account.username or ''
+        image_url = _public_media_url(post.image_url)
+        result = zapier_mcp.post(
+            platform=post.platform,
+            target=target,
+            message=post.content,
+            image_url=image_url or None,
+        )
+        ok = bool(result.get('success'))
+        post.status = 'posted' if ok else 'failed'
+        if ok:
+            post.posted_at = datetime.utcnow()
+            post.platform_post_id = f"ZAPIERMCP-{post.platform}-{int(datetime.utcnow().timestamp())}"
+        else:
+            post.error_message = (result.get('error') or 'Zapier MCP post failed')[:500]
+        db.session.commit()
+        return {
+            'success': ok,
+            'post_id': post.platform_post_id if ok else None,
+            'via': 'zapier_mcp',
+            'detail': result.get('detail', ''),
+            'error': None if ok else post.error_message,
+        }
 
     def _post_to_facebook(self, account: SocialAccount, post: SocialPost) -> Dict[str, Any]:
         """Post to Facebook"""

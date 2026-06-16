@@ -103,3 +103,7 @@ zapier-mcp-url.txt
 
 # Local Zapier MCP ops helper (reads wallet; not for the public repo)
 scripts/zap_mcp.py
+
+# Supabase service_role key (secret — NEVER commit)
+supabase-key.txt
+*-key.txt

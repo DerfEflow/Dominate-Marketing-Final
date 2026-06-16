@@ -122,9 +122,27 @@ def _openai_image(prompt, size='1024x1024'):
 
 
 def _save_post_media(brand, data, kind='img', ext='png'):
-    """Persist generated post media to static/uploads. Returns static path or None."""
+    """Persist generated post media and return a URL/path usable for posting.
+
+    Prefers durable PUBLIC hosting (Supabase Storage) so the image can be fetched
+    by social platforms/Zapier and survives redeploys; returns a full public URL.
+    Falls back to local static/uploads (fine for local dev; ephemeral on Railway).
+    """
     if not data:
         return None
+    # Durable public hosting first.
+    try:
+        from services import storage
+        if storage.is_configured():
+            ct = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                  'mp4': 'video/mp4'}.get(ext, 'application/octet-stream')
+            url = storage.upload_bytes(data, ext=ext, content_type=ct,
+                                       prefix=f"{kind}/{brand.id}")
+            if url:
+                return url
+    except Exception as e:
+        logger.info(f"supabase media upload skipped: {e}")
+    # Local fallback.
     try:
         folder = os.path.join('static', 'uploads')
         os.makedirs(folder, exist_ok=True)

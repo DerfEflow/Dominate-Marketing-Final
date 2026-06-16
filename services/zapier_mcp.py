@@ -132,15 +132,22 @@ def create_facebook_page_post(page, message, image_url=None, link_url=None):
     if link_url:
         params['link_url'] = link_url
     instr = (
-        f"Create a Facebook Page post on the page '{page or '(the connected page)'}' "
-        f"with exactly this message. Attach the photo if a URL is provided."
+        f"Publish a Facebook Page post on the page '{page or 'the connected page'}' right now, "
+        f"using exactly the message in params. "
+        + ("Attach the provided photo URL. " if image_url else "Post without any photo. ")
+        + "Do NOT ask any follow-up questions or for confirmation — execute and publish immediately."
     )
     ok, parsed, err = execute_write_action(selected_api, action, instr, params)
-    return {
-        'success': bool(ok),
-        'error': err,
-        'detail': _result_text(parsed) if parsed else '',
-    }
+    detail = _result_text(parsed) if parsed else ''
+    # Zapier's AI layer sometimes returns a clarifying 'followUpQuestion' instead
+    # of actually publishing. For automated posting that's a non-success — surface
+    # it so the caller retries with firmer instructions rather than reporting a
+    # post that never went out.
+    if ok and 'followupquestion' in detail.lower():
+        ok = False
+        if not err:
+            err = 'Zapier returned a follow-up question instead of publishing the post'
+    return {'success': bool(ok), 'error': err, 'detail': detail}
 
 
 def post(platform, target, message, image_url=None, link_url=None):

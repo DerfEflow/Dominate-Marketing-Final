@@ -161,13 +161,16 @@ def view_brand(brand_id):
     ).order_by(SocialPost.scheduled_for).limit(20).all()
     research = json.loads(brand.research_snapshot) if brand.research_snapshot else None
     profile = json.loads(brand.client_profile) if brand.client_profile else None
+    marketing_plan = json.loads(brand.marketing_plan) if brand.marketing_plan else None
+    from services.automation_engine import EDITABLE_PROFILE_FIELDS, EDITABLE_PLAN_FIELDS
     all_platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok']
     connected_platforms = {a.platform for a in social_accounts}
 
     return render_template('dashboard/view_brand.html', brand=brand, campaigns=campaigns,
                            social_accounts=social_accounts, upcoming_posts=upcoming_posts,
-                           research=research, profile=profile, all_platforms=all_platforms,
-                           connected_platforms=connected_platforms)
+                           research=research, profile=profile, marketing_plan=marketing_plan,
+                           profile_fields=EDITABLE_PROFILE_FIELDS, plan_fields=EDITABLE_PLAN_FIELDS,
+                           all_platforms=all_platforms, connected_platforms=connected_platforms)
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +215,83 @@ def run_automation(brand_id):
         logger.error(f"run_automation error: {e}")
         flash(f'Automation could not complete: {e}', 'error')
     return redirect(url_for('dashboard.view_brand', brand_id=brand.id))
+
+
+def _parse_field(kind, raw):
+    """Turn a form value into the right Python type for a profile/plan field."""
+    raw = (raw or '').strip()
+    if kind == 'list':
+        # accept newline- or comma-separated input
+        parts = [p.strip() for chunk in raw.splitlines() for p in chunk.split(',')]
+        return [p for p in parts if p]
+    if kind == 'int':
+        try:
+            return max(1, min(int(raw), 14))
+        except (ValueError, TypeError):
+            return None
+    return raw
+
+
+@dashboard_bp.route('/brand/<brand_id>/profile/edit', methods=['POST'])
+@login_required
+def edit_profile(brand_id):
+    """Save salesperson edits to the deep client profile (kept as overrides)."""
+    brand = _owned_brand_or_404(brand_id)
+    from services.automation_engine import EDITABLE_PROFILE_FIELDS, save_profile_overrides
+    overrides = {}
+    for key, _label, kind in EDITABLE_PROFILE_FIELDS:
+        if key in request.form:
+            overrides[key] = _parse_field(kind, request.form.get(key))
+    save_profile_overrides(brand, overrides)
+    flash(f"Profile updated for {brand.name}. Your edits are kept on re-scrapes.", 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id) + '#profile')
+
+
+@dashboard_bp.route('/brand/<brand_id>/profile/rebuild', methods=['POST'])
+@login_required
+def rebuild_profile(brand_id):
+    """Force a fresh website scrape + AI profile build (keeps your edits on top)."""
+    brand = _owned_brand_or_404(brand_id)
+    from services.automation_engine import ensure_profile
+    try:
+        ensure_profile(brand, force=True)
+        flash(f"Rebuilt {brand.name}'s profile from their website. Your edits were kept.", 'success')
+    except Exception as e:
+        logger.error(f"rebuild_profile error: {e}")
+        flash(f"Could not rebuild the profile: {e}", 'error')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id) + '#profile')
+
+
+@dashboard_bp.route('/brand/<brand_id>/plan/edit', methods=['POST'])
+@login_required
+def edit_plan(brand_id):
+    """Save salesperson edits to the persistent marketing plan (locks it)."""
+    brand = _owned_brand_or_404(brand_id)
+    from services.automation_engine import EDITABLE_PLAN_FIELDS, save_marketing_plan
+    fields = {}
+    for key, _label, kind in EDITABLE_PLAN_FIELDS:
+        if key in request.form:
+            val = _parse_field(kind, request.form.get(key))
+            if val is not None:
+                fields[key] = val
+    save_marketing_plan(brand, fields)
+    flash(f"Marketing plan saved for {brand.name}. It won't be auto-overwritten.", 'success')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id) + '#plan')
+
+
+@dashboard_bp.route('/brand/<brand_id>/plan/regenerate', methods=['POST'])
+@login_required
+def regenerate_plan(brand_id):
+    """Rebuild the marketing plan from the current profile (unlocks it)."""
+    brand = _owned_brand_or_404(brand_id)
+    from services.automation_engine import ensure_marketing_plan
+    try:
+        ensure_marketing_plan(brand, force=True)
+        flash(f"Regenerated {brand.name}'s marketing plan from their profile.", 'success')
+    except Exception as e:
+        logger.error(f"regenerate_plan error: {e}")
+        flash(f"Could not regenerate the plan: {e}", 'error')
+    return redirect(url_for('dashboard.view_brand', brand_id=brand.id) + '#plan')
 
 
 @dashboard_bp.route('/brand/<brand_id>/social/connect/<platform>')

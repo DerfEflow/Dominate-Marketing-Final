@@ -207,6 +207,58 @@ def _profile_stale(brand):
     return (datetime.utcnow() - brand.profile_built_at) > timedelta(days=PROFILE_MAX_AGE_DAYS)
 
 
+# Fields the salesperson can hand-edit on the client page. (key, label, kind).
+# `list` fields accept newline- or comma-separated input. Edits are stored as
+# overrides and merged on top of the AI-built profile so a re-scrape never wipes them.
+EDITABLE_PROFILE_FIELDS = [
+    ('what_they_sell', 'What they sell', 'text'),
+    ('service_area', 'Service area', 'text'),
+    ('service_area_cities', 'Cities / regions served', 'list'),
+    ('offers', 'Offers / services', 'list'),
+    ('target_audience', 'Target audience', 'text'),
+    ('voice', 'Brand voice', 'text'),
+    ('tone', 'Tone (adjectives)', 'text'),
+    ('proof_points', 'Proof points', 'list'),
+    ('differentiators', 'Differentiators', 'list'),
+    ('brand_colors', 'Brand colors', 'list'),
+    ('banned_topics', 'Banned topics (never post about)', 'list'),
+    ('keywords', 'Search keywords', 'list'),
+]
+_EDITABLE_KEYS = {k for k, _, _ in EDITABLE_PROFILE_FIELDS}
+
+
+def _load_overrides(brand):
+    if not getattr(brand, 'profile_overrides', None):
+        return {}
+    try:
+        data = json.loads(brand.profile_overrides)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _apply_overrides(profile, overrides):
+    """Human edits win over AI-derived values (only for non-empty overrides)."""
+    for k, v in (overrides or {}).items():
+        if v in (None, '', []):
+            continue
+        profile[k] = v
+    return profile
+
+
+def save_profile_overrides(brand, overrides):
+    """Persist salesperson edits and immediately reflect them in client_profile."""
+    clean = {k: v for k, v in (overrides or {}).items() if k in _EDITABLE_KEYS}
+    brand.profile_overrides = json.dumps(clean)
+    profile = json.loads(brand.client_profile) if brand.client_profile else {}
+    profile = _apply_overrides(profile, clean)
+    brand.client_profile = json.dumps(profile)
+    if not brand.profile_built_at:
+        brand.profile_built_at = datetime.utcnow()
+    db.session.commit()
+    return profile
+
+
 def ensure_profile(brand, force=False):
     """Build the client profile if missing/stale. Returns the profile dict.
 
@@ -214,9 +266,13 @@ def ensure_profile(brand, force=False):
     AND a screenshot, then has GPT-5.5 vision interpret the screenshot — so the
     profile understands their design/products/vibe, not just words. Falls back to
     plain scraping, then to the info on file, so it always produces a profile.
+
+    Salesperson edits (profile_overrides) are merged on top every time, so a
+    re-scrape refreshes the AI-derived fields without ever clobbering corrections.
     """
+    overrides = _load_overrides(brand)
     if not force and not _profile_stale(brand):
-        return json.loads(brand.client_profile)
+        return _apply_overrides(json.loads(brand.client_profile), overrides)
 
     rendered = radar.render_page(brand.website_url) if brand.website_url else {}
     screenshot = rendered.get('screenshot')
@@ -228,6 +284,7 @@ def ensure_profile(brand, force=False):
     profile['built_at'] = datetime.utcnow().isoformat()
     profile['scraped'] = bool(text)
     profile['screenshot_path'] = _save_screenshot(brand, screenshot)
+    profile = _apply_overrides(profile, overrides)  # human edits always win
     brand.client_profile = json.dumps(profile)
     brand.profile_built_at = datetime.utcnow()
     db.session.commit()
@@ -275,15 +332,32 @@ def _build_profile(brand, text, screenshot=None):
     if ai_configured() and (text or vision_notes):
         try:
             out = _openai_chat(
-                system="You extract a structured business profile. Reply ONLY with JSON having "
-                       "keys: what_they_sell (string), offers (array), voice (string, e.g. "
-                       "'friendly local expert'), proof_points (array), service_area (string), "
-                       "target_audience (string), differentiators (array), brand_colors (array), "
-                       "keywords (array of 5-8 short search terms).",
+                system=(
+                    "You build a COMPREHENSIVE, structured profile of a local business so a "
+                    "marketing engine never has to ask the owner basic questions. Reply ONLY "
+                    "with a JSON object with these keys:\n"
+                    "  what_they_sell (string), offers (array of their specific offers/services), "
+                    "voice (string, e.g. 'friendly local expert'), tone (string: 1-3 adjectives), "
+                    "proof_points (array: awards, years in business, certifications, guarantees, "
+                    "review counts — only ones actually stated), service_area (string: the "
+                    "geographic area they serve, e.g. 'Columbus, OH and surrounding suburbs'), "
+                    "service_area_cities (array of specific city/region names they serve), "
+                    "target_audience (string), differentiators (array: why pick them over a "
+                    "competitor), brand_colors (array of color names), "
+                    "banned_topics (array: subjects this business should NOT post about — infer "
+                    "sensibly, e.g. politics, religion, competitor names, discounts they don't "
+                    "offer), keywords (array of 5-8 short search terms).\n"
+                    "CRITICAL: Use ONLY facts present in the supplied website text/visual "
+                    "analysis or the business info. DO NOT GUESS a city, service area, award, or "
+                    "claim. If a fact (especially the service area) is not clearly stated, return "
+                    "an empty string or empty array for it — never fabricate geography or proof. "
+                    "A wrong service area causes posts that name the wrong city."
+                ),
                 prompt=f"Business: {brand.name} (industry: {brand.industry or 'unknown'}).\n"
+                       f"Info on file: {brand.description or '(none)'}\n"
                        f"Website text:\n{text[:3500]}\n\n"
                        f"Visual analysis of their website (from a screenshot):\n{vision_notes}",
-                max_tokens=700,
+                max_tokens=900,
             )
             data = _parse_json(out, {})
             if isinstance(data, dict):
@@ -294,8 +368,17 @@ def _build_profile(brand, text, screenshot=None):
     base['vision_used'] = bool(vision_notes)
     base['vision_notes'] = vision_notes
     base.setdefault('voice', 'professional and approachable')
+    base.setdefault('tone', base.get('voice', 'professional and approachable'))
     base.setdefault('keywords', _fallback_keywords(brand))
     base.setdefault('what_they_sell', brand.description or f"{brand.industry or 'services'}")
+    # Never fabricate geography — leave blank if unknown so it's a visible gap to fill.
+    base.setdefault('service_area', '')
+    base.setdefault('service_area_cities', [])
+    base.setdefault('offers', [])
+    base.setdefault('proof_points', [])
+    base.setdefault('differentiators', [])
+    base.setdefault('banned_topics', [])
+    base.setdefault('target_audience', '')
     return base
 
 
@@ -334,36 +417,190 @@ def gather_radar(brand, profile):
 
 
 # ---------------------------------------------------------------------------
-# 3. The Strategist — a plan grounded ONLY in the gathered signals
+# 3. The Strategist
+#    (a) a PERSISTENT living marketing plan (strategy, maintained over time)
+#    (b) per-cycle post ideas, grounded in the plan + today's fresh signals
 # ---------------------------------------------------------------------------
-def build_plan(brand, profile, signals, count=4):
+PLAN_MAX_AGE_DAYS = 30   # refresh the strategy at least this often (unless locked)
+
+# Fields the salesperson can hand-edit on the client page. (key, label, kind).
+EDITABLE_PLAN_FIELDS = [
+    ('positioning', 'Positioning (one sentence vs the big competitor)', 'text'),
+    ('content_pillars', 'Content pillars (recurring themes)', 'list'),
+    ('target_geographies', 'Target geographies', 'list'),
+    ('primary_offers', 'Offers to promote', 'list'),
+    ('platform_mix', 'Platforms', 'list'),
+    ('cadence_per_week', 'Posts per week', 'int'),
+    ('seasonal_hooks', 'Seasonal / upcoming hooks', 'list'),
+    ('competitor_angle', 'How we out-position competitors', 'text'),
+    ('banned_topics', 'Banned topics (never post about)', 'list'),
+    ('notes', 'Salesperson notes', 'text'),
+]
+_EDITABLE_PLAN_KEYS = {k for k, _, _ in EDITABLE_PLAN_FIELDS}
+
+
+def _plan_stale(brand):
+    plan = _load_plan(brand)
+    if not plan:
+        return True
+    if plan.get('locked'):           # a human edited it — only `force` rebuilds
+        return False
+    if not brand.marketing_plan_updated_at:
+        return True
+    return (datetime.utcnow() - brand.marketing_plan_updated_at) > timedelta(days=PLAN_MAX_AGE_DAYS)
+
+
+def _load_plan(brand):
+    if not getattr(brand, 'marketing_plan', None):
+        return None
+    try:
+        data = json.loads(brand.marketing_plan)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def ensure_marketing_plan(brand, profile=None, force=False):
+    """Return the persistent marketing plan, building/refreshing it if stale.
+
+    The plan is the client's LIVING strategy (BLUEPRINT layer 3). Per-cycle post
+    ideas are grounded in it. A human-edited (locked) plan is preserved unless
+    `force=True`. Geography and banned topics inherit from the profile so the
+    engine never has to ask — and never leaks a wrong city from a news headline.
+    """
+    if not force and not _plan_stale(brand):
+        return _load_plan(brand)
+    if profile is None:
+        profile = ensure_profile(brand)
+    prev = _load_plan(brand) or {}
+    plan = _build_marketing_plan(brand, profile)
+    # Preserve salesperson notes across a regeneration.
+    if prev.get('notes'):
+        plan['notes'] = prev['notes']
+    plan['built_at'] = datetime.utcnow().isoformat()
+    plan['locked'] = False
+    brand.marketing_plan = json.dumps(plan)
+    brand.marketing_plan_updated_at = datetime.utcnow()
+    db.session.commit()
+    return plan
+
+
+def save_marketing_plan(brand, fields):
+    """Persist a salesperson-edited plan and LOCK it (engine won't auto-overwrite)."""
+    plan = _load_plan(brand) or {}
+    clean = {k: v for k, v in (fields or {}).items() if k in _EDITABLE_PLAN_KEYS}
+    plan.update(clean)
+    plan['locked'] = True
+    plan['source'] = 'manual'
+    plan.setdefault('built_at', datetime.utcnow().isoformat())
+    brand.marketing_plan = json.dumps(plan)
+    brand.marketing_plan_updated_at = datetime.utcnow()
+    db.session.commit()
+    return plan
+
+
+def _build_marketing_plan(brand, profile):
+    geos = profile.get('service_area_cities') or (
+        [profile['service_area']] if profile.get('service_area') else [])
+    base = {
+        'positioning': '',
+        'content_pillars': [],
+        'target_geographies': geos,                       # inherit corrected geography
+        'primary_offers': profile.get('offers', [])[:5],
+        'platform_mix': ['facebook', 'instagram'],
+        'cadence_per_week': 2,
+        'seasonal_hooks': [],
+        'competitor_angle': '',
+        'banned_topics': profile.get('banned_topics', []),  # inherit banned topics
+        'notes': '',
+        'source': 'fallback',
+    }
+    if ai_configured():
+        try:
+            out = _openai_chat(
+                system=(
+                    "You are a senior local-marketing strategist. Write a concise, PERSISTENT "
+                    "marketing plan for a small business so it consistently out-markets a bigger "
+                    "competitor. This is the standing strategy (not individual posts). Reply ONLY "
+                    "with a JSON object: positioning (string, one sentence), content_pillars "
+                    "(array of 3-5 recurring themes), target_geographies (array), primary_offers "
+                    "(array), platform_mix (array from facebook/instagram/linkedin), "
+                    "cadence_per_week (integer 1-7), seasonal_hooks (array of upcoming angles), "
+                    "competitor_angle (string), banned_topics (array). "
+                    "CRITICAL: ground everything in the profile. For target_geographies use ONLY "
+                    "the profile's service area / cities — never invent a city. If the service "
+                    "area is unknown, leave target_geographies empty rather than guessing."
+                ),
+                prompt=f"Business profile:\n{json.dumps(profile)[:2000]}",
+                max_tokens=900,
+            )
+            data = _parse_json(out, {})
+            if isinstance(data, dict) and data:
+                for k in base:
+                    if k in data and data[k] not in (None, '', []):
+                        base[k] = data[k]
+                base['source'] = 'ai'
+                # Geography/banned topics from the profile are authoritative — merge,
+                # but never let the model drop a known service area.
+                if geos and not base.get('target_geographies'):
+                    base['target_geographies'] = geos
+                if profile.get('banned_topics'):
+                    base['banned_topics'] = sorted(set(
+                        list(base.get('banned_topics', [])) + list(profile['banned_topics'])))
+        except Exception as e:
+            logger.warning(f"marketing plan AI build failed for {brand.name}: {e}")
+    return base
+
+
+def build_plan(brand, profile, signals, plan=None, count=4):
     if ai_configured() and signals:
         try:
-            return _ai_plan(brand, profile, signals, count)
+            return _ai_plan(brand, profile, signals, plan, count)
         except Exception as e:
             logger.warning(f"AI plan failed for {brand.name}: {e}")
     return _fallback_plan(brand, profile, signals, count)
 
 
-def _ai_plan(brand, profile, signals, count):
+def _ai_plan(brand, profile, signals, plan, count):
     signal_lines = "\n".join(
         f"- [{s['feed']}] {s['title']} — {s['detail']} (source: {s['source']})"
         for s in signals[:25]
     )
+    plan = plan or {}
+    geos = plan.get('target_geographies') or profile.get('service_area_cities') \
+        or ([profile['service_area']] if profile.get('service_area') else [])
+    banned = sorted(set(list(plan.get('banned_topics', [])) + list(profile.get('banned_topics', []))))
+    plan_ctx = (
+        f"Standing marketing plan to follow:\n"
+        f"- Positioning: {plan.get('positioning') or '(n/a)'}\n"
+        f"- Content pillars: {', '.join(plan.get('content_pillars', [])) or '(n/a)'}\n"
+        f"- Offers to promote: {', '.join(plan.get('primary_offers', [])) or '(n/a)'}\n"
+        f"- Competitor angle: {plan.get('competitor_angle') or '(n/a)'}\n"
+    )
+    geo_rule = (
+        f"Geography rule: this business serves {', '.join(geos)}. Only ever reference these "
+        f"locations. NEVER name a city or region from a news headline or trend — those are "
+        f"signals about the wider world, not where the client operates."
+        if geos else
+        "Geography rule: the service area is unknown — do NOT name any city or region in posts."
+    )
+    banned_rule = (f"Never post about: {', '.join(banned)}." if banned else "")
     out = _openai_chat(
         system="You are a senior local-marketing strategist. Build a short social plan that "
                "makes a small business outshine bigger competitors. CRITICAL: ground every "
-               "idea in the REAL SIGNALS provided — do not invent facts or events. Reply ONLY "
-               "with a JSON array of objects with keys: angle (string), grounded_in (string: "
-               "which signal/fact), platform (one of facebook/instagram/linkedin), cta (string).",
-        prompt=f"Business profile:\n{json.dumps(profile)[:1500]}\n\n"
-               f"REAL SIGNALS (only use these):\n{signal_lines}\n\n"
-               f"Produce {count} post ideas. Vary angles and platforms.",
+               "idea in the REAL SIGNALS provided and the standing plan — do not invent facts, "
+               "events, or locations. Reply ONLY with a JSON array of objects with keys: angle "
+               "(string), grounded_in (string: which signal/fact), platform (one of "
+               "facebook/instagram/linkedin), cta (string).",
+        prompt=f"Business profile:\n{json.dumps(profile)[:1200]}\n\n"
+               f"{plan_ctx}\n{geo_rule}\n{banned_rule}\n\n"
+               f"REAL SIGNALS (only use these for timely hooks):\n{signal_lines}\n\n"
+               f"Produce {count} post ideas that advance the plan's pillars. Vary angles and platforms.",
         max_tokens=900,
     )
-    plan = _parse_json(out, [])
+    plan_out = _parse_json(out, [])
     cleaned = []
-    for b in plan[:count] if isinstance(plan, list) else []:
+    for b in plan_out[:count] if isinstance(plan_out, list) else []:
         if isinstance(b, dict) and b.get('angle'):
             cleaned.append({
                 'angle': str(b.get('angle')),
@@ -398,15 +635,27 @@ QUALITY_CRITERIA = ['coherent', 'relevant', 'compelling', 'fresh',
 
 def write_post(brand, profile, brief):
     if ai_configured():
+        geos = profile.get('service_area_cities') or (
+            [profile['service_area']] if profile.get('service_area') else [])
+        banned = profile.get('banned_topics', [])
+        geo_rule = (
+            f"This business serves {', '.join(geos)} — only ever name these locations. "
+            f"NEVER mention any other city/region (e.g. one from a news headline)."
+            if geos else
+            "The service area is unknown, so do NOT name any city or region in the caption."
+        )
+        banned_rule = (f" Never mention: {', '.join(banned)}." if banned else "")
         try:
             text = _openai_chat(
                 system="You are an expert social media copywriter. Write ONE ready-to-post "
                        "caption (under 280 chars) in the business's voice, grounded in the "
                        "given angle/fact. Do NOT restate the strategy or the word 'angle' — "
                        "write the actual customer-facing post. 1-3 relevant hashtags, an emoji "
-                       "or two, and the CTA. Reply with ONLY the caption text.",
+                       "or two, and the CTA. Do not invent facts, claims, or locations. "
+                       "Reply with ONLY the caption text.",
                 prompt=f"Business: {brand.name}. Voice: {profile.get('voice')}. "
                        f"What they sell: {profile.get('what_they_sell')}.\n"
+                       f"{geo_rule}{banned_rule}\n"
                        f"Angle: {brief['angle']}\nGrounded in (real): {brief['grounded_in']}\n"
                        f"Call to action: {brief['cta']}",
                 # GPT-5.x spends part of the budget on reasoning; 200 left no room
@@ -534,8 +783,9 @@ def schedule_posts(brand, posts, first_delay_minutes=1):
 # ---------------------------------------------------------------------------
 def run_cycle(brand, post_count=4):
     profile = ensure_profile(brand)
+    marketing_plan = ensure_marketing_plan(brand, profile)
     radar_data = gather_radar(brand, profile)
-    plan = build_plan(brand, profile, radar_data['signals'], post_count)
+    plan = build_plan(brand, profile, radar_data['signals'], marketing_plan, post_count)
     posts = studio(brand, profile, plan)
     sched = schedule_posts(brand, posts)
 

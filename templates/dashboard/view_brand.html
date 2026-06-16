@@ -101,18 +101,28 @@
         </div>
     </div>
 
-    <!-- Foundational Client Profile (what the AI learned) -->
-    {% if profile %}
-    <div class="row mb-4">
+    <!-- Foundational Client Profile (the DNA the engine knows + you can correct) -->
+    <div class="row mb-4" id="profile">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-brain me-2"></i>What our AI learned about this client</h5>
-                    {% if profile.vision_used %}<span class="badge bg-primary">Read text + saw the website</span>
-                    {% elif profile.scraped %}<span class="badge bg-secondary">Read website text</span>
-                    {% else %}<span class="badge bg-light text-dark border">From info on file</span>{% endif %}
+                    <h5 class="mb-0"><i class="fas fa-brain me-2"></i>Client Profile <span class="text-muted small">(what the engine knows)</span></h5>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if profile and profile.vision_used %}<span class="badge bg-primary">Read text + saw the website</span>
+                        {% elif profile and profile.scraped %}<span class="badge bg-secondary">Read website text</span>
+                        {% elif profile %}<span class="badge bg-light text-dark border">From info on file</span>{% endif %}
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#profileEdit">
+                            <i class="fas fa-pen me-1"></i>Edit
+                        </button>
+                        <form method="POST" action="{{ url_for('dashboard.rebuild_profile', brand_id=brand.id) }}" class="m-0">
+                            <button class="btn btn-sm btn-outline-secondary" title="Re-scrape the website and rebuild (keeps your edits)">
+                                <i class="fas fa-rotate me-1"></i>Rebuild from site
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 <div class="card-body">
+                    {% if profile %}
                     <div class="row">
                         {% if profile.screenshot_path %}
                         <div class="col-md-4 mb-3">
@@ -123,23 +133,136 @@
                         {% endif %}
                         <div class="col-md-{{ '8' if profile.screenshot_path else '12' }}">
                             <p class="mb-2"><strong>Sells:</strong> {{ profile.what_they_sell }}</p>
+                            <p class="mb-2"><strong>Service area:</strong>
+                                {% if profile.service_area or profile.service_area_cities %}
+                                    {{ profile.service_area }}{% if profile.service_area_cities %} <span class="text-muted">({{ profile.service_area_cities | join(', ') }})</span>{% endif %}
+                                {% else %}<span class="badge bg-warning text-dark">Unknown — add it so posts name the right place</span>{% endif %}
+                            </p>
+                            {% if profile.offers %}<p class="mb-2"><strong>Offers:</strong> {{ profile.offers | join(', ') }}</p>{% endif %}
                             {% if profile.differentiators %}
                             <p class="mb-2"><strong>What sets them apart:</strong>
-                                {% for d in profile.differentiators[:4] %}<span class="badge bg-light text-dark border me-1">{{ d }}</span>{% endfor %}
+                                {% for d in profile.differentiators[:5] %}<span class="badge bg-light text-dark border me-1">{{ d }}</span>{% endfor %}
                             </p>
                             {% endif %}
-                            <p class="mb-2"><strong>Voice:</strong> {{ profile.voice }}</p>
+                            {% if profile.proof_points %}<p class="mb-2"><strong>Proof:</strong> {{ profile.proof_points | join(', ') }}</p>{% endif %}
+                            <p class="mb-2"><strong>Voice:</strong> {{ profile.voice }}{% if profile.tone and profile.tone != profile.voice %} <span class="text-muted">({{ profile.tone }})</span>{% endif %}</p>
                             {% if profile.target_audience %}<p class="mb-2"><strong>Audience:</strong> {{ profile.target_audience }}</p>{% endif %}
-                            {% if profile.brand_colors %}
-                            <p class="mb-0"><strong>Brand colors:</strong> {{ profile.brand_colors | join(', ') }}</p>
-                            {% endif %}
+                            {% if profile.banned_topics %}<p class="mb-2"><strong>Never post about:</strong> <span class="text-danger">{{ profile.banned_topics | join(', ') }}</span></p>{% endif %}
+                            {% if profile.brand_colors %}<p class="mb-0"><strong>Brand colors:</strong> {{ profile.brand_colors | join(', ') }}</p>{% endif %}
                         </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No profile yet. Click <strong>Rebuild from site</strong> to build it from the client's website, or <strong>Edit</strong> to fill it in by hand.</p>
+                    {% endif %}
+
+                    <!-- Editable profile form -->
+                    <div class="collapse mt-3" id="profileEdit">
+                        <hr>
+                        <form method="POST" action="{{ url_for('dashboard.edit_profile', brand_id=brand.id) }}">
+                            <div class="row g-3">
+                                {% for key, label, kind in profile_fields %}
+                                {% set val = profile.get(key) if profile else None %}
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold mb-1">{{ label }}</label>
+                                    {% if kind == 'list' %}
+                                    <textarea name="{{ key }}" rows="2" class="form-control form-control-sm"
+                                              placeholder="One per line (or comma-separated)">{% if val %}{{ val | join('\n') }}{% endif %}</textarea>
+                                    {% else %}
+                                    <input type="text" name="{{ key }}" class="form-control form-control-sm" value="{{ val or '' }}">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save me-1"></i>Save profile</button>
+                                <span class="small text-muted ms-2">Your edits are kept even when the website is re-scraped.</span>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
+
+    <!-- The persistent living Marketing Plan (the standing strategy) -->
+    <div class="row mb-4" id="plan">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chess-knight me-2"></i>Marketing Plan <span class="text-muted small">(the standing strategy)</span></h5>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if marketing_plan and marketing_plan.locked %}<span class="badge bg-success" title="Hand-edited — the engine won't overwrite it">Locked (your edits)</span>
+                        {% elif marketing_plan and marketing_plan.source == 'ai' %}<span class="badge bg-primary">AI-built</span>
+                        {% elif marketing_plan %}<span class="badge bg-secondary">Draft</span>{% endif %}
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#planEdit">
+                            <i class="fas fa-pen me-1"></i>Edit
+                        </button>
+                        <form method="POST" action="{{ url_for('dashboard.regenerate_plan', brand_id=brand.id) }}" class="m-0"
+                              onsubmit="return {{ 'confirm(\'This rebuilds the plan from the profile and unlocks your edits. Continue?\')' if marketing_plan and marketing_plan.locked else 'true' }};">
+                            <button class="btn btn-sm btn-outline-secondary" title="Rebuild the plan from the current profile">
+                                <i class="fas fa-rotate me-1"></i>Regenerate
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if marketing_plan %}
+                    <p class="mb-2"><strong>Positioning:</strong> {{ marketing_plan.positioning or '—' }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if marketing_plan.content_pillars %}
+                            <p class="mb-2"><strong>Content pillars:</strong>
+                                {% for p in marketing_plan.content_pillars %}<span class="badge bg-dark me-1 mb-1">{{ p }}</span>{% endfor %}
+                            </p>{% endif %}
+                            {% if marketing_plan.primary_offers %}<p class="mb-2"><strong>Offers to promote:</strong> {{ marketing_plan.primary_offers | join(', ') }}</p>{% endif %}
+                            <p class="mb-2"><strong>Target geographies:</strong>
+                                {% if marketing_plan.target_geographies %}{{ marketing_plan.target_geographies | join(', ') }}
+                                {% else %}<span class="badge bg-warning text-dark">none set</span>{% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if marketing_plan.platform_mix %}<p class="mb-2"><strong>Platforms:</strong> {{ marketing_plan.platform_mix | join(', ') }}</p>{% endif %}
+                            <p class="mb-2"><strong>Cadence:</strong> {{ marketing_plan.cadence_per_week or '—' }} posts/week</p>
+                            {% if marketing_plan.competitor_angle %}<p class="mb-2"><strong>Out-position competitors by:</strong> {{ marketing_plan.competitor_angle }}</p>{% endif %}
+                            {% if marketing_plan.seasonal_hooks %}<p class="mb-2"><strong>Seasonal hooks:</strong> {{ marketing_plan.seasonal_hooks | join(', ') }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% if marketing_plan.banned_topics %}<p class="mb-2"><strong>Never post about:</strong> <span class="text-danger">{{ marketing_plan.banned_topics | join(', ') }}</span></p>{% endif %}
+                    {% if marketing_plan.notes %}<p class="mb-0"><strong>Notes:</strong> {{ marketing_plan.notes }}</p>{% endif %}
+                    {% else %}
+                    <p class="text-muted mb-0">No marketing plan yet. Click <strong>Regenerate</strong> to build it from the profile, or <strong>Run now</strong> on the autopilot (it builds one automatically), or <strong>Edit</strong> to write it yourself.</p>
+                    {% endif %}
+
+                    <!-- Editable plan form -->
+                    <div class="collapse mt-3" id="planEdit">
+                        <hr>
+                        <form method="POST" action="{{ url_for('dashboard.edit_plan', brand_id=brand.id) }}">
+                            <div class="row g-3">
+                                {% for key, label, kind in plan_fields %}
+                                {% set val = marketing_plan.get(key) if marketing_plan else None %}
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold mb-1">{{ label }}</label>
+                                    {% if kind == 'list' %}
+                                    <textarea name="{{ key }}" rows="2" class="form-control form-control-sm"
+                                              placeholder="One per line (or comma-separated)">{% if val %}{{ val | join('\n') }}{% endif %}</textarea>
+                                    {% elif kind == 'int' %}
+                                    <input type="number" min="1" max="14" name="{{ key }}" class="form-control form-control-sm" value="{{ val or '' }}">
+                                    {% else %}
+                                    <input type="text" name="{{ key }}" class="form-control form-control-sm" value="{{ val or '' }}">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save me-1"></i>Save plan</button>
+                                <span class="small text-muted ms-2">Saving locks the plan so the engine won't overwrite it.</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Automation Engine -->
     <div class="row mb-4">

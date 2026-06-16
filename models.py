@@ -258,6 +258,17 @@ class Brand(db.Model):
     # downstream is grounded in this. See docs/BLUEPRINT.md.
     client_profile = db.Column(db.Text)              # profile as JSON
     profile_built_at = db.Column(db.DateTime)
+    # Salesperson edits to the profile, kept separate so a re-scrape refreshes the
+    # AI-derived fields but never clobbers what a human corrected. Merged ON TOP of
+    # the freshly-built profile every time ensure_profile() runs. JSON dict.
+    profile_overrides = db.Column(db.Text)
+    # The persistent LIVING marketing plan (BLUEPRINT layer 3 "The Strategist"):
+    # positioning, content pillars, target geographies, primary offers, platform
+    # mix, cadence, seasonal hooks, banned topics, competitor angle. Maintained by
+    # the engine, editable by the salesperson; per-cycle post ideas are grounded in
+    # it. JSON dict. `locked` inside means a human edited it (don't auto-overwrite).
+    marketing_plan = db.Column(db.Text)
+    marketing_plan_updated_at = db.Column(db.DateTime)
 
     # Subscription info (per brand billing)
     subscription_tier = db.Column(db.Enum(SubscriptionTier), default=SubscriptionTier.BASIC)

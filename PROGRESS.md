@@ -117,17 +117,35 @@ generated image → published to the FB Page. What shipped alongside it:
   (AI gets the coating tools/technique wrong). Traditional roofing work IS fine.
   Baked into `_image_prompt`. The Truline image was also vision-verified person-free.
 
-### ⛳ FOUNDATIONAL TODO Fred flagged (do next — high priority)
+### ⛳ FOUNDATIONAL TODO Fred flagged — ✅ DONE (2026-06-16)
 The app must generate ALL client answers itself — "it's supposed to have a
-comprehensive profile and marketing plan for each client." Today the profile is
+comprehensive profile and marketing plan for each client." Today the profile was
 shallow (it MISSED Truline's **service area** → the post said "Central Ohio" from a
-news headline, possibly wrong) and there's **no persistent per-client marketing
-plan** (plans are regenerated ephemerally each cycle). Build:
-1. **Deep client profile** — capture service area/geography, offers, audience,
-   proof, differentiators, tone, banned topics, etc.; persisted + editable.
-2. **Persistent marketing plan per client** — a stored living plan the Strategist
-   maintains, not throwaway per-cycle ideas.
-So the salesperson never hand-answers what the app should already know.
+news headline) and there was **no persistent per-client marketing plan**. BUILT:
+1. **Deep client profile** — `_build_profile` now extracts service_area +
+   service_area_cities, offers, proof_points, target_audience, voice/tone,
+   differentiators, brand_colors, **banned_topics**, keywords — with a hard
+   "DO NOT GUESS geography/proof; leave blank if unstated" rule (the Central-Ohio
+   cause). **Editable** on the client page; edits stored as `brands.profile_overrides`
+   and **merged on top every `ensure_profile`** so a re-scrape never clobbers them.
+2. **Persistent living marketing plan** — `brands.marketing_plan` (JSON) +
+   `marketing_plan_updated_at`. `ensure_marketing_plan` builds/refreshes a standing
+   strategy (positioning, content_pillars, target_geographies, primary_offers,
+   platform_mix, cadence_per_week, seasonal_hooks, competitor_angle, banned_topics)
+   grounded in the profile; geographies + banned topics **inherit from the profile**.
+   Editable + lockable on the client page (a hand-edited plan won't be auto-overwritten;
+   "Regenerate" rebuilds from the profile). `run_cycle` maintains the plan and
+   per-cycle `build_plan` grounds post ideas in it.
+3. **Geography leak fixed** — `_ai_plan` AND `write_post` now carry an explicit
+   geo rule (only name the client's service-area locations; NEVER a city from a
+   news/trend signal) + banned-topics rule.
+- Migration `d4e5f6a7b8c9` (off head `c3d4e5f6a7b8`) adds the 3 columns. Verified
+  locally end-to-end (override merge wins, plan inherits+locks, routes persist).
+- Routes (dashboard.py): `profile/edit`, `profile/rebuild`, `plan/edit`,
+  `plan/regenerate`. UI: editable Profile + Marketing Plan cards in `view_brand.html`.
+- NEXT candidates: re-run a real Truline cycle to confirm the service area is now
+  captured (set Truline's service area in the profile editor first if its site
+  doesn't state it); then Phase 1 hardening / Phase 2 approval queue per FEATURE_ROADMAP.
 
 ## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch

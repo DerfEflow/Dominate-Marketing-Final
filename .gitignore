@@ -100,3 +100,6 @@ deploy-secrets.txt
 # Zapier MCP server URL (contains a secret token — NEVER commit)
 zapier-mcp-url.txt
 *-mcp-url.txt
+
+# Local Zapier MCP ops helper (reads wallet; not for the public repo)
+scripts/zap_mcp.py

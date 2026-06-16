@@ -395,13 +395,16 @@ def write_post(brand, profile, brief):
             text = _openai_chat(
                 system="You are an expert social media copywriter. Write ONE ready-to-post "
                        "caption (under 280 chars) in the business's voice, grounded in the "
-                       "given angle/fact. 1-3 relevant hashtags, an emoji or two, and the CTA. "
-                       "Reply with ONLY the caption text.",
+                       "given angle/fact. Do NOT restate the strategy or the word 'angle' — "
+                       "write the actual customer-facing post. 1-3 relevant hashtags, an emoji "
+                       "or two, and the CTA. Reply with ONLY the caption text.",
                 prompt=f"Business: {brand.name}. Voice: {profile.get('voice')}. "
                        f"What they sell: {profile.get('what_they_sell')}.\n"
                        f"Angle: {brief['angle']}\nGrounded in (real): {brief['grounded_in']}\n"
                        f"Call to action: {brief['cta']}",
-                max_tokens=200,
+                # GPT-5.x spends part of the budget on reasoning; 200 left no room
+                # for the caption and it fell back to a template. Give headroom.
+                max_tokens=700,
             )
             text = _strip_fences(text).strip('"').strip()
             if text:

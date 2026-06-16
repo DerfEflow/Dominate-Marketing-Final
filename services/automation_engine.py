@@ -161,11 +161,13 @@ def _image_prompt(brand, profile, brief, caption):
             f"{profile.get('what_they_sell')}. Theme: {brief.get('angle')}. "
             f"Clean, modern, scroll-stopping, architectural/product photography. "
             f"{('Brand colors: ' + colors + '. ') if colors else ''}"
-            # HARD RULE (Fred): never depict a person performing roof/coating work — the
-            # tools and technique render incorrectly. Show buildings/roofs/results instead.
-            f"ABSOLUTE RULE: do NOT depict any person, worker, hands, or anyone performing "
-            f"roofing or applying roof coating — no people doing the work at all. Show the "
-            f"building, the roof itself, the finished clean result, or abstract brand imagery. "
+            # HARD RULE (Fred): never depict a person applying ROOF COATING specifically —
+            # AI renders those tools/technique wrong. Traditional roofing work IS fine.
+            f"ABSOLUTE RULE: do NOT depict any person applying or performing roof COATING "
+            f"(liquid/spray/roller-applied roof coating) — those specific tools and techniques "
+            f"render incorrectly. Traditional roofing work is acceptable, but never show "
+            f"someone applying a roof coating. Prefer the building, the roof, the finished "
+            f"clean result, or clean brand imagery. "
             f"Do NOT include any text, words, or logos in the image.")
 
 

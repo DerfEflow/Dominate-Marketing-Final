@@ -159,8 +159,13 @@ def _image_prompt(brand, profile, brief, caption):
     colors = ', '.join(profile.get('brand_colors', [])[:3]) if profile.get('brand_colors') else ''
     return (f"Professional social media image for {brand.name}, a business that sells "
             f"{profile.get('what_they_sell')}. Theme: {brief.get('angle')}. "
-            f"Clean, modern, scroll-stopping, photographic. "
+            f"Clean, modern, scroll-stopping, architectural/product photography. "
             f"{('Brand colors: ' + colors + '. ') if colors else ''}"
+            # HARD RULE (Fred): never depict a person performing roof/coating work — the
+            # tools and technique render incorrectly. Show buildings/roofs/results instead.
+            f"ABSOLUTE RULE: do NOT depict any person, worker, hands, or anyone performing "
+            f"roofing or applying roof coating — no people doing the work at all. Show the "
+            f"building, the roof itself, the finished clean result, or abstract brand imagery. "
             f"Do NOT include any text, words, or logos in the image.")
 
 

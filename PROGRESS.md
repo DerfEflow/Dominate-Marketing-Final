@@ -80,7 +80,29 @@ The app is **live on Railway, connected to Supabase**, admin login verified.
   volume (see FEATURE_ROADMAP Phase 0.2).
 - 📄 **`docs/FEATURE_ROADMAP.md`** written — full phased post-launch plan.
 
-## 🔁 HANDOFF (2026-06-13) — Zapier MCP in progress; restart needed
+## ✅ REAL POSTING SHIPPED via Zapier MCP (2026-06-13)
+The autopilot can now publish **real** social posts — verified end-to-end with a
+live Facebook Page post (real post id returned).
+- New connector: `services/zapier_mcp.py` calls Fred's Zapier MCP endpoint
+  (`execute_zapier_write_action`). `social_media_integration.post_to_platform`
+  routes accounts whose `webhook_url == 'zapier-mcp'` to `_post_via_zapier_mcp`
+  (target page read from `account.platform_user_id`/`username`). **No DB migration.**
+- Config: `ZAPIER_MCP_URL` + `ZAPIER_MCP_TOKEN` set on web+worker (+ local .env),
+  values read from Fred's wallet `~/.app-secrets.env` (`Zapier_MCP_DOMINATE`,
+  `Zapier_MCP_TOKEN`). Local ops helper: `scripts/zap_mcp.py` (git-ignored).
+- **The Zapier MCP is read-over-HTTP-able directly** (no Claude Code MCP
+  registration / restart needed): handshake `initialize` then JSON-RPC `tools/call`
+  with header `Authorization: Bearer <token>`; responses may be SSE.
+- Zapier enabled apps: **Facebook Pages** (Create Page Post) + Roofr. Only ONE FB
+  Page connected: "5 Prime Roof Coating Consultants" (Fred's own).
+- GOTCHA: Zapier's AI execute layer returns a `followUpQuestion` instead of
+  publishing unless instructions say "publish immediately, no follow-ups" — the
+  connector now does this and treats a followUpQuestion as non-success.
+- NEXT for posting: per-client onboarding automation (auto-create zapier-mcp
+  SocialAccounts + page targeting per client); Instagram/LinkedIn/X actions;
+  pull-back metrics. See `docs/FEATURE_ROADMAP.md`.
+
+## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch
 energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the
 per-client approval-flow feature** — prioritize automating client onboarding/posting.

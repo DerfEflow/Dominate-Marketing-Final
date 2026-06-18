@@ -186,8 +186,11 @@ def demo_login(tier):
     try:
         login_user(user)
         flash(f'Logged in as {tier.title()} demo user', 'success')
-        # Redirect to demo live page instead of dashboard to avoid service errors
-        return redirect(url_for('dashboard.demo_live'))
+        # Send the demo user to the dashboard. (Previously this targeted a
+        # 'dashboard.demo_live' route that was never defined, raising a
+        # BuildError on every visit; dashboard.index matches the working
+        # /demo-login route in main_app.py.)
+        return redirect(url_for('dashboard.index'))
     except Exception as e:
         flash(f'Login error: {str(e)}', 'error')
         return redirect(url_for('auth.login'))

@@ -99,7 +99,7 @@ auto-post → continually refresh.** See `docs/automation_engine.md`.
 - NEEDS FRED (Phase 4): real AI keys; real social OAuth apps (FACEBOOK/TWITTER/
   LINKEDIN/TIKTOK client id+secret); the Railway worker process running 24/7.
 
-### Phase 4 — Pre-launch (Fred-owned hard blocks; do NOT do autonomously)
+### Phase 4 — Pre-launch 
 1. Real `SESSION_SECRET` + real admin credentials (env, never code).
 2. Real API keys for the AI features Fred wants live.
 3. Live Supabase Postgres `DATABASE_URL`; one-time `flask db stamp e8d2efaa80d1`

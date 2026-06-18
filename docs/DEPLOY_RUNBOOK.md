@@ -36,8 +36,9 @@ In the Railway project → Variables, add these. The must-haves to boot + run AI
 | `DISABLE_BILLING` | `true` (internal-tool mode) |
 | `FLASK_ENV` | `production` |
 | `OPENAI_API_KEY` | your OpenAI key |
-| `OPENAI_TEXT_MODEL` | *(optional)* — leave **unset** to use the safe default `gpt-4o-mini`; see note below |
-| `OPENAI_IMAGE_MODEL` | *(optional)* — leave unset to use the default `gpt-image-1-mini` |
+| `OPENAI_TEXT_MODEL` | `gpt-5.5` (primary — auto-falls back to gpt-4o-mini; see note) |
+| `OPENAI_TEXT_MODEL_FALLBACK` | *(optional)* — backup model; defaults to `gpt-4o-mini` |
+| `OPENAI_IMAGE_MODEL` | *(optional)* — defaults to `gpt-image-1-mini` |
 | `BOOTSTRAP_ADMIN_USERNAME` | your admin login name |
 | `BOOTSTRAP_ADMIN_PASSWORD` | a strong password (this is your real login) |
 | `BOOTSTRAP_ADMIN_EMAIL` | fredwolfe@gmail.com |
@@ -45,14 +46,13 @@ In the Railway project → Variables, add these. The must-haves to boot + run AI
 
 (Leave Stripe/Google-OAuth/social-connector vars blank for now — dormant.)
 
-> **Model note (Fred decision):** the earlier runbook hardcoded
-> `OPENAI_TEXT_MODEL=gpt-5.5`. The `openai` client does **not** validate model
-> ids — if the value isn't a model your OpenAI account can call, every request
-> fails and the engine silently falls back to placeholder/simulated output.
-> The code default `gpt-4o-mini` is known-good, so leaving the var unset is the
-> safe choice. To use a newer model (e.g. a `gpt-5`-family id), first confirm
-> your OpenAI account has access to that exact id, then set `OPENAI_TEXT_MODEL`
-> to it. Don't set a model id you haven't verified is live on your account.
+> **Model note:** every text/vision generation calls `OPENAI_TEXT_MODEL`
+> (`gpt-5.5`) first and **automatically retries on `OPENAI_TEXT_MODEL_FALLBACK`
+> (`gpt-4o-mini`) if the primary errors** — e.g. if your OpenAI account can't yet
+> call gpt-5.5. So gpt-5.5 is used whenever it's available, and content
+> generation never breaks if it isn't (it downshifts to 4o-mini and logs a
+> warning, instead of dropping to placeholder/simulated output). The fallback is
+> overridable via `OPENAI_TEXT_MODEL_FALLBACK`.
 
 ## Step 5 — First deploy  [YOU click, automatic after]
 Trigger the deploy. On release, the app automatically runs

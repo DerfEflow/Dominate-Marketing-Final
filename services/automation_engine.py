@@ -47,7 +47,33 @@ def social_configured(platform):
 
 
 def text_model():
-    return os.environ.get('OPENAI_TEXT_MODEL', 'gpt-4o-mini')
+    # Primary text/vision model for every generation call. Per the product spec
+    # (docs/BLUEPRINT.md) this is GPT-5.5. _openai_chat / _openai_vision call
+    # this model first and AUTOMATICALLY retry on fallback_text_model() if it
+    # errors (e.g. the OpenAI account can't call this id yet), so an
+    # unavailable primary never breaks generation — it just downshifts.
+    return os.environ.get('OPENAI_TEXT_MODEL', 'gpt-5.5')
+
+
+def fallback_text_model():
+    # Backup model used only when the primary (text_model) call fails. gpt-4o-mini
+    # is broadly available and cheap, so it's a safe always-works net.
+    return os.environ.get('OPENAI_TEXT_MODEL_FALLBACK', 'gpt-4o-mini')
+
+
+def _chat_completion(client, **kwargs):
+    """chat.completions.create on the primary model, with one automatic retry on
+    the fallback model if the primary errors. Returns the response object."""
+    primary = text_model()
+    fallback = fallback_text_model()
+    try:
+        return client.chat.completions.create(model=primary, **kwargs)
+    except Exception as e:
+        if fallback and fallback != primary:
+            logger.warning("Primary model %s failed (%s) — retrying on fallback %s",
+                           primary, e, fallback)
+            return client.chat.completions.create(model=fallback, **kwargs)
+        raise
 
 
 def image_model():
@@ -77,8 +103,8 @@ def wants_video(brand):
 def _openai_chat(system, prompt, max_tokens=800):
     from openai import OpenAI
     client = OpenAI()
-    resp = client.chat.completions.create(
-        model=text_model(),
+    resp = _chat_completion(
+        client,
         messages=[{'role': 'system', 'content': system},
                   {'role': 'user', 'content': prompt}],
         max_completion_tokens=max_tokens,
@@ -95,8 +121,8 @@ def _openai_vision(image_bytes, prompt, max_tokens=400):
     from openai import OpenAI
     client = OpenAI()
     data_url = 'data:image/png;base64,' + base64.b64encode(image_bytes).decode()
-    resp = client.chat.completions.create(
-        model=text_model(),
+    resp = _chat_completion(
+        client,
         max_completion_tokens=max_tokens,
         messages=[{'role': 'user', 'content': [
             {'type': 'text', 'text': prompt},

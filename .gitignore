@@ -107,3 +107,11 @@ scripts/zap_mcp.py
 # Supabase service_role key (secret — NEVER commit)
 supabase-key.txt
 *-key.txt
+
+# --- prod-readiness cleanup (M6) ---
+# SQLite rollback journals + the local instance/ dir (dev artifacts; prod uses Postgres)
+*.db-journal
+instance/
+# Editor/agent backup copies (e.g. auth.py.bak-20260618) — never commit
+*.bak
+*.bak-*

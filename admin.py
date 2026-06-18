@@ -21,6 +21,20 @@ from services.admin_notifications import AdminNotificationService
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+# Internal accounts (salespeople + admins) created during the internal-tool
+# phase must be excluded from SaaS-facing metrics, or they inflate customer
+# counts and skew tier distribution. See docs/data_model.md "Metrics footgun"
+# and models.py User.is_salesperson. Use REAL_USER_CRITERIA inside
+# db.session.query(...).filter(*REAL_USER_CRITERIA), or _real_users_query()
+# for a plain User.query.
+REAL_USER_CRITERIA = (User.is_salesperson == False, User.is_admin == False)  # noqa: E712
+
+
+def _real_users_query():
+    """User.query limited to real (non-internal) customer accounts."""
+    return User.query.filter(*REAL_USER_CRITERIA)
+
+
 def is_admin():
     """Check if current user has admin privileges.
 
@@ -441,14 +455,14 @@ def user_details(user_id):
 def get_dashboard_stats():
     """Get overview statistics for admin dashboard"""
     
-    total_users = User.query.count()
+    total_users = _real_users_query().count()
     total_campaigns = Campaign.query.count()
     total_brands = Brand.query.count()
     total_quality_checks = QualityCheck.query.count()
-    
+
     # Recent activity (last 7 days)
     week_ago = datetime.now() - timedelta(days=7)
-    new_users_week = User.query.filter(User.created_at >= week_ago).count()
+    new_users_week = _real_users_query().filter(User.created_at >= week_ago).count()
     new_campaigns_week = Campaign.query.filter(Campaign.created_at >= week_ago).count()
     
     # Quality metrics
@@ -542,25 +556,19 @@ def get_quality_metrics():
 def get_user_metrics():
     """Get user engagement metrics"""
 
-    # METRICS FOOTGUN: this query (and monthly_registrations / campaign_activity
-    # below) counts ALL users, including is_salesperson=True and is_admin=True
-    # accounts created during the internal-tool phase. Before the eventual D2C
-    # relaunch, every SaaS-facing report needs `.filter(User.is_salesperson == False, User.is_admin == False)`
-    # added so internal staff don't inflate customer counts or skew tier distribution.
-    # See models.py User.is_salesperson definition for full context.
-    # TODO(d2c-relaunch): add `User.is_salesperson == False, User.is_admin == False` filter.
+    # Internal accounts (salespeople/admins) are excluded from all of the
+    # following so they don't inflate customer counts, skew the tier
+    # distribution, or pollute the registration trend line. See REAL_USER_CRITERIA.
     tier_distribution = db.session.query(
         User.subscription_tier,
         func.count(User.id)
-    ).group_by(User.subscription_tier).all()
+    ).filter(*REAL_USER_CRITERIA).group_by(User.subscription_tier).all()
 
     # User activity by registration date.
     # Computed in Python rather than with SQL date_trunc() so it works on both
     # SQLite (local dev) and Postgres (prod) — date_trunc is Postgres-only.
-    # TODO(d2c-relaunch): exclude is_salesperson/is_admin so internal-tool
-    # signups don't pollute the new-customer trend line.
     monthly_counts = {}
-    for (created_at,) in db.session.query(User.created_at).all():
+    for (created_at,) in db.session.query(User.created_at).filter(*REAL_USER_CRITERIA).all():
         if not created_at:
             continue
         key = created_at.strftime('%Y-%m')
@@ -569,14 +577,13 @@ def get_user_metrics():
 
     # Average campaigns per tier. Done as two simple queries + Python division
     # because func.avg(func.count(...)) is an invalid nested aggregate in SQL.
-    # TODO(d2c-relaunch): exclude is_salesperson/is_admin accounts.
     users_per_tier = dict(
         db.session.query(User.subscription_tier, func.count(User.id))
-        .group_by(User.subscription_tier).all()
+        .filter(*REAL_USER_CRITERIA).group_by(User.subscription_tier).all()
     )
     campaigns_per_tier = dict(
         db.session.query(User.subscription_tier, func.count(Campaign.id))
-        .join(Campaign).group_by(User.subscription_tier).all()
+        .join(Campaign).filter(*REAL_USER_CRITERIA).group_by(User.subscription_tier).all()
     )
     campaign_activity = {
         tier: round(campaigns_per_tier.get(tier, 0) / users_per_tier[tier], 2)
@@ -849,20 +856,27 @@ def send_user_communication(recipient_type, recipient_ids, subject, message, tem
 def get_detailed_user_stats():
     """Get detailed user statistics"""
     
-    total_users = User.query.count()
-    
+    # Internal accounts excluded from all counts (see REAL_USER_CRITERIA).
+    total_users = _real_users_query().count()
+
     # Tier distribution
     tier_stats = db.session.query(
         User.subscription_tier,
         func.count(User.id)
-    ).group_by(User.subscription_tier).all()
-    
-    # Active users (users with campaigns)
-    active_users = db.session.query(User.id).join(Campaign).distinct().count()
-    
+    ).filter(*REAL_USER_CRITERIA).group_by(User.subscription_tier).all()
+
+    # Active users (real users with campaigns)
+    active_users = (
+        db.session.query(User.id)
+        .join(Campaign)
+        .filter(*REAL_USER_CRITERIA)
+        .distinct()
+        .count()
+    )
+
     # Recent registrations
     week_ago = datetime.now() - timedelta(days=7)
-    recent_registrations = User.query.filter(User.created_at >= week_ago).count()
+    recent_registrations = _real_users_query().filter(User.created_at >= week_ago).count()
     
     return {
         "total_users": total_users,

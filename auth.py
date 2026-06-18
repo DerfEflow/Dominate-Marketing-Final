@@ -65,8 +65,18 @@ def login_post():
     if not user or not user.password_hash or not check_password_hash(user.password_hash, password):
         flash('Invalid email/username or password.', 'error')
         return render_template('auth/login.html')
-    
+
+    # Deactivated accounts cannot log in. An admin deactivates a salesperson by
+    # setting account_active=False (admin.py) — this preserves their data but
+    # must block sign-in. Only an explicit False blocks; None/True (the column
+    # default and any legacy rows) stay allowed so no current user is locked out.
+    if user.account_active is False:
+        flash('Your account has been deactivated. Please contact your administrator.', 'error')
+        return render_template('auth/login.html')
+
     login_user(user, remember=bool(remember))
+    user.last_login = datetime.utcnow()
+    db.session.commit()
 
     # Redirect to dashboard or next page — validate to prevent open redirect
     next_page = request.args.get('next')
@@ -266,14 +276,13 @@ def google_login():
         from oauthlib.oauth2 import WebApplicationClient
         client = WebApplicationClient(GOOGLE_CLIENT_ID)
         
-        # Generate authorization URL
-        # Detect if request is coming from custom domain
-        host = request.headers.get('Host', '')
-        if CUSTOM_DOMAIN in host or 'dominatemarketing.ninja' in request.url:
-            callback_url = f"https://{CUSTOM_DOMAIN}/auth/google_login/callback"
-        else:
-            callback_url = f"https://{CUSTOM_DOMAIN}/auth/google_login/callback"  # Always use custom domain for OAuth
-        
+        # Use the configured callback URL (OAUTH_CALLBACK_URL env var). It must
+        # match a redirect URI registered in Google Cloud Console. Set it to the
+        # Railway domain before the custom-domain cutover, then to the custom
+        # domain after. Falls back to the custom domain when unset (see top of
+        # file), so existing prod config keeps working without this var.
+        callback_url = OAUTH_CALLBACK_URL
+
         request_uri = client.prepare_request_uri(
             authorization_endpoint,
             redirect_uri=callback_url,
@@ -309,9 +318,10 @@ def google_callback():
         google_provider_cfg = requests.get(GOOGLE_DISCOVERY_URL).json()
         token_endpoint = google_provider_cfg["token_endpoint"]
         
-        # Exchange code for token  
-        # Always use custom domain for OAuth callback
-        callback_url = f"https://{CUSTOM_DOMAIN}/auth/google_login/callback"
+        # Exchange code for token. Must use the SAME redirect URI that was sent
+        # in the authorization request (OAUTH_CALLBACK_URL), or Google rejects
+        # the exchange with redirect_uri_mismatch.
+        callback_url = OAUTH_CALLBACK_URL
         
         token_url, headers, body = client.prepare_token_request(
             token_endpoint,
@@ -376,7 +386,9 @@ def google_callback():
         
         # Log in user
         login_user(user)
-        
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+
         # Redirect new users to profile completion
         if not user.onboarding_completed and user.profile_completion_percentage < 50:
             flash('Welcome! Please complete your profile to get personalized marketing campaigns.', 'info')

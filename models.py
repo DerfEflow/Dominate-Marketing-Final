@@ -290,9 +290,16 @@ class Brand(db.Model):
         return datetime.utcnow() < self.subscription_expires
     
     def can_access_tier(self, required_tier):
+        # In internal-tool mode (billing disabled) every client passes all tier
+        # gates, mirroring User.can_access_tier so Brand-scoped feature checks
+        # don't gate on a dormant subscription. Flip DISABLE_BILLING off to
+        # restore real tier enforcement for a future D2C launch.
+        if billing_disabled():
+            return True
+
         if not self.has_active_subscription():
             return required_tier == SubscriptionTier.BASIC
-        
+
         tier_order = [SubscriptionTier.BASIC, SubscriptionTier.PLUS, SubscriptionTier.PRO, SubscriptionTier.ENTERPRISE]
         return tier_order.index(self.subscription_tier) >= tier_order.index(required_tier)
 

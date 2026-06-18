@@ -627,11 +627,16 @@ def contact_support(campaign_id):
         'description': description,
         'timestamp': datetime.utcnow().isoformat(),
     }
+    # Durable record: log to the app logger so the request is captured in
+    # Railway's persistent log stream. The local .jsonl append is best-effort
+    # only — Railway's filesystem is ephemeral and wiped on every redeploy, so
+    # the log line (not the file) is the source of truth.
+    logger.info("SUPPORT_REQUEST %s", json.dumps(support_data))
     try:
         with open('support_requests.jsonl', 'a') as f:
             f.write(json.dumps(support_data) + '\n')
     except Exception as e:
-        logger.error(f"Could not write support request: {e}")
+        logger.error(f"Could not write support request file (non-fatal): {e}")
 
     flash('Support request submitted. We\'ll respond within 24 hours.', 'success')
     return redirect(url_for('dashboard.campaign_detail', campaign_id=campaign_id))

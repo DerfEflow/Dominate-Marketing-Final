@@ -6,6 +6,7 @@ Handles Google OAuth, demo login, and user management
 import json
 import os
 import requests
+import time
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from urllib.parse import urlparse
@@ -29,6 +30,35 @@ OAUTH_CALLBACK_URL = os.environ.get(
 )
 
 print(f"[AUTH] OAuth callback URL: {OAUTH_CALLBACK_URL}")
+
+# Google's OpenID discovery doc is effectively static, but the OAuth routes used
+# to re-fetch it on EVERY login click and callback — a blocking round-trip to
+# Google with no timeout, which made "Sign in with Google" slow and could hang a
+# worker if Google was slow. Cache it in-process (refresh daily) and fall back to
+# Google's stable endpoints, so login stays fast and never hard-fails on it.
+_DISCOVERY_CACHE = {"cfg": None, "ts": 0.0}
+_DISCOVERY_TTL = 24 * 3600  # seconds
+_GOOGLE_ENDPOINTS_FALLBACK = {
+    "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+    "token_endpoint": "https://oauth2.googleapis.com/token",
+    "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+}
+
+
+def _google_provider_cfg():
+    now = time.time()
+    cached = _DISCOVERY_CACHE["cfg"]
+    if cached and (now - _DISCOVERY_CACHE["ts"] < _DISCOVERY_TTL):
+        return cached
+    try:
+        cfg = requests.get(GOOGLE_DISCOVERY_URL, timeout=5).json()
+        _DISCOVERY_CACHE.update(cfg=cfg, ts=now)
+        return cfg
+    except Exception:
+        # Slow/blocked discovery → serve last-good copy or the stable endpoints
+        # rather than hanging or failing the login.
+        return cached or _GOOGLE_ENDPOINTS_FALLBACK
+
 
 auth = Blueprint('auth', __name__)
 
@@ -270,7 +300,7 @@ def google_login():
     
     try:
         # Get Google OAuth configuration
-        google_provider_cfg = requests.get(GOOGLE_DISCOVERY_URL).json()
+        google_provider_cfg = _google_provider_cfg()
         authorization_endpoint = google_provider_cfg["authorization_endpoint"]
         
         from oauthlib.oauth2 import WebApplicationClient
@@ -315,7 +345,7 @@ def google_callback():
             return redirect(url_for('auth.login'))
         
         # Get Google provider configuration
-        google_provider_cfg = requests.get(GOOGLE_DISCOVERY_URL).json()
+        google_provider_cfg = _google_provider_cfg()
         token_endpoint = google_provider_cfg["token_endpoint"]
         
         # Exchange code for token. Must use the SAME redirect URI that was sent
@@ -335,6 +365,7 @@ def google_callback():
             headers=headers,
             data=body,
             auth=(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET else None,
+            timeout=10,
         )
         
         # Check for token response errors
@@ -350,7 +381,7 @@ def google_callback():
         # Get user info
         userinfo_endpoint = google_provider_cfg["userinfo_endpoint"]
         uri, headers, body = client.add_token(userinfo_endpoint)
-        userinfo_response = requests.get(uri, headers=headers, data=body)
+        userinfo_response = requests.get(uri, headers=headers, data=body, timeout=10)
         
         userinfo = userinfo_response.json()
         

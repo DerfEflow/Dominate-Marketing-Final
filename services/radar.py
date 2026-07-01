@@ -50,6 +50,76 @@ def scraping_api_configured():
     return bool(os.environ.get('BRIGHTDATA_API_KEY') or os.environ.get('SCRAPER_API_URL'))
 
 
+def _serp_key():
+    import os
+    return os.environ.get('SERP_API_KEY') or os.environ.get('SERPAPI_KEY')
+
+
+def serp_configured():
+    """True if a SerpAPI key is set — lets us research a business via GOOGLE
+    (knowledge panel + organic results) instead of its own site. This bypasses
+    site bot-protection entirely (Google doesn't block us the way client sites do),
+    so it's the practical answer when a client's website can't be read directly."""
+    return bool(_serp_key())
+
+
+def fetch_serp_business_text(query, location='', max_chars=4500):
+    """Aggregate a business's PUBLIC info from Google via SerpAPI into profile text.
+
+    Returns real, grounded text (knowledge panel facts + top organic snippets +
+    local listing) or '' if unavailable. Used as the profile source when the
+    client's own website is bot-blocked (see automation_engine.ensure_profile).
+    """
+    key = _serp_key()
+    if not key or not query:
+        return ''
+    try:
+        import requests
+    except Exception:
+        return ''
+    params = {'engine': 'google', 'q': query, 'api_key': key, 'num': '8', 'hl': 'en'}
+    if location:
+        params['location'] = location
+    try:
+        r = requests.get('https://serpapi.com/search', params=params, timeout=45)
+        if r.status_code != 200:
+            logger.info(f"SerpAPI HTTP {r.status_code} for '{query}'")
+            return ''
+        d = r.json()
+    except Exception as e:
+        logger.info(f"SerpAPI request failed for '{query}': {e}")
+        return ''
+    if d.get('error'):
+        logger.info(f"SerpAPI error for '{query}': {d['error']}")
+        return ''
+    parts = []
+    kg = d.get('knowledge_graph') or {}
+    if kg:
+        for k in ('title', 'type', 'description', 'address', 'phone', 'website'):
+            v = kg.get(k)
+            if isinstance(v, str) and v:
+                parts.append(f"{k}: {v}")
+        # scalar extras (rating, hours, service options, etc.)
+        for k, v in kg.items():
+            if k in ('title', 'type', 'description', 'address', 'phone', 'website'):
+                continue
+            if isinstance(v, (str, int, float)) and str(v).strip():
+                parts.append(f"{k}: {v}")
+    # Google Business / local pack
+    for loc in (d.get('local_results', {}) or {}).get('places', [])[:2] if isinstance(d.get('local_results'), dict) else []:
+        bits = [loc.get(x) for x in ('title', 'type', 'address', 'phone') if loc.get(x)]
+        if bits:
+            parts.append('local: ' + ' | '.join(str(b) for b in bits))
+    # Organic result snippets (the business's own pages + directories)
+    for o in (d.get('organic_results') or [])[:6]:
+        t = o.get('title') or ''
+        s = o.get('snippet') or ''
+        if s:
+            parts.append(f"{t}: {s}")
+    text = '\n'.join(parts).strip()
+    return text[:max_chars]
+
+
 def _scraping_api_fetch(url):
     """Fetch a page THROUGH a scraping API that bypasses bot protection.
 

@@ -323,16 +323,37 @@ def ensure_profile(brand, force=False):
     text = rendered.get('text', '')
     blocked = rendered.get('blocked', False)
     reason = rendered.get('reason', '')
+    source = 'site' if text else 'none'
     if not text and brand.website_url:  # rendering failed — try plain scrape
         scraped = radar.scrape_website(brand.website_url)
         text = scraped.get('text', '')
-        if not text:
+        if text:
+            source = 'site'
+        else:
             blocked = scraped.get('blocked', blocked)
             reason = scraped.get('reason', reason)
+
+    # The site is bot-blocked (Truline's is) → research the business via GOOGLE
+    # (SerpAPI). Google isn't blocked, so this gives us real grounded facts —
+    # knowledge panel, address, services, snippets — with no site access at all.
+    if not text and radar.serp_configured():
+        query = f"{brand.name} {brand.industry or ''}".strip()
+        location = ''
+        for key in ('service_area', 'service_area_cities'):
+            existing = (json.loads(brand.client_profile) if brand.client_profile else {}).get(key)
+            if existing:
+                location = existing[0] if isinstance(existing, list) else existing
+                break
+        serp_text = radar.fetch_serp_business_text(query, location=location or '')
+        if serp_text:
+            text = serp_text
+            source = 'google'
+            blocked = False
 
     profile = _build_profile(brand, text, screenshot)
     profile['built_at'] = datetime.utcnow().isoformat()
     profile['scraped'] = bool(text)
+    profile['source'] = source
     profile['scrape_blocked'] = bool(brand.website_url and not text)
     profile['scrape_reason'] = reason if (brand.website_url and not text) else ''
     profile['screenshot_path'] = _save_screenshot(brand, screenshot)

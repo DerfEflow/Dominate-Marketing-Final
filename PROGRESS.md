@@ -171,9 +171,18 @@ Fred reviewed and (rightly) flagged the output as shallow/generic. Root causes f
 4. **Bare URL** accepted (type=url→text + server-side https:// normalization).
 5. **Processing indicators** added (spinner + overlay) on Rebuild/Regenerate/Run-now.
 6. **Prompts sharpened** to forbid generic filler + the no-antithesis rule.
-- HARD BLOCK for Fred: a **scraping API key** (Bright Data/ScraperAPI/etc.) is now
-  effectively REQUIRED — even the client's own site blocks us. Until then, profiles
-  must be filled by hand via the editor (the override merge keeps those edits).
+- ~~HARD BLOCK: scraping API key~~ → **RESOLVED via SerpAPI (2026-06-16).** Fred
+  already owned a `SERP_API_KEY` (in the wallet). Wired it as the profile research
+  fallback: when a client's own site is bot-blocked, `ensure_profile` researches the
+  business via GOOGLE (`radar.fetch_serp_business_text` — knowledge panel + organic
+  snippets; Google isn't blocked). Proven on Truline: built a full, accurate profile
+  with NO site access (fluid-applied restoration, all roof types, GAF certified, etc.).
+  Key set on local `.env` + Railway web+worker (env `SERP_API_KEY`, also reads
+  `SERPAPI_KEY`). `profile.source` = site|google|none; card shows a "Researched via
+  Google" badge. A full page-scraper (Bright Data/`SCRAPER_API_URL`) fallback also
+  exists but stays dormant — SerpAPI covers the need with a key Fred already has.
+  NOTE: SerpAPI free tier ~100 searches/mo; profiles build ~monthly per client so
+  usage is tiny. A blocked-site rebuild takes ~45s (site attempt → then Google).
 
 ## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch

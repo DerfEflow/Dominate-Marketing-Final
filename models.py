@@ -451,9 +451,17 @@ class SocialPost(db.Model):
     content = db.Column(db.Text)
     scheduled_for = db.Column(db.DateTime)
     post_frequency = db.Column(db.String(20), default='once')  # once, daily, weekly, monthly
-    
+
+    # ---- Freshness Clock (BLUEPRINT layer 5) ----
+    # 'planned' posts hold only a strategist brief; the worker writes the actual
+    # content from FRESH radar signals shortly before publish (just-in-time),
+    # so a post never publishes on week-old data. `brief` = the strategist brief
+    # JSON; `grounded_at` = timestamp of the data the final content was built from.
+    brief = db.Column(db.Text)
+    grounded_at = db.Column(db.DateTime)
+
     # Status tracking
-    status = db.Column(db.String(20), default='scheduled')  # scheduled, posted, failed, cancelled
+    status = db.Column(db.String(20), default='scheduled')  # planned, scheduled, posted, failed, cancelled
     posted_at = db.Column(db.DateTime)
     error_message = db.Column(db.Text)
     

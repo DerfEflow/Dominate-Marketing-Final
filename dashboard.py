@@ -160,7 +160,7 @@ def view_brand(brand_id):
     social_accounts = SocialAccount.query.filter_by(brand_id=brand.id, is_active=True).all()
     upcoming_posts = SocialPost.query.join(Campaign).filter(
         Campaign.brand_id == brand.id,
-        SocialPost.status == 'scheduled'
+        SocialPost.status.in_(['scheduled', 'planned'])
     ).order_by(SocialPost.scheduled_for).limit(20).all()
     research = json.loads(brand.research_snapshot) if brand.research_snapshot else None
     profile = json.loads(brand.client_profile) if brand.client_profile else None

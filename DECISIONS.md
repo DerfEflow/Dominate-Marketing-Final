@@ -151,6 +151,28 @@ each section. This is so Fred can review *choices* without reading code.
   Before launch, still treat any key that has ever been pasted anywhere as worth
   rotating, just to be safe.
 
+## Radar restoration (2026-07-01) — judgment calls
+- **Just-in-time writing over write-ahead**: only the first post of a cycle is
+  written immediately; later slots store the brief and get written from fresh
+  research shortly before publishing. Chose a 6-hour prep window (env
+  `PREP_WINDOW_HOURS`) as "fresh enough" vs. worker-tick cost.
+- **JIT prefers a fresh angle over the stored brief** (re-plans 1 idea from
+  today's signals; falls back to the cycle-day brief if that fails) — maximum
+  freshness at the cost of one extra strategist call per post.
+- **Quality gate drop rule**: 3 attempts; ship the best only if it passes or
+  lands within 1.0 of the bar; otherwise drop the brief. A missing post beats a
+  weak post, but a near-miss ships so cycles don't come up empty.
+- **Recency window 7 days** (env `RECENCY_WINDOW_DAYS`) for news signals;
+  undated items are kept (soft-fail) rather than discarded.
+- **Competitor discovery caps at 5** per client, refreshes on profile rebuilds,
+  never lists the client as their own competitor (name/domain match).
+- **Trends localized to state level** ('US-NC') — city-level Trends data is too
+  sparse to be reliable.
+- **Captions never name competitors** — the beats_competitor rationale shapes
+  the copy but stays implicit ("weave in subtly").
+- **Deleted the prod duplicate Truline `4d9385b6`** (double-submit twin of
+  `15475af1`, created 0.35s apart with zero child records) after Fred's OK.
+
 ## Things left for Fred (see ROADMAP Phase 4 — these are the "hard blocks")
 - Real secrets, real admin login, real API keys, the live Supabase database, and
   the actual deploy. I did not touch any of these — they cost money, go live, or

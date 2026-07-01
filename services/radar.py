@@ -358,36 +358,245 @@ def fetch_competitor_intel(competitor_urls):
     return out
 
 
-def fetch_news(keywords, geo='US', max_items=5):
-    """Fresh headlines via Google News RSS (real, no key). Returns signals.
+def recency_window_days():
+    """The Freshness Clock's recency window: signals older than this may not
+    ground content (BLUEPRINT: 'never last week's data'). Env-tunable."""
+    import os
+    try:
+        return max(1, int(os.environ.get('RECENCY_WINDOW_DAYS', '7')))
+    except (ValueError, TypeError):
+        return 7
 
-    Grounds content in what's actually in the news for the client's topics —
-    part of the Culture & Trends / Client-News awareness.
+
+def _parse_rss_date(pub):
+    """Parse an RSS pubDate ('Tue, 01 Jul 2026 04:00:00 GMT'). None on failure."""
+    from email.utils import parsedate_to_datetime
+    try:
+        dt = parsedate_to_datetime(pub)
+        return dt.replace(tzinfo=None) if dt else None
+    except Exception:
+        return None
+
+
+def fetch_news(keywords, locality='', geo='US', max_items=6):
+    """Fresh, LOCAL headlines via Google News RSS (real, no key). Returns signals.
+
+    Localized: each keyword is queried WITH the client's locality (their service
+    area city/region) so the news is about their market, not the nation — a
+    national headline is exactly how a wrong city once leaked into a post.
+    Freshness-enforced: items older than the recency window are dropped.
     """
     out = []
     seeds = [k for k in (keywords or [])[:2] if k]
     if not seeds:
         return out
+    window = timedelta(days=recency_window_days())
+    now = datetime.utcnow()
     try:
         import requests
         import xml.etree.ElementTree as ET
         from urllib.parse import quote_plus
-        for seed in seeds:
-            url = (f"https://news.google.com/rss/search?q={quote_plus(seed)}"
+        queries = [f"{seed} {locality}".strip() for seed in seeds]
+        if locality:  # plus one purely-local pulse on the area itself
+            queries.append(locality)
+        for q in queries:
+            url = (f"https://news.google.com/rss/search?q={quote_plus(q)}"
                    f"&hl=en-{geo}&gl={geo}&ceid={geo}:en")
             r = requests.get(url, headers={'User-Agent': _UA}, timeout=12)
             if r.status_code != 200:
                 continue
             root = ET.fromstring(r.content)
-            for item in list(root.iterfind('.//item'))[:3]:
+            for item in list(root.iterfind('.//item'))[:4]:
                 title = (item.findtext('title') or '').strip()
                 pub = (item.findtext('pubDate') or '').strip()
+                pub_dt = _parse_rss_date(pub)
+                # Freshness Clock: drop anything outside the recency window.
+                if pub_dt is not None and (now - pub_dt) > window:
+                    continue
                 src_el = item.find('{*}source')
                 src = (src_el.text if src_el is not None else 'Google News')
                 if title:
-                    out.append(_signal('news', title, f"headline for '{seed}' — {pub}", src))
+                    out.append(_signal('news', title,
+                                       f"headline for '{q}' — {pub or 'undated'}", src))
+                if len(out) >= max_items:
+                    return out
     except Exception as e:
         logger.info(f"fetch_news unavailable: {e}")
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Localization helpers — the Radar must watch the CLIENT'S market, not the nation
+# ---------------------------------------------------------------------------
+_STATE_ABBREVS = {
+    'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
+    'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
+    'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
+    'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
+    'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+    'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS',
+    'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV',
+    'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+    'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK',
+    'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+    'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
+    'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV',
+    'wisconsin': 'WI', 'wyoming': 'WY',
+}
+_ABBREV_SET = set(_STATE_ABBREVS.values())
+
+
+def locality_from_profile(profile):
+    """Best locality string for feed queries from a client profile.
+
+    Prefers the first specific city ('Charlotte NC') over the broad service_area
+    ('East Coast of the U.S.'). Returns '' if geography is unknown — feeds then
+    stay unlocalized rather than guessing a place.
+    """
+    cities = profile.get('service_area_cities') or []
+    if cities:
+        return str(cities[0])
+    return str(profile.get('service_area') or '')
+
+
+def trends_geo_from_profile(profile):
+    """Google-Trends geo code for the client's state ('US-NC'), else 'US'.
+
+    State-level is the finest granularity Trends supports reliably; it still
+    beats the previous everyone-gets-national default.
+    """
+    text = ' '.join(
+        [str(profile.get('service_area') or '')] +
+        [str(c) for c in (profile.get('service_area_cities') or [])]
+    ).lower()
+    for name, ab in _STATE_ABBREVS.items():
+        if name in text:
+            return f'US-{ab}'
+    # Bare abbreviations ('Charlotte NC', 'Charleston, SC')
+    import re as _re
+    for token in _re.findall(r'\b([A-Z]{2})\b', ' '.join(
+            [str(profile.get('service_area') or '')] +
+            [str(c) for c in (profile.get('service_area_cities') or [])])):
+        if token in _ABBREV_SET:
+            return f'US-{token}'
+    return 'US'
+
+
+def fetch_serp_local_news(industry, locality, max_items=4):
+    """LOCAL news for the client's market via SerpAPI's Google News engine.
+
+    'roofing Charlotte NC' style query — surfaces storms, local projects, market
+    happenings a strategist can actually use. One SerpAPI search per cycle.
+    Freshness-enforced via the engine's own recency. Returns signals ([] if no key).
+    """
+    key = _serp_key()
+    if not (key and locality):
+        return []
+    try:
+        import requests
+    except Exception:
+        return []
+    q = f"{industry} {locality}".strip()
+    try:
+        r = requests.get('https://serpapi.com/search',
+                         params={'engine': 'google_news', 'q': q, 'api_key': key,
+                                 'hl': 'en', 'gl': 'us'},
+                         timeout=45)
+        if r.status_code != 200:
+            return []
+        d = r.json()
+    except Exception as e:
+        logger.info(f"fetch_serp_local_news failed for '{q}': {e}")
+        return []
+    out = []
+    window = timedelta(days=recency_window_days())
+    now = datetime.utcnow()
+    for item in (d.get('news_results') or [])[:10]:
+        title = (item.get('title') or '').strip()
+        date_str = ((item.get('date') or '').split(',')[0]).strip()  # '07/01/2026' or relative
+        # SerpAPI dates come as '07/01/2026, 04:00 PM, +0000 UTC' or '2 days ago'.
+        fresh = True
+        try:
+            if '/' in date_str:
+                dt = datetime.strptime(date_str, '%m/%d/%Y')
+                fresh = (now - dt) <= window
+            elif 'week' in (item.get('date') or '') or 'month' in (item.get('date') or ''):
+                fresh = False
+        except Exception:
+            pass
+        if title and fresh:
+            src = (item.get('source') or {}).get('name') if isinstance(item.get('source'), dict) \
+                else (item.get('source') or 'Google News')
+            out.append(_signal('local_news', title, f"local news for '{q}'", src or 'Google News'))
+        if len(out) >= max_items:
+            break
+    return out
+
+
+def discover_competitors(business_name, industry, locality, exclude_domain='', limit=5):
+    """Find the client's REAL local competitors via SerpAPI's Google local pack.
+
+    'roofing contractor near Charlotte NC' → named competitors with ratings and
+    review counts (out-positioning intel even when their sites block scraping).
+    Returns a list of {name, website, rating, reviews, address}; [] if no key.
+    """
+    key = _serp_key()
+    if not (key and locality):
+        return []
+    try:
+        import requests
+    except Exception:
+        return []
+    q = f"{industry or 'business'} near {locality}"
+    try:
+        r = requests.get('https://serpapi.com/search',
+                         params={'engine': 'google_local', 'q': q, 'api_key': key,
+                                 'hl': 'en', 'gl': 'us'},
+                         timeout=45)
+        if r.status_code != 200:
+            return []
+        d = r.json()
+    except Exception as e:
+        logger.info(f"discover_competitors failed for '{q}': {e}")
+        return []
+    own = (business_name or '').lower().strip()
+    own_domain = (exclude_domain or '').lower().replace('https://', '').replace('http://', '').split('/')[0]
+    out = []
+    for place in (d.get('local_results') or []):
+        name = (place.get('title') or '').strip()
+        if not name or own and (own in name.lower() or name.lower() in own):
+            continue  # never list the client as their own competitor
+        website = (place.get('links') or {}).get('website') or place.get('website') or ''
+        if own_domain and own_domain in (website or '').lower():
+            continue
+        out.append({
+            'name': name,
+            'website': website,
+            'rating': place.get('rating'),
+            'reviews': place.get('reviews'),
+            'address': place.get('address') or '',
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
+def competitor_signals_from_records(competitors):
+    """Radar signals from stored Competitor rows' SERP intel (works even when
+    competitor sites block scraping — ratings/review counts are the wedge)."""
+    out = []
+    for c in (competitors or [])[:5]:
+        detail_bits = []
+        strengths = c.strengths if isinstance(c.strengths, dict) else {}
+        if strengths.get('rating') is not None:
+            detail_bits.append(f"{strengths['rating']}★")
+        if strengths.get('reviews') is not None:
+            detail_bits.append(f"{strengths['reviews']} reviews")
+        if c.description:
+            detail_bits.append(str(c.description)[:120])
+        out.append(_signal('competitor', f"Local competitor: {c.company_name}",
+                           ' | '.join(detail_bits) or 'competitor on file',
+                           c.website_url or 'Google local results'))
     return out
 
 

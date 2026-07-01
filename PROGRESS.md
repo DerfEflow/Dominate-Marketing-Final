@@ -184,6 +184,47 @@ Fred reviewed and (rightly) flagged the output as shallow/generic. Root causes f
   NOTE: SerpAPI free tier ~100 searches/mo; profiles build ~monthly per client so
   usage is tiny. A blocked-site rebuild takes ~45s (site attempt → then Google).
 
+### 🎯 RADAR RESTORATION BUILD (2026-07-01) — closing the gap to the BLUEPRINT
+Fred reviewed the flow against the original framework and called it watered down.
+An audit confirmed it (Radar ~30% of design; freshness + localization promises
+broken). This build restores the framework:
+1. **Localized Radar** — every feed now keyed to the client's market:
+   `fetch_news(keywords, locality)` (+ pure-local pulse query, pubDate recency
+   filter via `RECENCY_WINDOW_DAYS`, default 7), `fetch_trends` at state level
+   (`trends_geo_from_profile` → 'US-NC'), `fetch_serp_local_news` (SerpAPI
+   google_news for "<industry> <city>"). `gather_radar(brand, profile, light=)`
+   threads locality; `light=True` = cheap subset for JIT writing.
+2. **Competitor auto-discovery** — `radar.discover_competitors` (SerpAPI local
+   pack "<industry> near <city>") auto-populates Competitor rows on every
+   profile (re)build (`_sync_competitors`; dedupes; excludes the client; stores
+   rating/review counts in `strengths`). `competitor_signals_from_records` feeds
+   ratings into the Radar even when competitor sites block scraping.
+3. **Freshness Clock ENFORCED (the big one)** — cycles no longer write posts
+   days ahead: `schedule_posts` writes only the first post (publishes in ~1min);
+   later slots are `status='planned'` rows holding the strategist brief
+   (`social_posts.brief`, migration `e5f6a7b8c9d0`). The worker's
+   `prepare_upcoming_posts` (wired into scheduler loop + `process_due_posts`)
+   JIT-writes each slot inside `PREP_WINDOW_HOURS` (default 6) from a FRESH
+   light radar pass + a fresh strategist angle; `grounded_at` records the data
+   date ("built from data dated X" shown in the upcoming-posts table). Zombie
+   slots (>12h past due) auto-cancel.
+4. **Radar fused into the living plan** — `ensure_marketing_plan(profile,
+   signals)`; the plan prompt takes live market signals for seasonal hooks and a
+   competitor angle vs the NAMED discovered competitors. Per-post briefs carry
+   `beats_competitor` (why this piece out-positions), used by write_post.
+5. **Studio integrity** — `produce_post`: up to `STUDIO_MAX_ATTEMPTS` (3)
+   rewrites; ships best only if it passes the gate (or within 1.0); otherwise
+   the brief is DROPPED (BLUEPRINT: regenerated, not shipped). QualityCheck rows
+   now persisted per post (admin QC dashboards get real data). Per-platform
+   caption shapes (twitter 280 / ig 300 / fb 450 / linkedin 650).
+6. **Ops fixes** — global double-submit guard + data-working spinner moved to
+   base.html (all forms); prod duplicate Truline `4d9385b6` deleted (double-submit
+   twins created 0.35s apart, 2026-07-01; kept `15475af1`); prod has NO social
+   accounts — Truline's Zapier connection must be RE-ADDED before real posting.
+- Verified locally end-to-end (simulated): cycle → 1 written + N planned →
+  JIT pass wrote the in-window slot with grounded_at; renders OK.
+- SERP usage: ~2 searches/cycle (local news) + ~1/profile rebuild (discovery).
+
 ## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch
 energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the

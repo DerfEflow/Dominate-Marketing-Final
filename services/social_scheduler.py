@@ -44,6 +44,7 @@ class SocialScheduler:
         """Main scheduler loop"""
         while self.running:
             try:
+                self._prepare_planned_posts()
                 self._process_scheduled_posts()
                 self._cleanup_old_posts()
                 self.process_research_refresh()
@@ -58,11 +59,23 @@ class SocialScheduler:
     def process_due_posts(self):
         """Public entry point used by the worker process and manual triggers.
 
-        Publishes any posts whose scheduled time has arrived, then cleans up old
-        ones. (The worker __main__ and the admin "run now" action call this.)
+        First writes any 'planned' posts entering the prep window from FRESH
+        research (the Freshness Clock — see automation_engine.write_planned_post),
+        then publishes posts whose scheduled time has arrived, then cleans up.
         """
+        self._prepare_planned_posts()
         self._process_scheduled_posts()
         self._cleanup_old_posts()
+
+    def _prepare_planned_posts(self):
+        """Just-in-time writing: planned slots near publish get fresh content."""
+        try:
+            from services.automation_engine import prepare_upcoming_posts
+            written = prepare_upcoming_posts()
+            if written:
+                logger.info(f"Freshness clock: wrote {written} planned post(s) from fresh research")
+        except Exception as e:
+            logger.error(f"planned-post preparation error: {e}")
 
     def process_research_refresh(self):
         """Re-run the automation cycle for clients whose source data is stale.

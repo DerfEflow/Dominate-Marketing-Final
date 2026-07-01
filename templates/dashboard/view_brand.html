@@ -418,15 +418,26 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm mb-0 align-middle">
-                            <thead><tr><th>When (UTC)</th><th>Platform</th><th>Image</th><th>Content</th></tr></thead>
+                            <thead><tr><th>When (UTC)</th><th>Platform</th><th>Freshness</th><th>Image</th><th>Content</th></tr></thead>
                             <tbody>
                                 {% for p in upcoming_posts %}
                                 <tr>
                                     <td class="text-nowrap"><small>{{ p.scheduled_for.strftime('%b %d, %H:%M') }}</small></td>
                                     <td><i class="fab fa-{{ p.platform }} me-1"></i>{{ p.platform|title }}</td>
+                                    <td class="text-nowrap">
+                                        {% if p.status == 'planned' %}
+                                        <span class="badge bg-info" title="The content will be written from fresh research shortly before it publishes">writes fresh before publish</span>
+                                        {% elif p.grounded_at %}
+                                        <span class="badge bg-success" title="When the research behind this content was gathered">data: {{ p.grounded_at.strftime('%b %d, %H:%M') }}</span>
+                                        {% else %}<span class="text-muted small">—</span>{% endif %}
+                                    </td>
                                     <td>
                                         {% if p.image_url %}
+                                        {% if p.image_url.startswith('http') %}
+                                        <img src="{{ p.image_url }}" alt="post image" class="rounded" style="height:48px;width:48px;object-fit:cover">
+                                        {% else %}
                                         <img src="{{ url_for('static', filename=p.image_url) }}" alt="post image" class="rounded" style="height:48px;width:48px;object-fit:cover">
+                                        {% endif %}
                                         {% if p.video_url %}<i class="fas fa-video ms-1 text-muted"></i>{% endif %}
                                         {% else %}<span class="text-muted small">—</span>{% endif %}
                                     </td>
@@ -530,26 +541,4 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-<script>
-// Show a processing indicator on the slow AI/scrape actions so a click doesn't
-// look like it did nothing (rebuild profile, regenerate plan, run autopilot).
-document.querySelectorAll('form[data-working]').forEach(function (form) {
-    form.addEventListener('submit', function () {
-        var btn = form.querySelector('button[type="submit"], button:not([type])');
-        if (!btn || btn.dataset.busy) return;
-        btn.dataset.busy = '1';
-        btn.disabled = true;
-        var label = btn.getAttribute('data-working-text') || 'Working…';
-        btn.dataset.orig = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + label;
-        // Full-page overlay so it's obvious the site is thinking (these calls
-        // scrape the web + call the AI and can take 20-40s).
-        var ov = document.createElement('div');
-        ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(10,15,25,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;';
-        ov.innerHTML = '<div class="text-center"><div class="spinner-border mb-3" role="status"></div><div>' + label + '</div><div class="small text-white-50 mt-1">Reading the website and thinking — this can take up to a minute.</div></div>';
-        document.body.appendChild(ov);
-    });
-});
-</script>
-{% endblock %}
+{# The data-working spinner + double-submit guard now live in base.html (global). #}

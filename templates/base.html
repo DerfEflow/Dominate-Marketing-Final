@@ -522,9 +522,41 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <!-- Global form guards:
+         1) EVERY form disables its submit button on submit (prevents double-submit
+            duplicates — two identical clients were once created 0.35s apart).
+         2) Forms tagged data-working additionally show a spinner + full-page
+            overlay, for slow AI/scrape actions (rebuild profile, run autopilot). -->
+    <script>
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!(form instanceof HTMLFormElement) || form.dataset.busy) {
+            if (form.dataset && form.dataset.busy) { e.preventDefault(); }
+            return;
+        }
+        form.dataset.busy = '1';
+        var btn = form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+        if (btn) {
+            // Delay disabling until after this submit is dispatched.
+            setTimeout(function () { btn.disabled = true; }, 0);
+        }
+        if (form.hasAttribute('data-working')) {
+            var label = (btn && btn.getAttribute('data-working-text')) || 'Working…';
+            if (btn) {
+                btn.dataset.orig = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + label;
+            }
+            var ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(10,15,25,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;';
+            ov.innerHTML = '<div class="text-center"><div class="spinner-border mb-3" role="status"></div><div>' + label + '</div><div class="small text-white-50 mt-1">Reading the web and thinking — this can take up to a minute.</div></div>';
+            document.body.appendChild(ov);
+        }
+    }, true);
+    </script>
+
     {% block extra_js %}{% endblock %}
-    
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

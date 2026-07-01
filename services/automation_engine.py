@@ -22,7 +22,7 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 
-from models import db, Brand, Campaign, SocialAccount, SocialPost, Competitor
+from models import db, Brand, Campaign, SocialAccount, SocialPost, Competitor, QualityCheck
 from services import radar
 
 logger = logging.getLogger(__name__)
@@ -361,7 +361,52 @@ def ensure_profile(brand, force=False):
     brand.client_profile = json.dumps(profile)
     brand.profile_built_at = datetime.utcnow()
     db.session.commit()
+    # Competitor Intelligence (BLUEPRINT feed 3): auto-discover the client's real
+    # local competitors whenever the profile is (re)built. Best-effort.
+    try:
+        _sync_competitors(brand, profile)
+    except Exception as e:
+        logger.info(f"competitor discovery skipped for {brand.name}: {e}")
     return profile
+
+
+def _sync_competitors(brand, profile):
+    """Auto-populate the Competitor table from Google's local pack (SerpAPI).
+
+    The out-positioning feed was structurally empty — it only read competitors a
+    human had typed in, and nobody types them in. Now the engine discovers them
+    itself. Existing rows are kept (dedupe by name); discovery refreshes at most
+    once per profile rebuild. Ratings/review counts are stored in `strengths` so
+    the Radar can use them even when a competitor's site blocks scraping.
+    """
+    if not radar.serp_configured():
+        return
+    locality = radar.locality_from_profile(profile)
+    if not locality:
+        return  # never guess a market
+    existing = Competitor.query.filter_by(brand_id=brand.id).all()
+    have = {(c.company_name or '').lower() for c in existing}
+    found = radar.discover_competitors(
+        brand.name, brand.industry or profile.get('what_they_sell', ''),
+        locality, exclude_domain=brand.website_url or '', limit=5)
+    added = 0
+    for f in found:
+        if f['name'].lower() in have:
+            continue
+        db.session.add(Competitor(
+            user_id=brand.user_id, brand_id=brand.id, company_name=f['name'],
+            website_url=f.get('website') or None,
+            description=f"Google local result near {locality}: "
+                        f"{f.get('address') or 'address n/a'}",
+            strengths={'rating': f.get('rating'), 'reviews': f.get('reviews'),
+                       'discovered_at': datetime.utcnow().isoformat(),
+                       'discovered_via': 'serpapi_local'},
+            is_ai_detected=True,
+        ))
+        added += 1
+    if added:
+        db.session.commit()
+        logger.info(f"discovered {added} competitor(s) for {brand.name} near {locality}")
 
 
 def _save_screenshot(brand, png):
@@ -463,30 +508,44 @@ def _fallback_keywords(brand):
 # ---------------------------------------------------------------------------
 # 2. The Radar — gather fresh, time-stamped signals
 # ---------------------------------------------------------------------------
-def gather_radar(brand, profile):
+def gather_radar(brand, profile, light=False):
+    """Gather fresh, time-stamped, LOCALIZED signals for this client.
+
+    Every feed is keyed to the client's market (locality from the profile), not
+    the nation — a strategist fed generic signals writes generic strategy.
+    `light=True` = the cheap subset used for just-in-time post writing (skips
+    the slow site scrape and pytrends).
+    """
     keywords = profile.get('keywords') or _fallback_keywords(brand)
-    competitor_urls = [c.website_url for c in Competitor.query.filter_by(brand_id=brand.id).all()
-                       if c.website_url]
+    locality = radar.locality_from_profile(profile)
+    competitors = Competitor.query.filter_by(brand_id=brand.id).all()
+    competitor_urls = [c.website_url for c in competitors if c.website_url]
 
     signals = []
     signals += radar.fetch_events(country='US', days=30)
-    signals += radar.fetch_trends(keywords)
-    signals += radar.fetch_news(keywords)
-    signals += radar.fetch_competitor_intel(competitor_urls)
-    # Dormant feeds (activate when keys/connectors are added): reviews, local events.
-    signals += radar.fetch_reviews(brand)
-    signals += radar.fetch_local_events(brand)
-    # Client news from their own site (recent promos/announcements) — best effort.
-    site = radar.scrape_website(brand.website_url, max_chars=1500) if brand.website_url else {}
-    if site.get('text'):
-        signals.append(radar._signal('client_news', f"{brand.name} site snapshot",
-                                     site['text'][:280], brand.website_url))
+    signals += radar.fetch_news(keywords, locality=locality)
+    signals += radar.fetch_serp_local_news(brand.industry or (keywords[0] if keywords else ''),
+                                           locality)
+    # Competitor intel: SERP facts (ratings/reviews) always work; site scrapes when possible.
+    signals += radar.competitor_signals_from_records(competitors)
+    if not light:
+        signals += radar.fetch_trends(keywords, geo=radar.trends_geo_from_profile(profile))
+        signals += radar.fetch_competitor_intel(competitor_urls)
+        # Dormant feeds (activate when keys/connectors are added): reviews, local events.
+        signals += radar.fetch_reviews(brand)
+        signals += radar.fetch_local_events(brand)
+        # Client news from their own site (recent promos/announcements) — best effort.
+        site = radar.scrape_website(brand.website_url, max_chars=1500) if brand.website_url else {}
+        if site.get('text'):
+            signals.append(radar._signal('client_news', f"{brand.name} site snapshot",
+                                         site['text'][:280], brand.website_url))
 
     by_feed = {}
     for s in signals:
         by_feed.setdefault(s['feed'], 0)
         by_feed[s['feed']] += 1
-    return {'signals': signals, 'by_feed': by_feed, 'gathered_at': datetime.utcnow().isoformat()}
+    return {'signals': signals, 'by_feed': by_feed, 'locality': locality,
+            'gathered_at': datetime.utcnow().isoformat()}
 
 
 # ---------------------------------------------------------------------------
@@ -533,20 +592,27 @@ def _load_plan(brand):
         return None
 
 
-def ensure_marketing_plan(brand, profile=None, force=False):
+def ensure_marketing_plan(brand, profile=None, signals=None, force=False):
     """Return the persistent marketing plan, building/refreshing it if stale.
 
-    The plan is the client's LIVING strategy (BLUEPRINT layer 3). Per-cycle post
-    ideas are grounded in it. A human-edited (locked) plan is preserved unless
-    `force=True`. Geography and banned topics inherit from the profile so the
-    engine never has to ask — and never leaks a wrong city from a news headline.
+    The plan is the client's LIVING strategy (BLUEPRINT layer 3): the Strategist
+    fuses the Profile AND fresh Radar signals — so this period's pillars and
+    hooks react to what is actually happening in the client's market, instead
+    of being timeless boilerplate. A human-edited (locked) plan is preserved
+    unless `force=True`. Geography and banned topics inherit from the profile.
     """
     if not force and not _plan_stale(brand):
         return _load_plan(brand)
     if profile is None:
         profile = ensure_profile(brand)
+    if signals is None:  # plan quality depends on the radar — gather if not supplied
+        try:
+            signals = gather_radar(brand, profile, light=True)['signals']
+        except Exception as e:
+            logger.info(f"plan radar gather skipped for {brand.name}: {e}")
+            signals = []
     prev = _load_plan(brand) or {}
-    plan = _build_marketing_plan(brand, profile)
+    plan = _build_marketing_plan(brand, profile, signals)
     # Preserve salesperson notes across a regeneration.
     if prev.get('notes'):
         plan['notes'] = prev['notes']
@@ -572,7 +638,7 @@ def save_marketing_plan(brand, fields):
     return plan
 
 
-def _build_marketing_plan(brand, profile):
+def _build_marketing_plan(brand, profile, signals=None):
     geos = profile.get('service_area_cities') or (
         [profile['service_area']] if profile.get('service_area') else [])
     base = {
@@ -588,13 +654,18 @@ def _build_marketing_plan(brand, profile):
         'notes': '',
         'source': 'fallback',
     }
+    signal_lines = "\n".join(
+        f"- [{s['feed']}] {s['title']} — {s['detail']}"
+        for s in (signals or [])[:20]
+    ) or '(no live signals available this period)'
     if ai_configured():
         try:
             out = _openai_chat(
                 system=(
                     "You are a senior local-marketing strategist who has just studied THIS "
-                    "specific business. Write a PERSISTENT marketing plan (the standing strategy, "
-                    "not individual posts) that makes it out-market a bigger competitor.\n"
+                    "specific business AND what is happening in its market right now. Write a "
+                    "PERSISTENT marketing plan (the standing strategy, not individual posts) "
+                    "that makes it out-market a bigger competitor.\n"
                     "Be SPECIFIC to this business — reference its actual offers, proof points, and "
                     "service area. BAN generic filler that would apply to any company ('engage "
                     "your audience', 'post consistently', 'showcase quality', 'build brand "
@@ -602,18 +673,25 @@ def _build_marketing_plan(brand, profile):
                     "checkable thing about THIS business (a specific service, a real guarantee, a "
                     "named neighborhood, a season that drives their demand). If a pillar could be "
                     "copy-pasted onto a competitor, rewrite it.\n"
+                    "Use the LIVE MARKET SIGNALS to shape seasonal_hooks and to sharpen the "
+                    "competitor_angle (e.g., a named competitor's weak rating is a wedge; local "
+                    "weather/news/events are timely hooks). Signals inform strategy — do not "
+                    "invent signals that aren't listed.\n"
                     "Reply ONLY with a JSON object: positioning (string, one specific sentence), "
                     "content_pillars (array of 3-5 concrete recurring themes), target_geographies "
                     "(array), primary_offers (array), platform_mix (array from "
                     "facebook/instagram/linkedin), cadence_per_week (integer 1-7), seasonal_hooks "
-                    "(array of upcoming angles tied to this trade), competitor_angle (string: the "
-                    "specific wedge vs local competitors), banned_topics (array).\n"
-                    "CRITICAL: ground everything in the profile facts. For target_geographies use "
-                    "ONLY the profile's service area / cities — never invent a city; leave it "
-                    "empty if unknown. Do NOT fabricate offers or proof the profile doesn't state. "
+                    "(array of upcoming angles tied to this trade and these signals), "
+                    "competitor_angle (string: the specific wedge vs the named local competitors, "
+                    "if any are listed in the signals), banned_topics (array).\n"
+                    "CRITICAL: ground everything in the profile facts and listed signals. For "
+                    "target_geographies use ONLY the profile's service area / cities — never "
+                    "invent a city; leave it empty if unknown. Do NOT fabricate offers or proof. "
                     "Never use 'not X but Y' / 'it's not X, it's Y' antithesis phrasing anywhere."
                 ),
-                prompt=f"Business profile (the only facts you may use):\n{json.dumps(profile)[:2200]}",
+                prompt=f"Business profile (the only business facts you may use):\n"
+                       f"{json.dumps(profile)[:2000]}\n\n"
+                       f"LIVE MARKET SIGNALS (fresh, real, this period):\n{signal_lines}",
                 # GPT-5.x burns a large, prompt-dependent share of the budget on
                 # reasoning; complex prompts like this returned EMPTY at 1000 and
                 # silently fell back to the generic template. 2800 leaves real room.
@@ -675,8 +753,10 @@ def _ai_plan(brand, profile, signals, plan, count):
                "makes a small business outshine bigger competitors. CRITICAL: ground every "
                "idea in the REAL SIGNALS provided and the standing plan — do not invent facts, "
                "events, or locations. Reply ONLY with a JSON array of objects with keys: angle "
-               "(string), grounded_in (string: which signal/fact), platform (one of "
-               "facebook/instagram/linkedin), cta (string).",
+               "(string), grounded_in (string: which signal/fact), beats_competitor (string: one "
+               "sentence on why this piece out-positions the local competitors — use named "
+               "competitor signals when present, else the plan's competitor angle), platform "
+               "(one of facebook/instagram/linkedin), cta (string).",
         prompt=f"Business profile:\n{json.dumps(profile)[:1200]}\n\n"
                f"{plan_ctx}\n{geo_rule}\n{banned_rule}\n\n"
                f"REAL SIGNALS (only use these for timely hooks):\n{signal_lines}\n\n"
@@ -690,6 +770,7 @@ def _ai_plan(brand, profile, signals, plan, count):
             cleaned.append({
                 'angle': str(b.get('angle')),
                 'grounded_in': str(b.get('grounded_in', '')),
+                'beats_competitor': str(b.get('beats_competitor', '')),
                 'platform': str(b.get('platform', 'facebook')).lower(),
                 'cta': str(b.get('cta', '')),
             })
@@ -718,6 +799,18 @@ QUALITY_CRITERIA = ['coherent', 'relevant', 'compelling', 'fresh',
                     'unique', 'creative', 'edgy', 'worth_paying']
 
 
+# Per-platform caption shapes — one Twitter-sized caption for every platform
+# wasted Facebook's and LinkedIn's formats.
+_PLATFORM_STYLE = {
+    'twitter':   ('under 280 characters', '1-2 hashtags, punchy'),
+    'instagram': ('under 300 characters', '3-5 hashtags, visual and energetic'),
+    'facebook':  ('2-4 short sentences, under 450 characters', '0-2 hashtags, conversational'),
+    'linkedin':  ('a short professional paragraph, under 650 characters',
+                  '0-2 hashtags, credible and specific'),
+    'tiktok':    ('under 150 characters', '2-4 hashtags, casual'),
+}
+
+
 def write_post(brand, profile, brief):
     if ai_configured():
         geos = profile.get('service_area_cities') or (
@@ -730,23 +823,28 @@ def write_post(brand, profile, brief):
             "The service area is unknown, so do NOT name any city or region in the caption."
         )
         banned_rule = (f" Never mention: {', '.join(banned)}." if banned else "")
+        platform = (brief.get('platform') or 'facebook').lower()
+        length_rule, style_rule = _PLATFORM_STYLE.get(platform, _PLATFORM_STYLE['facebook'])
+        beats = brief.get('beats_competitor', '')
         try:
             text = _openai_chat(
-                system="You are an expert social media copywriter. Write ONE ready-to-post "
-                       "caption (under 280 chars) in the business's voice, grounded in the "
-                       "given angle/fact. Do NOT restate the strategy or the word 'angle' — "
-                       "write the actual customer-facing post. 1-3 relevant hashtags, an emoji "
-                       "or two, and the CTA. Do not invent facts, claims, or locations. "
-                       "Never use 'not X but Y' / 'it's not X, it's Y' antithesis phrasing. "
-                       "Reply with ONLY the caption text.",
+                system=f"You are an expert social media copywriter. Write ONE ready-to-post "
+                       f"{platform} caption ({length_rule}; {style_rule}) in the business's "
+                       f"voice, grounded in the given angle/fact. Do NOT restate the strategy "
+                       f"or the word 'angle' — write the actual customer-facing post. An emoji "
+                       f"or two, and the CTA. Do not invent facts, claims, or locations. "
+                       f"Never use 'not X but Y' / 'it's not X, it's Y' antithesis phrasing. "
+                       f"Reply with ONLY the caption text.",
                 prompt=f"Business: {brand.name}. Voice: {profile.get('voice')}. "
                        f"What they sell: {profile.get('what_they_sell')}.\n"
                        f"{geo_rule}{banned_rule}\n"
                        f"Angle: {brief['angle']}\nGrounded in (real): {brief['grounded_in']}\n"
-                       f"Call to action: {brief['cta']}",
+                       + (f"Edge over local competitors (weave in subtly, never name them): {beats}\n"
+                          if beats else '')
+                       + f"Call to action: {brief['cta']}",
                 # GPT-5.x spends part of the budget on reasoning; 200 left no room
                 # for the caption and it fell back to a template. Give headroom.
-                max_tokens=1000,
+                max_tokens=1200,
             )
             text = _strip_fences(text).strip('"').strip()
             if text:
@@ -791,38 +889,87 @@ def generate_video(brand, profile, brief):
     return None
 
 
-def studio(brand, profile, plan):
-    """Write + quality-check each brief; add image (Plus+) and video (Pro+) per tier.
+def _persist_quality_check(brand, campaign_id, scores, avg, passed, attempt):
+    """Store the gate result in QualityCheck so admin QC dashboards see real data."""
+    try:
+        qc = QualityCheck(
+            campaign_id=campaign_id, user_id=brand.user_id,
+            check_results={'scores': scores, 'avg': avg},
+            passed=bool(passed), quality_score=avg,
+            regeneration_attempt=attempt, model_used=text_model(),
+            failed_criteria=[c for c in QUALITY_CRITERIA
+                             if scores.get(c) is not None and float(scores.get(c, 10)) < 5],
+        )
+        for c in QUALITY_CRITERIA:
+            if scores.get(c) is not None:
+                setattr(qc, f'{c}_score', scores[c])
+        db.session.add(qc)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.info(f"quality check persistence skipped: {e}")
 
-    Returns list of {content, quality, brief, image_path, video_path}.
+
+def produce_post(brand, profile, brief, campaign_id=None, want_image=None):
+    """Write ONE post with the full quality loop; media per tier.
+
+    BLUEPRINT layer 4: weak pieces are REGENERATED, not shipped. Up to
+    STUDIO_MAX_ATTEMPTS writes; the best attempt ships only if it passes the
+    gate (or lands within 1 point of it). Otherwise returns None — a dropped
+    brief beats a weak post. Used by the cycle studio AND the just-in-time writer.
     """
-    make_images = wants_images(brand)
-    make_video = wants_video(brand)
-    posts = []
-    for brief in plan:
+    max_attempts = int(os.environ.get('STUDIO_MAX_ATTEMPTS', '3'))
+    best = None  # (avg_or_None, text, scores, passed)
+    attempt = 0
+    for attempt in range(1, max_attempts + 1):
         text = write_post(brand, profile, brief)
         passed, scores, avg = quality_gate(text, profile)
-        if not passed:  # one regeneration attempt
-            text = write_post(brand, profile, brief)
-            passed, scores, avg = quality_gate(text, profile)
+        if best is None or (avg or 0) > (best[0] or 0):
+            best = (avg, text, scores, passed)
+        if passed:
+            break
+    avg, text, scores, passed = best
+    if campaign_id and scores:
+        _persist_quality_check(brand, campaign_id, scores, avg, passed, attempt)
+    if not passed and avg is not None:
+        threshold = float(os.environ.get('QUALITY_MIN', '5.0'))
+        if avg < threshold - 1.0:
+            logger.info(f"studio dropped a weak brief for {brand.name} "
+                        f"(best avg {avg} after {attempt} attempts): {brief.get('angle', '')[:80]}")
+            return None  # regenerated, still weak — do not ship
 
-        image_path = None
-        if make_images:
-            try:
-                png = _openai_image(_image_prompt(brand, profile, brief, text))
-                image_path = _save_post_media(brand, png, kind='img', ext='png')
-            except Exception as e:
-                logger.warning(f"image generation failed for {brand.name}: {e}")
+    image_path = None
+    if want_image is None:
+        want_image = wants_images(brand)
+    if want_image:
+        try:
+            png = _openai_image(_image_prompt(brand, profile, brief, text))
+            image_path = _save_post_media(brand, png, kind='img', ext='png')
+        except Exception as e:
+            logger.warning(f"image generation failed for {brand.name}: {e}")
 
-        video_path = None
-        if make_video:
-            try:
-                video_path = generate_video(brand, profile, brief)
-            except Exception as e:
-                logger.info(f"video generation skipped: {e}")
+    video_path = None
+    if wants_video(brand):
+        try:
+            video_path = generate_video(brand, profile, brief)
+        except Exception as e:
+            logger.info(f"video generation skipped: {e}")
 
-        posts.append({'content': text, 'quality_score': avg, 'quality_passed': passed,
-                      'brief': brief, 'image_path': image_path, 'video_path': video_path})
+    return {'content': text, 'quality_score': avg, 'quality_passed': passed,
+            'brief': brief, 'image_path': image_path, 'video_path': video_path}
+
+
+def studio(brand, profile, plan, campaign_id=None):
+    """Write + quality-check each brief; add image (Plus+) and video (Pro+) per tier.
+
+    Returns list of {content, quality, brief, image_path, video_path}. Briefs
+    that stay weak after regeneration are dropped, not shipped.
+    """
+    posts = []
+    for brief in plan:
+        post = produce_post(brand, profile, brief, campaign_id=campaign_id)
+        if post:
+            posts.append(post)
     return posts
 
 
@@ -840,28 +987,147 @@ def _automation_campaign(brand):
     return camp
 
 
-def schedule_posts(brand, posts, first_delay_minutes=1):
+def schedule_posts(brand, profile, ideas, camp, grounded_at, first_delay_minutes=1):
+    """Schedule this cycle's output — the Freshness Clock way (BLUEPRINT layer 5).
+
+    Only the FIRST post (publishing within minutes) is written now. Every later
+    slot is stored as a 'planned' post holding just the strategist brief; the
+    worker writes its content from FRESH signals shortly before it publishes
+    (see write_planned_post). A post never again publishes on week-old research.
+    """
     accounts = SocialAccount.query.filter_by(brand_id=brand.id, is_active=True).all()
     if not accounts:
         return {'scheduled': 0, 'reason': 'no connected accounts for this client'}
-    camp = _automation_campaign(brand)
     cadence = max(1, brand.posting_frequency_days or 3)
     base = datetime.utcnow() + timedelta(minutes=first_delay_minutes)
-    created = 0
-    for idx, post in enumerate(posts):
+    created = planned = 0
+    for idx, brief in enumerate(ideas):
         when = base + timedelta(days=cadence * idx)
         # Prefer the platform the strategist chose, but only if connected; else all.
-        brief_platform = (post.get('brief') or {}).get('platform')
-        targets = [a for a in accounts if a.platform == brief_platform] or accounts
-        for acct in targets:
-            db.session.add(SocialPost(
-                user_id=brand.user_id, campaign_id=camp.id, platform=acct.platform,
-                content=post['content'], scheduled_for=when, status='scheduled',
-                image_url=post.get('image_path'), video_url=post.get('video_path'),
-            ))
-            created += 1
+        targets = [a for a in accounts if a.platform == brief.get('platform')] or accounts
+        if idx == 0:
+            # Publishes in ~a minute — write it now from this cycle's fresh radar.
+            post = produce_post(brand, profile, brief, campaign_id=camp.id)
+            if not post:
+                continue  # weak after regeneration — dropped, not shipped
+            for acct in targets:
+                db.session.add(SocialPost(
+                    user_id=brand.user_id, campaign_id=camp.id, platform=acct.platform,
+                    content=post['content'], scheduled_for=when, status='scheduled',
+                    image_url=post.get('image_path'), video_url=post.get('video_path'),
+                    brief=json.dumps(brief), grounded_at=grounded_at,
+                ))
+                created += 1
+        else:
+            for acct in targets:
+                db.session.add(SocialPost(
+                    user_id=brand.user_id, campaign_id=camp.id, platform=acct.platform,
+                    content='(will be written from fresh research shortly before publishing)',
+                    scheduled_for=when, status='planned', brief=json.dumps(brief),
+                ))
+                planned += 1
     db.session.commit()
-    return {'scheduled': created, 'platforms': sorted({a.platform for a in accounts})}
+    return {'scheduled': created, 'planned': planned,
+            'platforms': sorted({a.platform for a in accounts})}
+
+
+# ---------------------------------------------------------------------------
+# The Freshness Clock — just-in-time writing (worker-driven)
+# ---------------------------------------------------------------------------
+def prep_window_hours():
+    try:
+        return max(1, int(os.environ.get('PREP_WINDOW_HOURS', '6')))
+    except (ValueError, TypeError):
+        return 6
+
+
+def write_planned_post(post):
+    """Write a 'planned' post's real content from FRESH signals, near publish time.
+
+    Re-pulls a light radar pass and asks the Strategist for a fresh angle that
+    advances the standing plan TODAY; falls back to the stored cycle-day brief
+    if the fresh pass fails. The post then carries grounded_at = now, i.e. the
+    'built from data dated X' stamp is honest.
+    """
+    camp = Campaign.query.get(post.campaign_id) if post.campaign_id else None
+    brand = Brand.query.get(camp.brand_id) if (camp and camp.brand_id) else None
+    if not brand:
+        post.status = 'cancelled'
+        post.error_message = 'planned post has no client attached'
+        db.session.commit()
+        return False
+
+    profile = ensure_profile(brand)
+    marketing_plan = _load_plan(brand) or {}
+    stored_brief = _parse_json(post.brief or '', {}) or {}
+
+    # Fresh signals + a fresh angle for TODAY (keeps the stored platform slot).
+    brief = None
+    grounded = datetime.utcnow()
+    try:
+        fresh = gather_radar(brand, profile, light=True)
+        ideas = build_plan(brand, profile, fresh['signals'], marketing_plan, count=1)
+        if ideas:
+            brief = ideas[0]
+            brief['platform'] = post.platform  # the slot's platform is fixed
+    except Exception as e:
+        logger.info(f"JIT fresh pass failed for {brand.name}: {e}")
+    if not brief:
+        brief = stored_brief or None
+    if not brief:
+        post.status = 'cancelled'
+        post.error_message = 'no brief available to write from'
+        db.session.commit()
+        return False
+
+    produced = produce_post(brand, profile, brief, campaign_id=post.campaign_id)
+    if not produced and stored_brief and brief is not stored_brief:
+        produced = produce_post(brand, profile, stored_brief, campaign_id=post.campaign_id)
+    if not produced:
+        post.status = 'cancelled'
+        post.error_message = 'weak after regeneration — dropped by the quality gate'
+        db.session.commit()
+        logger.info(f"JIT dropped a weak planned post for {brand.name}")
+        return False
+
+    post.content = produced['content']
+    post.image_url = produced.get('image_path') or post.image_url
+    post.video_url = produced.get('video_path') or post.video_url
+    post.brief = json.dumps(brief)
+    post.grounded_at = grounded
+    post.status = 'scheduled'
+    db.session.commit()
+    logger.info(f"JIT wrote planned post for {brand.name} ({post.platform}), "
+                f"publishing {post.scheduled_for}")
+    return True
+
+
+def prepare_upcoming_posts():
+    """Worker pass: write any 'planned' posts entering the prep window.
+
+    Called every scheduler tick. Also cancels zombie planned posts whose slot
+    passed hours ago without a successful write.
+    """
+    now = datetime.utcnow()
+    horizon = now + timedelta(hours=prep_window_hours())
+    due = SocialPost.query.filter(
+        SocialPost.status == 'planned',
+        SocialPost.scheduled_for <= horizon,
+    ).all()
+    written = 0
+    for post in due:
+        try:
+            if post.scheduled_for < now - timedelta(hours=12):
+                post.status = 'cancelled'
+                post.error_message = 'slot expired before content could be written'
+                db.session.commit()
+                continue
+            if write_planned_post(post):
+                written += 1
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"prepare_upcoming_posts error on {post.id}: {e}")
+    return written
 
 
 # ---------------------------------------------------------------------------
@@ -869,25 +1135,30 @@ def schedule_posts(brand, posts, first_delay_minutes=1):
 # ---------------------------------------------------------------------------
 def run_cycle(brand, post_count=4):
     profile = ensure_profile(brand)
-    marketing_plan = ensure_marketing_plan(brand, profile)
-    radar_data = gather_radar(brand, profile)
-    plan = build_plan(brand, profile, radar_data['signals'], marketing_plan, post_count)
-    posts = studio(brand, profile, plan)
-    sched = schedule_posts(brand, posts)
+    radar_data = gather_radar(brand, profile)                       # fresh, localized
+    marketing_plan = ensure_marketing_plan(brand, profile,          # plan fused with radar
+                                           signals=radar_data['signals'])
+    ideas = build_plan(brand, profile, radar_data['signals'], marketing_plan, post_count)
+    camp = _automation_campaign(brand)
+    grounded_at = datetime.utcnow()
+    sched = schedule_posts(brand, profile, ideas, camp, grounded_at)
 
     # Persist a snapshot for the UI (keeps keys the panel already reads).
     snapshot = {
         'mode': 'live' if ai_configured() else 'simulated',
         'generated_at': datetime.utcnow().isoformat(),
         'profile_scraped': profile.get('scraped', False),
+        'locality': radar_data.get('locality', ''),
         'by_feed': radar_data['by_feed'],
         'signals': radar_data['signals'][:25],
-        'plan': plan,
+        'plan': ideas,
         'trends': [{'topic': s['title']} for s in radar_data['signals'][:6]],  # back-compat
-        'summary': (f"{('Live' if ai_configured() else 'Simulated')} cycle: "
+        'summary': (f"{('Live' if ai_configured() else 'Simulated')} cycle"
+                    f"{(' for ' + radar_data['locality']) if radar_data.get('locality') else ''}: "
                     f"{sum(radar_data['by_feed'].values())} fresh signals "
                     f"({', '.join(f'{k}:{v}' for k, v in radar_data['by_feed'].items()) or 'none'}); "
-                    f"{len(plan)} grounded ideas."),
+                    f"{len(ideas)} grounded ideas; first post written now, "
+                    f"{sched.get('planned', 0)} slot(s) will be written fresh before publish."),
     }
     brand.research_snapshot = json.dumps(snapshot)
     brand.last_research_at = datetime.utcnow()
@@ -896,7 +1167,9 @@ def run_cycle(brand, post_count=4):
     summary = {
         'client': brand.name, 'mode': snapshot['mode'],
         'research_summary': snapshot['summary'],
-        'posts_generated': len(posts), 'posts_scheduled': sched.get('scheduled', 0),
+        'posts_generated': sched.get('scheduled', 0) + sched.get('planned', 0),
+        'posts_scheduled': sched.get('scheduled', 0),
+        'posts_planned': sched.get('planned', 0),
         'note': sched.get('reason'), 'ran_at': snapshot['generated_at'],
     }
     logger.info(f"Automation cycle for {brand.name}: {summary}")

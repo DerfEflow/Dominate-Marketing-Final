@@ -67,7 +67,10 @@ def _apply_client_fields(brand):
         return 'Client name is required.'
 
     brand.name = brand_name
-    brand.website_url = request.form.get('website_url', '').strip()
+    website = request.form.get('website_url', '').strip()
+    if website and not website.startswith(('http://', 'https://')):
+        website = 'https://' + website  # accept a bare domain like "trulineroofing.com"
+    brand.website_url = website
     brand.industry = request.form.get('industry', '').strip()
     brand.description = request.form.get('description', '').strip()
     brand.contact_name = request.form.get('contact_name', '').strip() or None

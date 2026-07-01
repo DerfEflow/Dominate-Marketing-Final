@@ -114,14 +114,26 @@
                         <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#profileEdit">
                             <i class="fas fa-pen me-1"></i>Edit
                         </button>
-                        <form method="POST" action="{{ url_for('dashboard.rebuild_profile', brand_id=brand.id) }}" class="m-0">
-                            <button class="btn btn-sm btn-outline-secondary" title="Re-scrape the website and rebuild (keeps your edits)">
+                        <form method="POST" action="{{ url_for('dashboard.rebuild_profile', brand_id=brand.id) }}" class="m-0" data-working>
+                            <button class="btn btn-sm btn-outline-secondary" data-working-text="Reading the website…" title="Re-scrape the website and rebuild (keeps your edits)">
                                 <i class="fas fa-rotate me-1"></i>Rebuild from site
                             </button>
                         </form>
                     </div>
                 </div>
                 <div class="card-body">
+                    {% if profile and profile.scrape_blocked %}
+                    <div class="alert alert-warning d-flex align-items-start mb-3" role="alert">
+                        <i class="fas fa-triangle-exclamation me-2 mt-1"></i>
+                        <div>
+                            <strong>We couldn't read this client's website automatically.</strong>
+                            {{ profile.scrape_reason or 'The site blocks automated reading.' }}
+                            The profile below is built only from the info on file — <strong>fill in the
+                            key fields by hand</strong> (service area, offers, proof) so the engine has real
+                            facts to work from. A scraping API key removes this limit for all clients.
+                        </div>
+                    </div>
+                    {% endif %}
                     {% if profile %}
                     <div class="row">
                         {% if profile.screenshot_path %}
@@ -197,9 +209,9 @@
                         <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#planEdit">
                             <i class="fas fa-pen me-1"></i>Edit
                         </button>
-                        <form method="POST" action="{{ url_for('dashboard.regenerate_plan', brand_id=brand.id) }}" class="m-0"
+                        <form method="POST" action="{{ url_for('dashboard.regenerate_plan', brand_id=brand.id) }}" class="m-0" data-working
                               onsubmit="return {{ 'confirm(\'This rebuilds the plan from the profile and unlocks your edits. Continue?\')' if marketing_plan and marketing_plan.locked else 'true' }};">
-                            <button class="btn btn-sm btn-outline-secondary" title="Rebuild the plan from the current profile">
+                            <button class="btn btn-sm btn-outline-secondary" data-working-text="Building the plan…" title="Rebuild the plan from the current profile">
                                 <i class="fas fa-rotate me-1"></i>Regenerate
                             </button>
                         </form>
@@ -312,8 +324,8 @@
                             <div class="small text-muted mt-1">{{ research.summary }}</div>
                             {% endif %}
                         </div>
-                        <form method="POST" action="{{ url_for('dashboard.run_automation', brand_id=brand.id) }}">
-                            <button type="submit" class="btn btn-primary btn-sm">
+                        <form method="POST" action="{{ url_for('dashboard.run_automation', brand_id=brand.id) }}" data-working>
+                            <button type="submit" class="btn btn-primary btn-sm" data-working-text="Running a cycle…">
                                 <i class="fas fa-bolt me-1"></i>Run now
                             </button>
                         </form>
@@ -515,4 +527,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Show a processing indicator on the slow AI/scrape actions so a click doesn't
+// look like it did nothing (rebuild profile, regenerate plan, run autopilot).
+document.querySelectorAll('form[data-working]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+        var btn = form.querySelector('button[type="submit"], button:not([type])');
+        if (!btn || btn.dataset.busy) return;
+        btn.dataset.busy = '1';
+        btn.disabled = true;
+        var label = btn.getAttribute('data-working-text') || 'Working…';
+        btn.dataset.orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + label;
+        // Full-page overlay so it's obvious the site is thinking (these calls
+        // scrape the web + call the AI and can take 20-40s).
+        var ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(10,15,25,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;';
+        ov.innerHTML = '<div class="text-center"><div class="spinner-border mb-3" role="status"></div><div>' + label + '</div><div class="small text-white-50 mt-1">Reading the website and thinking — this can take up to a minute.</div></div>';
+        document.body.appendChild(ov);
+    });
+});
+</script>
 {% endblock %}

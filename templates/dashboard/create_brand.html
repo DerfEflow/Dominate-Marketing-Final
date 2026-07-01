@@ -48,11 +48,58 @@
                                 <div class="mb-3">
                                     <label for="industry" class="form-label text-white">Industry</label>
                                     <select class="form-select" id="industry" name="industry">
-                                        {% set industries = ['Technology','Healthcare','Finance','Education','E-commerce','Real Estate','Food & Beverage','Travel','Fashion','Fitness','Entertainment','Professional Services','Manufacturing','Non-profit','Other'] %}
+                                        {% set industry_groups = {
+                                          'Home & Building Services': [
+                                            'Roofing','Roof Coating','Gutters','Siding','Windows & Doors','Painting',
+                                            'Flooring','Drywall','Masonry & Concrete','Foundation Repair','Waterproofing',
+                                            'Insulation','General Contractor','Remodeling & Renovation','Handyman',
+                                            'HVAC','Plumbing','Electrical','Solar','Garage Doors','Fencing & Decks',
+                                            'Landscaping & Lawn Care','Tree Service','Pest Control','Pool & Spa',
+                                            'Pressure Washing','Chimney & Fireplace','Well & Septic','Excavation & Grading',
+                                            'Paving & Asphalt','Home Restoration (Fire/Water/Mold)','Junk Removal','Moving & Storage'],
+                                          'Auto & Transportation': [
+                                            'Auto Repair','Auto Body & Collision','Auto Detailing','Tires & Wheels',
+                                            'Car Wash','Towing','Auto Dealership','Powersports & Marine','Trucking & Logistics'],
+                                          'Health & Wellness': [
+                                            'Dental','Medical Practice','Chiropractic','Physical Therapy','Optometry',
+                                            'Dermatology & Med Spa','Mental Health & Counseling','Veterinary','Home Health & Senior Care',
+                                            'Pharmacy','Fitness & Gym','Yoga & Pilates','Nutrition & Weight Loss'],
+                                          'Beauty & Personal Care': [
+                                            'Salon & Hair','Barbershop','Nail Salon','Spa & Massage','Tattoo & Piercing','Tanning'],
+                                          'Food & Hospitality': [
+                                            'Restaurant','Cafe & Coffee Shop','Bakery','Bar & Brewery','Food Truck',
+                                            'Catering','Hotel & Lodging','Event Venue'],
+                                          'Retail & E-commerce': [
+                                            'Retail Store','E-commerce','Grocery & Specialty Food','Boutique & Apparel',
+                                            'Jewelry','Florist','Furniture & Home Goods','Hardware & Garden','Cannabis & CBD'],
+                                          'Professional & B2B': [
+                                            'Legal','Accounting & Tax','Financial Advisory','Insurance','Real Estate',
+                                            'Property Management','Mortgage & Lending','Marketing & Advertising','IT & Managed Services',
+                                            'Consulting','Staffing & Recruiting','Architecture & Engineering','Commercial Cleaning',
+                                            'Security Services','Printing & Signage'],
+                                          'Trades & Industrial': [
+                                            'Manufacturing','Welding & Fabrication','Machine Shop','Wholesale & Distribution',
+                                            'Agriculture & Farming','Equipment Rental','Commercial Roofing'],
+                                          'Education & Community': [
+                                            'Education & Tutoring','Childcare & Preschool','Non-profit','Church & Faith',
+                                            'Fitness & Sports Coaching','Photography & Video','Entertainment & Events','Travel & Tourism'],
+                                          'Technology & Media': [
+                                            'Technology & SaaS','Web & App Development','Media & Publishing','Telecommunications'],
+                                          'Other': ['Other'] } %}
+                                        {% set all_inds = industry_groups.values()|sum(start=[]) %}
                                         <option value="">Select industry</option>
-                                        {% for ind in industries %}
-                                        <option value="{{ ind }}" {% if editing and brand.industry == ind %}selected{% endif %}>{{ ind }}</option>
+                                        {% for group, inds in industry_groups.items() %}
+                                        <optgroup label="{{ group }}">
+                                          {% for ind in inds %}
+                                          <option value="{{ ind }}" {% if editing and brand.industry == ind %}selected{% endif %}>{{ ind }}</option>
+                                          {% endfor %}
+                                        </optgroup>
                                         {% endfor %}
+                                        {% if editing and brand.industry and brand.industry not in all_inds %}
+                                        <optgroup label="Current">
+                                          <option value="{{ brand.industry }}" selected>{{ brand.industry }}</option>
+                                        </optgroup>
+                                        {% endif %}
                                     </select>
                                 </div>
                             </div>
@@ -60,9 +107,10 @@
 
                         <div class="mb-3">
                             <label for="website_url" class="form-label text-white">Website URL</label>
-                            <input type="url" class="form-control" id="website_url" name="website_url"
-                                   placeholder="https://example.com" maxlength="500"
+                            <input type="text" inputmode="url" class="form-control" id="website_url" name="website_url"
+                                   placeholder="trulineroofing.com  (no https:// needed)" maxlength="500"
                                    value="{{ brand.website_url if editing else '' }}">
+                            <div class="form-text text-white-50">Just the address is fine — we'll add https:// automatically.</div>
                         </div>
 
                         <div class="mb-4">

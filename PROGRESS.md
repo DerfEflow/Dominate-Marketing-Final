@@ -147,6 +147,34 @@ news headline) and there was **no persistent per-client marketing plan**. BUILT:
   captured (set Truline's service area in the profile editor first if its site
   doesn't state it); then Phase 1 hardening / Phase 2 approval queue per FEATURE_ROADMAP.
 
+### 🩹 FIX PASS (2026-06-16) — why the first profile/plan looked generic
+Fred reviewed and (rightly) flagged the output as shallow/generic. Root causes found + fixed:
+1. **GPT-5.5 reasoning token STARVATION (the big one).** The plan/profile/idea AI
+   calls (`max_completion_tokens` 900–1000) returned an **empty string** — reasoning
+   ate the whole budget (`finish_reason='length'`) — so the engine silently fell back
+   to the **generic template**. That, not the logic, is why it read like "any AI wrote it."
+   Fix: bumped budgets (plan/ideas 2800, profile 2500, vision 1400, quality 800,
+   caption 1000) AND added a central guard in `_chat_completion` that retries once at
+   3× budget on an empty 'length' finish. Proven: real Truline facts → a genuinely
+   specific plan (names its coatings, 50-70% savings, 20-yr warranty, NC/SC cities,
+   hurricane-season hooks). Keep AI calls ≥ ~2500 tokens for structured JSON on GPT-5.x.
+2. **Website scrape was fully blocked.** trulineroofing.com refuses direct requests
+   AND headless Chromium (WinError 10054 / socket close) — bot protection. So the
+   profile had ZERO real data → the "Central Ohio" city was a news-headline guess.
+   (Truline is actually **Charlotte, NC / NC+SC** per web search.) Fixes: (a) a
+   provider-agnostic **scraping-API fallback** in `radar.py` (`BRIGHTDATA_API_KEY` or
+   `SCRAPER_API_URL={url}` template) — DORMANT until Fred adds a key = the real unblock;
+   (b) scrape failure is now **surfaced** in the profile card (warning + "fill it in")
+   instead of a silent hollow profile; (c) profile records `scrape_blocked`/`scrape_reason`.
+3. **Industry list** expanded from 15 generic → ~140 grouped (roofing, roof coating,
+   trades, home services, etc.) in `create_brand.html`.
+4. **Bare URL** accepted (type=url→text + server-side https:// normalization).
+5. **Processing indicators** added (spinner + overlay) on Rebuild/Regenerate/Run-now.
+6. **Prompts sharpened** to forbid generic filler + the no-antithesis rule.
+- HARD BLOCK for Fred: a **scraping API key** (Bright Data/ScraperAPI/etc.) is now
+  effectively REQUIRED — even the client's own site blocks us. Until then, profiles
+  must be filled by hand via the editor (the override merge keeps those edits).
+
 ## 🔁 HANDOFF (2026-06-13) — Zapier MCP wired (no restart was needed after all)
 Fred's directive: **automate the build to minimize his manual setup / mental-switch
 energy.** App has NOT shipped; NO clients yet. He explicitly **does NOT want the

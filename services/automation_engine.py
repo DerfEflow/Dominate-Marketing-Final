@@ -63,17 +63,35 @@ def fallback_text_model():
 
 def _chat_completion(client, **kwargs):
     """chat.completions.create on the primary model, with one automatic retry on
-    the fallback model if the primary errors. Returns the response object."""
+    the fallback model if the primary errors. Returns the response object.
+
+    Also guards the GPT-5.x reasoning-starvation trap: if the model spends the
+    whole token budget reasoning and returns EMPTY content (finish_reason
+    'length'), retry once with a much larger budget. That empty-return silently
+    degraded plans/profiles to the generic template."""
     primary = text_model()
     fallback = fallback_text_model()
     try:
-        return client.chat.completions.create(model=primary, **kwargs)
+        resp = client.chat.completions.create(model=primary, **kwargs)
     except Exception as e:
         if fallback and fallback != primary:
             logger.warning("Primary model %s failed (%s) — retrying on fallback %s",
                            primary, e, fallback)
             return client.chat.completions.create(model=fallback, **kwargs)
         raise
+    try:
+        choice = resp.choices[0]
+        empty = not (choice.message.content or '').strip()
+        starved = getattr(choice, 'finish_reason', '') == 'length'
+        budget = kwargs.get('max_completion_tokens')
+        if empty and starved and budget:
+            kwargs['max_completion_tokens'] = budget * 3
+            logger.info("Empty response at %s tokens (reasoning starvation) — retrying at %s",
+                        budget, kwargs['max_completion_tokens'])
+            return client.chat.completions.create(model=primary, **kwargs)
+    except Exception:
+        pass
+    return resp
 
 
 def image_model():
@@ -100,7 +118,7 @@ def wants_video(brand):
 # ---------------------------------------------------------------------------
 # OpenAI helpers (GPT-5.x compatible: max_completion_tokens, default temperature)
 # ---------------------------------------------------------------------------
-def _openai_chat(system, prompt, max_tokens=800):
+def _openai_chat(system, prompt, max_tokens=1500):
     from openai import OpenAI
     client = OpenAI()
     resp = _chat_completion(
@@ -303,12 +321,20 @@ def ensure_profile(brand, force=False):
     rendered = radar.render_page(brand.website_url) if brand.website_url else {}
     screenshot = rendered.get('screenshot')
     text = rendered.get('text', '')
+    blocked = rendered.get('blocked', False)
+    reason = rendered.get('reason', '')
     if not text and brand.website_url:  # rendering failed — try plain scrape
-        text = radar.scrape_website(brand.website_url).get('text', '')
+        scraped = radar.scrape_website(brand.website_url)
+        text = scraped.get('text', '')
+        if not text:
+            blocked = scraped.get('blocked', blocked)
+            reason = scraped.get('reason', reason)
 
     profile = _build_profile(brand, text, screenshot)
     profile['built_at'] = datetime.utcnow().isoformat()
     profile['scraped'] = bool(text)
+    profile['scrape_blocked'] = bool(brand.website_url and not text)
+    profile['scrape_reason'] = reason if (brand.website_url and not text) else ''
     profile['screenshot_path'] = _save_screenshot(brand, screenshot)
     profile = _apply_overrides(profile, overrides)  # human edits always win
     brand.client_profile = json.dumps(profile)
@@ -350,7 +376,7 @@ def _build_profile(brand, text, screenshot=None):
                 "This is a screenshot of a business's website. Describe in detail: what the "
                 "business sells, their design vibe / brand feel, featured products or services, "
                 "dominant brand colors, and the overall quality of their online presence.",
-                max_tokens=900,  # GPT-5.x spends some budget on reasoning — leave headroom
+                max_tokens=1400,  # GPT-5.x spends some budget on reasoning — leave headroom
             )
         except Exception as e:
             logger.warning(f"vision profile failed for {brand.name}: {e}")
@@ -383,7 +409,7 @@ def _build_profile(brand, text, screenshot=None):
                        f"Info on file: {brand.description or '(none)'}\n"
                        f"Website text:\n{text[:3500]}\n\n"
                        f"Visual analysis of their website (from a screenshot):\n{vision_notes}",
-                max_tokens=900,
+                max_tokens=2500,  # GPT-5.x reasoning overhead — 900 risked an empty return
             )
             data = _parse_json(out, {})
             if isinstance(data, dict):
@@ -545,20 +571,32 @@ def _build_marketing_plan(brand, profile):
         try:
             out = _openai_chat(
                 system=(
-                    "You are a senior local-marketing strategist. Write a concise, PERSISTENT "
-                    "marketing plan for a small business so it consistently out-markets a bigger "
-                    "competitor. This is the standing strategy (not individual posts). Reply ONLY "
-                    "with a JSON object: positioning (string, one sentence), content_pillars "
-                    "(array of 3-5 recurring themes), target_geographies (array), primary_offers "
-                    "(array), platform_mix (array from facebook/instagram/linkedin), "
-                    "cadence_per_week (integer 1-7), seasonal_hooks (array of upcoming angles), "
-                    "competitor_angle (string), banned_topics (array). "
-                    "CRITICAL: ground everything in the profile. For target_geographies use ONLY "
-                    "the profile's service area / cities — never invent a city. If the service "
-                    "area is unknown, leave target_geographies empty rather than guessing."
+                    "You are a senior local-marketing strategist who has just studied THIS "
+                    "specific business. Write a PERSISTENT marketing plan (the standing strategy, "
+                    "not individual posts) that makes it out-market a bigger competitor.\n"
+                    "Be SPECIFIC to this business — reference its actual offers, proof points, and "
+                    "service area. BAN generic filler that would apply to any company ('engage "
+                    "your audience', 'post consistently', 'showcase quality', 'build brand "
+                    "awareness'). Every pillar and the competitor_angle must name a concrete, "
+                    "checkable thing about THIS business (a specific service, a real guarantee, a "
+                    "named neighborhood, a season that drives their demand). If a pillar could be "
+                    "copy-pasted onto a competitor, rewrite it.\n"
+                    "Reply ONLY with a JSON object: positioning (string, one specific sentence), "
+                    "content_pillars (array of 3-5 concrete recurring themes), target_geographies "
+                    "(array), primary_offers (array), platform_mix (array from "
+                    "facebook/instagram/linkedin), cadence_per_week (integer 1-7), seasonal_hooks "
+                    "(array of upcoming angles tied to this trade), competitor_angle (string: the "
+                    "specific wedge vs local competitors), banned_topics (array).\n"
+                    "CRITICAL: ground everything in the profile facts. For target_geographies use "
+                    "ONLY the profile's service area / cities — never invent a city; leave it "
+                    "empty if unknown. Do NOT fabricate offers or proof the profile doesn't state. "
+                    "Never use 'not X but Y' / 'it's not X, it's Y' antithesis phrasing anywhere."
                 ),
-                prompt=f"Business profile:\n{json.dumps(profile)[:2000]}",
-                max_tokens=900,
+                prompt=f"Business profile (the only facts you may use):\n{json.dumps(profile)[:2200]}",
+                # GPT-5.x burns a large, prompt-dependent share of the budget on
+                # reasoning; complex prompts like this returned EMPTY at 1000 and
+                # silently fell back to the generic template. 2800 leaves real room.
+                max_tokens=2800,
             )
             data = _parse_json(out, {})
             if isinstance(data, dict) and data:
@@ -622,7 +660,7 @@ def _ai_plan(brand, profile, signals, plan, count):
                f"{plan_ctx}\n{geo_rule}\n{banned_rule}\n\n"
                f"REAL SIGNALS (only use these for timely hooks):\n{signal_lines}\n\n"
                f"Produce {count} post ideas that advance the plan's pillars. Vary angles and platforms.",
-        max_tokens=900,
+        max_tokens=2800,  # GPT-5.x reasoning starved this at 900 → empty → generic fallback
     )
     plan_out = _parse_json(out, [])
     cleaned = []
@@ -678,6 +716,7 @@ def write_post(brand, profile, brief):
                        "given angle/fact. Do NOT restate the strategy or the word 'angle' — "
                        "write the actual customer-facing post. 1-3 relevant hashtags, an emoji "
                        "or two, and the CTA. Do not invent facts, claims, or locations. "
+                       "Never use 'not X but Y' / 'it's not X, it's Y' antithesis phrasing. "
                        "Reply with ONLY the caption text.",
                 prompt=f"Business: {brand.name}. Voice: {profile.get('voice')}. "
                        f"What they sell: {profile.get('what_they_sell')}.\n"
@@ -686,7 +725,7 @@ def write_post(brand, profile, brief):
                        f"Call to action: {brief['cta']}",
                 # GPT-5.x spends part of the budget on reasoning; 200 left no room
                 # for the caption and it fell back to a template. Give headroom.
-                max_tokens=700,
+                max_tokens=1000,
             )
             text = _strip_fences(text).strip('"').strip()
             if text:
@@ -707,7 +746,7 @@ def quality_gate(text, profile):
                    "of: coherent, relevant, compelling, fresh, unique, creative, edgy, "
                    "worth_paying. Reply ONLY with a JSON object of those keys to integer scores.",
             prompt=f"Business voice: {profile.get('voice')}\nPost:\n{text}",
-            max_tokens=200,
+            max_tokens=800,  # reasoning headroom so the score JSON isn't starved to empty
         )
         scores = _parse_json(out, {})
         nums = [float(scores.get(c, 0)) for c in QUALITY_CRITERIA if c in scores]
